@@ -55,7 +55,6 @@ data class Trip(
     val distanceKm: Double,
     val avgKmh: Double,
     val maxKmh: Double,
-    val score: Int,
     val from: String,
     val to: String,
     val events: List<TripEvent>,

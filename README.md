@@ -11,7 +11,7 @@ Application Android de diagnostic OBD2 et de suivi de conduite (Kotlin · Jetpac
 - **Trajets automatiques** : un service de premier plan se connecte au boîtier du véhicule actif ; dès que le moteur tourne,
   le trajet est enregistré (tracé GPS, distance, vitesses, freinages / accélérations / virages), puis clôturé à l'arrêt du moteur.
   Affichage sur une carte OpenStreetMap.
-- **Diagnostic** : lecture des codes défaut OBD2 (mémorisés, en attente, permanents), données figées, effacement,
+- **Diagnostic** : lecture des codes défaut (mémorisés, en attente, permanents), données figées, effacement,
   base française des codes génériques.
 - **Tableau de bord** : état de la liaison ; les PIDs propres au modèle seront ajoutés à `data/Templates.kt`.
 

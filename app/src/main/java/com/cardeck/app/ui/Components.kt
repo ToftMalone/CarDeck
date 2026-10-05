@@ -40,7 +40,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -305,13 +304,3 @@ fun ConnDot() {
     Box(Modifier.size(8.dp).alpha(a).clip(CircleShape).background(Cd.c.g))
 }
 
-/** Couleurs (fond, texte) d'un score de conduite. */
-@Composable
-fun scoreColors(score: Int): Pair<Color, Color> {
-    val c = Cd.c
-    return when {
-        score >= 85 -> c.gc to c.ogc
-        score >= 75 -> c.pc to c.opc
-        else -> c.wc to c.owc
-    }
-}

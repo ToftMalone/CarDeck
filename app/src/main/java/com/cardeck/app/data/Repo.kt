@@ -26,7 +26,7 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         db.execSQL(
             """CREATE TABLE trips(id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
                start INTEGER NOT NULL, end_t INTEGER, distance_km REAL NOT NULL DEFAULT 0, avg_kmh REAL NOT NULL DEFAULT 0, max_kmh REAL NOT NULL DEFAULT 0,
-               score INTEGER NOT NULL DEFAULT 100, from_label TEXT NOT NULL DEFAULT '', to_label TEXT NOT NULL DEFAULT '')""",
+               from_label TEXT NOT NULL DEFAULT '', to_label TEXT NOT NULL DEFAULT '')""",
         )
         db.execSQL("CREATE TABLE trip_points(trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE, t INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL)")
         db.execSQL("CREATE INDEX trip_points_trip ON trip_points(trip_id)")
@@ -123,9 +123,9 @@ class Repo(ctx: Context) {
         db.insert("trip_events", null, ContentValues().apply { put("trip_id", tripId); put("t", e.t); put("type", e.type.name); put("lat", e.lat); put("lon", e.lon); put("g", e.g) })
     }
 
-    fun finishTrip(id: Long, end: Long, distanceKm: Double, avgKmh: Double, maxKmh: Double, score: Int, from: String, to: String) {
+    fun finishTrip(id: Long, end: Long, distanceKm: Double, avgKmh: Double, maxKmh: Double, from: String, to: String) {
         db.update("trips", ContentValues().apply {
-            put("end_t", end); put("distance_km", distanceKm); put("avg_kmh", avgKmh); put("max_kmh", maxKmh); put("score", score); put("from_label", from); put("to_label", to)
+            put("end_t", end); put("distance_km", distanceKm); put("avg_kmh", avgKmh); put("max_kmh", maxKmh); put("from_label", from); put("to_label", to)
         }, "id=?", arrayOf(id.toString()))
         bump()
     }
@@ -145,7 +145,7 @@ class Repo(ctx: Context) {
 
     private fun tripFrom(c: Cursor) = Trip(
         c.long("id"), c.long("vehicle_id"), c.long("start"), c.long("end_t"), c.dbl("distance_km"), c.dbl("avg_kmh"), c.dbl("max_kmh"),
-        c.getInt(c.getColumnIndexOrThrow("score")), c.str("from_label") ?: "", c.str("to_label") ?: "", events(c.long("id")),
+        c.str("from_label") ?: "", c.str("to_label") ?: "", events(c.long("id")),
     )
 
     /** Trajets terminés du véhicule, du plus récent au plus ancien. */
@@ -169,8 +169,7 @@ class Repo(ctx: Context) {
             if (pts.size < 2 || dist < 0.2) { deleteTrip(id); return@forEach }
             val end = pts.last().t
             val hours = (end - start) / 3_600_000.0
-            val evs = events(id)
-            finishTrip(id, end, dist, if (hours > 0) dist / hours else 0.0, pts.maxOf { it.speedKmh }, scoreOf(evs), "Position inconnue", "Position inconnue")
+            finishTrip(id, end, dist, if (hours > 0) dist / hours else 0.0, pts.maxOf { it.speedKmh }, "Position inconnue", "Position inconnue")
         }
     }
 
@@ -218,8 +217,3 @@ fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double 
 
 fun pathKm(pts: List<TripPoint>): Double = pts.zipWithNext { a, b -> haversineKm(a.lat, a.lon, b.lat, b.lon) }.sum()
 
-/** Score de conduite : 100 moins une pénalité par événement détecté. */
-fun scoreOf(events: List<TripEvent>): Int {
-    val penalty = events.sumOf { e -> when (e.type) { EventType.Brake -> 6; EventType.Accel -> 4; EventType.Turn -> 3 }.toInt() }
-    return (100 - penalty).coerceIn(0, 100)
-}

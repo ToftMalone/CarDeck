@@ -12,7 +12,6 @@ import com.cardeck.app.data.EventType
 import com.cardeck.app.data.Repo
 import com.cardeck.app.data.TripEvent
 import com.cardeck.app.data.TripPoint
-import com.cardeck.app.data.scoreOf
 import java.util.Locale
 import java.util.concurrent.Executors
 import kotlin.math.abs
@@ -119,7 +118,6 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
         val dist = distanceKm
         val first = firstFix
         val lastLoc = last
-        val evs = events.toList()
         val ptsMax = maxKmh
         io.execute {
             if (dist < 0.2) {
@@ -129,7 +127,7 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
                 val from = first?.let { place(it) } ?: "Position inconnue"
                 val to = lastLoc?.let { place(it) } ?: "Position inconnue"
                 val max = maxOf(ptsMax, repo.points(tripId).maxOfOrNull { it.speedKmh } ?: 0.0)
-                repo.finishTrip(tripId, end, dist, if (hours > 0) dist / hours else 0.0, max, scoreOf(evs), from, to)
+                repo.finishTrip(tripId, end, dist, if (hours > 0) dist / hours else 0.0, max, from, to)
             }
         }
         io.shutdown()

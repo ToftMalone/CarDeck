@@ -207,10 +207,6 @@ fun DiagScreen(vm: AppViewModel) {
                 if (!connected) ConnectAction(vm, v.adapter != null)
             }
 
-            Row(Modifier.fillMaxWidth().padding(top = 20.dp).clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Ico(Icons.Rounded.Info, 20, c.onv)
-                T("Diagnostic OBD2 standard (moteur et antipollution). Les autres calculateurs (ABS, airbags…) nécessitent les commandes spécifiques du constructeur.", 13, c.onv, lineHeight = 18)
-            }
         }
     }
 
@@ -303,7 +299,7 @@ fun DtcDetailScreen(vm: AppViewModel, code: String) {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(20.dp)) {
                 T("Description", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
                 T(
-                    d.desc ?: if (d.known) d.title + "." else "Ce code n'est pas décrit dans la base générique. S'il est propre à Suzuki, sa signification exacte figure dans la documentation constructeur.",
+                    d.desc ?: if (d.known) d.title + "." else "Ce code n'est pas encore décrit dans la base de CarDeck.",
                     14, c.onv, lineHeight = 22,
                 )
             }

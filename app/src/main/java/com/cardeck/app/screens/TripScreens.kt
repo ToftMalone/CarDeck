@@ -32,7 +32,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.Route
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -40,10 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,7 +73,6 @@ import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.ScreenTitle
 import com.cardeck.app.ui.Skeleton
 import com.cardeck.app.ui.T
-import com.cardeck.app.ui.scoreColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -152,12 +148,8 @@ fun TripsScreen(vm: AppViewModel) {
 @Composable
 private fun TripCard(t: Trip, onClick: () -> Unit) {
     val c = Cd.c
-    val (sbg, sfg) = scoreColors(t.score)
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).clickable(onClick = onClick).padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            T("${timeHm(t.start)} – ${timeHm(t.end)}", 16, weight = 500)
-            ScoreChip(t.score, sbg, sfg, 13, 28, 16)
-        }
+        T("${timeHm(t.start)} – ${timeHm(t.end)}", 16, weight = 500)
         Row(Modifier.padding(top = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.padding(top = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(10.dp).clip(CircleShape).border(2.dp, c.g, CircleShape))
@@ -185,13 +177,6 @@ private fun TripCard(t: Trip, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun ScoreChip(score: Int, bg: Color, fg: Color, size: Int, height: Int, icon: Int) {
-    Row(
-        Modifier.height(height.dp).clip(RoundedCornerShape(8.dp)).background(bg).padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) { Ico(Icons.Rounded.Speed, icon, fg); T(score.toString(), size, fg, 600) }
-}
 
 @Composable
 fun TripDetailScreen(vm: AppViewModel, id: Long) {
@@ -224,7 +209,6 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
         IconBtn(Icons.Rounded.Delete, { confirmDelete = true }, c.on, c.sf3, Modifier.align(Alignment.TopEnd).padding(12.dp).shadow(4.dp, CircleShape))
 
         if (t != null) {
-            val (sbg, sfg) = scoreColors(t.score)
             Column(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(sheetFrac)
                     .shadow(8.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(c.sf1),
@@ -233,16 +217,11 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                     Box(Modifier.width(32.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.onv.copy(alpha = .5f)))
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                        Column(Modifier.weight(1f)) {
-                            T("${t.from} → ${t.to}", 22, lineHeight = 28)
-                            T("${dayLabel(t.start)} · ${timeHm(t.start)} – ${timeHm(t.end)}", 14, c.onv, modifier = Modifier.padding(top = 4.dp))
-                        }
-                        ScoreChip(t.score, sbg, sfg, 14, 32, 18)
-                    }
+                    T("${t.from} → ${t.to}", 22, lineHeight = 28)
+                    T("${dayLabel(t.start)} · ${timeHm(t.start)} – ${timeHm(t.end)}", 14, c.onv, modifier = Modifier.padding(top = 4.dp))
                     val stats = listOf(
                         "Durée" to durationLabel(t.end - t.start), "Distance" to "${fr(t.distanceKm, 1)} km", "Vit. moyenne" to "${fr(t.avgKmh)} km/h",
-                        "Vit. max" to "${fr(t.maxKmh)} km/h", "Événements" to t.events.size.toString(), "Score" to "${t.score}/100",
+                        "Vit. max" to "${fr(t.maxKmh)} km/h", "Événements" to t.events.size.toString(),
                     )
                     Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         stats.chunked(3).forEach { row ->
@@ -250,6 +229,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                                 row.forEach { (l, v) ->
                                     Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).padding(12.dp)) { T(l, 12, c.onv); T(v, 18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24) }
                                 }
+                                repeat(3 - row.size) { Box(Modifier.weight(1f)) }
                             }
                         }
                     }
