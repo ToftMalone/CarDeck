@@ -51,6 +51,7 @@ import com.cardeck.app.ui.CarDeckTheme
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.ThemeMode
+import com.cardeck.app.service.TripService
 
 class MainActivity : ComponentActivity() {
     private val vm: AppViewModel by viewModels()
@@ -70,13 +71,19 @@ class MainActivity : ComponentActivity() {
             CarDeckTheme(vm.palette, vm.themeMode) { CarDeckRoot(vm) }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Suivi automatique des trajets du véhicule actif.
+        if (vm.onboarded) TripService.start(this)
+    }
 }
 
 @Composable
 private fun CarDeckRoot(vm: AppViewModel) {
     val c = Cd.c
-    BackHandler(enabled = vm.hud || vm.stack.size > 1) { vm.back() }
-    Box(Modifier.fillMaxSize().background(if (vm.hud) androidx.compose.ui.graphics.Color.Black else c.sf).windowInsetsPadding(WindowInsets.systemBars)) {
+    BackHandler(enabled = vm.stack.size > 1) { vm.back() }
+    Box(Modifier.fillMaxSize().background(c.sf).windowInsetsPadding(WindowInsets.systemBars)) {
         AnimatedContent(
             targetState = vm.screen,
             transitionSpec = { fadeIn(tween(250, delayMillis = 60)) togetherWith fadeOut(tween(150)) },

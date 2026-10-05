@@ -2,18 +2,26 @@
 
 Application Android de diagnostic OBD2 et de suivi de conduite (Kotlin · Jetpack Compose · Material 3).
 
-Écrans : bienvenue, appairage du boîtier OBD2 (Bluetooth / Wi-Fi), ajout de véhicule, accueil, tableau de bord temps réel
-(+ widgets personnalisables et mode HUD), diagnostic (scan, codes défaut, recherche, effacement), historique et détail des trajets,
-paramètres (garage, boîtier, thème clair/sombre/système, 4 couleurs dynamiques).
+## Fonctionnement
 
-> État actuel : les données moteur, le scan, l'appairage et les trajets sont **simulés** (aucune communication ELM327 réelle pour l'instant).
+- **Profils de véhicule** : chaque voiture du garage est un profil créé à partir d'un *modèle* (pour l'instant :
+  Suzuki Swift Sport ZC33S · K14C 1.4 BoosterJet · 140 ch). Trajets, diagnostics et boîtier OBD2 sont rattachés au profil.
+  Le véhicule sélectionné dans le garage est utilisé partout.
+- **Boîtier OBD2 (ELM327)** : Bluetooth classique, Bluetooth LE ou Wi-Fi.
+- **Trajets automatiques** : un service de premier plan se connecte au boîtier du véhicule actif ; dès que le moteur tourne,
+  le trajet est enregistré (tracé GPS, distance, vitesses, freinages / accélérations / virages), puis clôturé à l'arrêt du moteur.
+  Affichage sur une carte OpenStreetMap.
+- **Diagnostic** : lecture des codes défaut OBD2 (mémorisés, en attente, permanents), données figées, effacement,
+  base française des codes génériques.
+- **Tableau de bord** : état de la liaison ; les PIDs propres au modèle seront ajoutés à `data/Templates.kt`.
 
 ## Compiler
 
 Prérequis : JDK 17+ et Android SDK (platform 35).
 
 ```bash
-./gradlew assembleDebug        # APK debug -> app/build/outputs/apk/debug/app-debug.apk (version 0.1)
+./gradlew assembleDebug         # APK debug -> app/build/outputs/apk/debug/app-debug.apk (version 0.1)
+./gradlew testDebugUnitTest     # tests du protocole ELM327
 ```
 
 - Les APK **debug** portent toujours la version **0.1**.
