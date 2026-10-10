@@ -90,6 +90,11 @@ class Repo(ctx: Context) {
         reloadVehicles()
     }
 
+    fun renameVehicle(id: Long, nickname: String) {
+        db.update("vehicles", ContentValues().apply { put("nickname", nickname) }, "id=?", arrayOf(id.toString()))
+        reloadVehicles()
+    }
+
     fun deleteVehicle(id: Long) {
         db.delete("vehicles", "id=?", arrayOf(id.toString()))
         reloadVehicles()

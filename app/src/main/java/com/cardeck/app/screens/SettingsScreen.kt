@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -42,6 +43,7 @@ import com.cardeck.app.Screen
 import com.cardeck.app.data.VehicleProfile
 import com.cardeck.app.ui.BackBar
 import com.cardeck.app.ui.Cd
+import com.cardeck.app.ui.Field
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.Palette
 import com.cardeck.app.ui.SectionLabel
@@ -57,6 +59,8 @@ fun SettingsScreen(vm: AppViewModel) {
     val vehicles by vm.repo.vehicles.collectAsState()
     val active = rememberActiveVehicle(vm)
     var toDelete by remember { mutableStateOf<VehicleProfile?>(null) }
+    var toRename by remember { mutableStateOf<VehicleProfile?>(null) }
+    var newName by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize()) {
         BackBar("Paramètres", scroll.value > 48, { vm.back() })
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
@@ -79,6 +83,7 @@ fun SettingsScreen(vm: AppViewModel) {
                             T(listOf(v.plate, v.template.model + " " + v.template.code, v.year).filter { it.isNotBlank() }.joinToString(" · "), 13, c.onv)
                             T(v.adapter?.let { "Boîtier : ${it.name} (${it.transport.label})" } ?: "Aucun boîtier associé", 12, c.onv)
                         }
+                        Box(Modifier.size(48.dp).clip(CircleShape).clickable { newName = v.nickname; toRename = v }, contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Edit, 22, c.onv) }
                         Box(Modifier.size(48.dp).clip(CircleShape).clickable { toDelete = v }, contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DeleteOutline, 22, c.onv) }
                     }
                 }
@@ -126,6 +131,19 @@ fun SettingsScreen(vm: AppViewModel) {
             }
             T("CarDeck ${BuildConfig.VERSION_NAME}", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 24.dp))
         }
+    }
+
+    toRename?.let { v ->
+        AlertDialog(
+            onDismissRequest = { toRename = null },
+            containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+            title = { T("Renommer le véhicule", 22, lineHeight = 28) },
+            text = { Field("Nom du profil", newName, { newName = it }) },
+            confirmButton = {
+                TextButton({ vm.repo.renameVehicle(v.id, newName.trim()); toRename = null }, enabled = newName.isNotBlank()) { T("Enregistrer", 14, c.p, 600) }
+            },
+            dismissButton = { TextButton({ toRename = null }) { T("Annuler", 14, c.p, 500) } },
+        )
     }
 
     toDelete?.let { v ->
