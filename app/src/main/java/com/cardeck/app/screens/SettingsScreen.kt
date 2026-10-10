@@ -72,27 +72,25 @@ fun SettingsScreen(vm: AppViewModel) {
                     val sel = v.id == active?.id
                     Row(
                         Modifier.fillMaxWidth().background(c.sf1).clickable { vm.repo.select(v.id) }.heightIn(min = 72.dp).padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Box(Modifier.size(20.dp).clip(CircleShape).border(2.dp, if (sel) c.p else c.onv, CircleShape), contentAlignment = Alignment.Center) {
                             if (sel) Box(Modifier.size(10.dp).clip(CircleShape).background(c.p))
                         }
-                        Box(Modifier.size(40.dp).clip(CircleShape).background(c.sc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 22, c.osc) }
                         Column(Modifier.weight(1f)) {
-                            T(v.nickname, 16)
-                            T(listOf(v.plate, v.template.model + " " + v.template.code, v.year).filter { it.isNotBlank() }.joinToString(" · "), 13, c.onv)
-                            T(v.adapter?.let { "Boîtier : ${it.name} (${it.transport.label})" } ?: "Aucun boîtier associé", 12, c.onv)
+                            T(v.nickname, 16, maxLines = 1)
+                            T(listOf(v.plate, v.template.model + " " + v.template.code, v.year).filter { it.isNotBlank() }.joinToString(" · "), 13, c.onv, maxLines = 1)
+                            T(v.adapter?.let { "Boîtier : ${it.name} (${it.transport.label})" } ?: "Aucun boîtier associé", 12, c.onv, maxLines = 1)
                         }
-                        Box(Modifier.size(48.dp).clip(CircleShape).clickable { newName = v.nickname; toRename = v }, contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Edit, 22, c.onv) }
-                        Box(Modifier.size(48.dp).clip(CircleShape).clickable { toDelete = v }, contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DeleteOutline, 22, c.onv) }
+                        Box(Modifier.size(40.dp).clip(CircleShape).clickable { newName = v.nickname; toRename = v }, contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Edit, 22, c.onv) }
+                        Box(Modifier.size(40.dp).clip(CircleShape).clickable { toDelete = v }, contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DeleteOutline, 22, c.onv) }
                     }
                 }
                 Row(
                     Modifier.fillMaxWidth().background(c.sf1).clickable { vm.go(Screen.AddVehicle) }.heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(Modifier.size(20.dp))
-                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Add, 24, c.p) }
+                    Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Add, 24, c.p) }
                     T("Ajouter un véhicule", 16, c.p, 500)
                 }
             }
