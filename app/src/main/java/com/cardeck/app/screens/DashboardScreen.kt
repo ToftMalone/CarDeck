@@ -1,5 +1,8 @@
 package com.cardeck.app.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import com.cardeck.app.ui.ArcGauge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cardeck.app.AppViewModel
+import com.cardeck.app.data.PidDef
+import com.cardeck.app.data.StdPids
 import com.cardeck.app.data.fr
 import com.cardeck.app.obd.ObdState
 import com.cardeck.app.ui.Cd
@@ -63,14 +68,26 @@ fun DashboardScreen(vm: AppViewModel) {
             delay(5000)
         }
     }
-    // PIDs du modèle (liste propre à chaque modèle de véhicule).
+    val supported by vm.obd.supported.collectAsState()
+    // Lecture en continu : PIDs standard déclarés par le véhicule + PIDs propres au modèle.
     LaunchedEffect(connected, tpl.id) {
-        if (!connected || tpl.pids.isEmpty()) return@LaunchedEffect
+        if (!connected) return@LaunchedEffect
+        var cycle = 0
         while (true) {
-            for (p in tpl.pids) {
-                withContext(Dispatchers.IO) { vm.obd.use { it.query(p.request, p.header) } }?.let { values[p.id] = p.decode(it) }
+            var sup = vm.obd.supported.value
+            if (sup == null) {
+                sup = withContext(Dispatchers.IO) { vm.obd.use { it.supportedPids() } }
+                if (sup.isNullOrEmpty()) { delay(5000); continue }
+                vm.obd.supported.value = sup
             }
-            delay(250)
+            val list = StdPids.all.filter { StdPids.pidNumber(it) in sup } + tpl.pids
+            for (p in list) {
+                if (p.slow && cycle % 6 != 0) continue
+                val bytes = withContext(Dispatchers.IO) { vm.obd.use { it.query(p.request, p.header) } }
+                if (bytes != null && bytes.size >= p.size) runCatching { p.decode(bytes) }.getOrNull()?.let { values[p.id] = it }
+            }
+            cycle++
+            delay(100)
         }
     }
 
@@ -108,44 +125,93 @@ fun DashboardScreen(vm: AppViewModel) {
                     if (connKind == ConnKind.Off) TextBtn("Se connecter", { vm.connectNow() })
                 }
             }
+            val sup = supported
+            val std = if (sup == null) emptyList() else StdPids.all.filter { StdPids.pidNumber(it) in sup }
+            val gauges = std.filter { it in StdPids.headline }
+            val cards = std.filter { it !in StdPids.headline }
             T("Données moteur", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
-            if (tpl.pids.isEmpty()) {
-                Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).border(1.dp, c.olv, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(Modifier.size(64.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.HourglassEmpty, 30, c.onv) }
-                    T("Données moteur à venir", 18, weight = 500, modifier = Modifier.padding(top = 16.dp))
-                    T(
-                        "La liste des PIDs propres à la ${tpl.fullName} n'est pas encore intégrée. Le tableau de bord affichera ici les valeurs exactes de votre voiture.",
-                        14, c.onv, align = TextAlign.Center, lineHeight = 20, modifier = Modifier.padding(top = 6.dp),
-                    )
+            when {
+                !connected -> EmptyNote(Icons.Rounded.HourglassEmpty, "Boîtier non connecté", "Connectez le boîtier OBD2 pour lire les données du moteur.")
+                sup == null -> EmptyNote(Icons.Rounded.HourglassEmpty, "Lecture des données disponibles…", "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.")
+                std.isEmpty() -> EmptyNote(Icons.Rounded.HourglassEmpty, "Aucune donnée standard", "Ce véhicule ne déclare aucun PID OBD2 standard.")
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        gauges.chunked(2).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { g -> GaugeCard(g, values[g.id], Modifier.weight(1f)) }
+                                if (row.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                        cards.chunked(2).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
+                                if (row.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                    T("${std.size} données standard fournies par le véhicule", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
                 }
-            } else {
+            }
+            if (tpl.pids.isNotEmpty()) {
+                T("Données spécifiques · ${tpl.model}", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     tpl.pids.chunked(2).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            row.forEach { p ->
-                                Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).border(1.dp, c.olv, RoundedCornerShape(20.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(c.sc), contentAlignment = Alignment.Center) { Ico(p.icon, 18, c.osc) }
-                                        T(p.label, 12, c.onv, lineHeight = 16)
-                                    }
-                                    val value = values[p.id]
-                                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        T(value?.let { fr(it, p.decimals) } ?: "—", 24, weight = 500, lineHeight = 32)
-                                        T(p.unit, 12, c.onv, modifier = Modifier.padding(bottom = 4.dp))
-                                    }
-                                    val pct = value?.let { ((it - p.min) / (p.max - p.min)).toFloat().coerceIn(0f, 1f) } ?: 0f
-                                    Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.sf4)) {
-                                        Box(Modifier.fillMaxWidth(pct).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(c.p))
-                                    }
-                                }
-                            }
+                            row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
                             if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyNote(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, text: String) {
+    val c = Cd.c
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).border(1.dp, c.olv, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.size(56.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Ico(icon, 28, c.onv) }
+        T(title, 16, weight = 500, modifier = Modifier.padding(top = 14.dp))
+        T(text, 14, c.onv, align = TextAlign.Center, lineHeight = 20, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+@Composable
+private fun PidCard(p: PidDef, value: Double?, modifier: Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(20.dp)).border(1.dp, c.olv, RoundedCornerShape(20.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(c.sc), contentAlignment = Alignment.Center) { Ico(p.icon, 18, c.osc) }
+            T(p.label, 12, c.onv, lineHeight = 16, modifier = Modifier.weight(1f))
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            T(value?.let { fr(it, p.decimals) } ?: "—", 24, weight = 500, lineHeight = 32)
+            T(p.unit, 12, c.onv, modifier = Modifier.padding(bottom = 4.dp))
+        }
+        val pct by animateFloatAsState(value?.let { ((it - p.min) / (p.max - p.min)).toFloat().coerceIn(0f, 1f) } ?: 0f, tween(500), label = "pid")
+        Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.sf4)) {
+            Box(Modifier.fillMaxWidth(pct).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(c.p))
+        }
+    }
+}
+
+@Composable
+private fun GaugeCard(p: PidDef, value: Double?, modifier: Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Ico(p.icon, 18, c.p)
+            T(p.label, 12, c.onv, 500)
+        }
+        Box(Modifier.padding(top = 4.dp).size(138.dp), contentAlignment = Alignment.Center) {
+            ArcGauge(value?.let { ((it - p.min) / (p.max - p.min)).toFloat() } ?: 0f, c.p, 8f, Modifier.fillMaxSize())
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                T(value?.let { fr(it, p.decimals) } ?: "—", 30, weight = 500, lineHeight = 36, spacing = -.5f)
+                T(p.unit, 12, c.onv)
             }
         }
     }

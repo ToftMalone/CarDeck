@@ -17,6 +17,10 @@ data class PidDef(
     val decimals: Int = 0,
     val min: Double = 0.0,
     val max: Double = 100.0,
+    /** Lu moins souvent (valeur qui varie peu). */
+    val slow: Boolean = false,
+    /** Nombre minimal d'octets de données attendus (réponse trop courte ignorée). */
+    val size: Int = 1,
     val decode: (IntArray) -> Double,
 )
 

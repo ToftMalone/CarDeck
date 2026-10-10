@@ -30,6 +30,9 @@ class ObdManager(private val ctx: Context) {
     val voltage = MutableStateFlow<Double?>(null)
     val protocol = MutableStateFlow<String?>(null)
 
+    /** PIDs standard déclarés par le véhicule (null tant qu'on ne les a pas lus). */
+    val supported = MutableStateFlow<Set<Int>?>(null)
+
     /** Pendant l'appairage, le service de trajets laisse la main à l'écran d'appairage. */
     @Volatile var pairing = false
 
@@ -92,5 +95,6 @@ class ObdManager(private val ctx: Context) {
         elm = null
         ecuOnline.value = false
         voltage.value = null
+        supported.value = null
     }
 }

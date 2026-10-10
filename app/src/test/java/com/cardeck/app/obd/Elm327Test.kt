@@ -87,6 +87,31 @@ class Elm327Test {
         assertEquals("91 °C", ff[2])
     }
 
+    @Test fun pidsSupportes() = runBlocking {
+        val e = elm(mapOf("0120" to "41 20 80 00 00 01", "0140" to "41 40 00 00 00 00"))
+        val sup = e.supportedPids()!!
+        assertTrue(0x0C in sup && 0x0D in sup && 0x05 in sup)
+        assertTrue(0x21 in sup)
+        assertTrue(0x08 !in sup)
+        assertTrue(0x40 in sup)
+    }
+
+    @Test fun pidsSupportesInjoignable() = runBlocking {
+        val e = Elm327(FakeElm(mapOf("0100" to "UNABLE TO CONNECT")))
+        assertNull(e.supportedPids())
+    }
+
+    @Test fun decodageStandard() {
+        val rpm = com.cardeck.app.data.StdPids.all.first { it.request == "010C" }
+        assertEquals(1726.0, rpm.decode(intArrayOf(0x1A, 0xF8)), 0.01)
+        val temp = com.cardeck.app.data.StdPids.all.first { it.request == "0105" }
+        assertEquals(91.0, temp.decode(intArrayOf(0x83)), 0.01)
+        val maf = com.cardeck.app.data.StdPids.all.first { it.request == "0110" }
+        assertEquals(12.34, maf.decode(intArrayOf(0x04, 0xD2)), 0.01)
+        val trim = com.cardeck.app.data.StdPids.all.first { it.request == "0106" }
+        assertEquals(0.0, trim.decode(intArrayOf(128)), 0.01)
+    }
+
     @Test fun effacement() = runBlocking {
         assertTrue(elm(mapOf("04" to "44")).clearDtcs())
     }

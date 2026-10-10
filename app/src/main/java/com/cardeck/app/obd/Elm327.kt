@@ -92,6 +92,32 @@ class Elm327(private val t: ObdTransport) {
         }
     }
 
+    /** PIDs du service 01 que le véhicule déclare supporter (union des calculateurs), ou null si injoignable. */
+    suspend fun supportedPids(): Set<Int>? {
+        val out = mutableSetOf<Int>()
+        var base = 0
+        while (base <= 0x60) {
+            val p = "%02X".format(base)
+            val r = raw("01$p", 10000)
+            if (isError(r)) return if (base == 0) null else out
+            var got = false
+            for (line in r.lines()) {
+                val tk = tokens(line)
+                val i = tk.windowed(2).indexOfFirst { it[0] == "41" && it[1] == p }
+                if (i < 0 || tk.size < i + 6) continue
+                got = true
+                for (b in 0..3) {
+                    val v = tk[i + 2 + b].toInt(16)
+                    for (bit in 0..7) if (v and (0x80 shr bit) != 0) out += base + b * 8 + bit + 1
+                }
+            }
+            if (!got) return if (base == 0) null else out
+            if ((base + 0x20) !in out) break
+            base += 0x20
+        }
+        return out
+    }
+
     suspend fun rpm(): Double? = pid01(0x0C)?.takeIf { it.size >= 2 }?.let { (it[0] * 256 + it[1]) / 4.0 }
 
     suspend fun speed(): Int? = pid01(0x0D)?.firstOrNull()

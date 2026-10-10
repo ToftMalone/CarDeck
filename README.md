@@ -13,7 +13,7 @@ Application Android de diagnostic OBD2 et de suivi de conduite (Kotlin · Jetpac
   Affichage sur une carte OpenStreetMap.
 - **Diagnostic** : lecture des codes défaut (mémorisés, en attente, permanents), données figées, effacement,
   base française des codes génériques.
-- **Tableau de bord** : état de la liaison ; les PIDs propres au modèle seront ajoutés à `data/Templates.kt`.
+- **Tableau de bord** : état de la liaison + lecture de tous les PIDs standard OBD2 (service 01) que le véhicule déclare supporter (régime, vitesse, températures, charge, MAP/MAF, corrections carburant, etc.). Les PIDs propres au modèle s'ajoutent dans `data/Templates.kt`.
 
 ## Compiler
 
