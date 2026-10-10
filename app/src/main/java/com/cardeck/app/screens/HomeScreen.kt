@@ -76,10 +76,10 @@ fun HomeScreen(vm: AppViewModel) {
     val tiles = listOf(
         Tile("Tableau de bord", Icons.Rounded.Dashboard, 'p', { vm.go(Screen.Dash) }),
         Tile("Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
-        Tile("Trajets", Icons.Rounded.Route, 't', { vm.go(Screen.Trips) }),
-        Tile("Ajouter un véhicule", Icons.Rounded.AddCircle, 's', { vm.go(Screen.AddVehicle) }),
-        Tile("Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 's', { vm.pairActive() }),
-        Tile("Paramètres", Icons.Rounded.Settings, 's', { vm.go(Screen.Settings) }),
+        Tile("Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
+        Tile("Ajouter un véhicule", Icons.Rounded.AddCircle, 'p', { vm.go(Screen.AddVehicle) }),
+        Tile("Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 'p', { vm.pairActive() }),
+        Tile("Paramètres", Icons.Rounded.Settings, 'p', { vm.go(Screen.Settings) }),
     )
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -160,7 +160,8 @@ private fun TripPermissionCard() {
 
 @Composable
 private fun TileCard(t: Tile, c: CdColors, modifier: Modifier) {
-    val (bg, fg) = when (t.kind) { 'p' -> c.pc to c.opc; 't' -> c.tc to c.otc; else -> c.sc to c.osc }
+    val bg = c.pc
+    val fg = c.opc
     Box(
         modifier.height(116.dp).clip(RoundedCornerShape(20.dp)).background(c.sf2).clickable(onClick = t.onClick).padding(start = 6.dp, end = 6.dp, top = 16.dp, bottom = 14.dp),
     ) {

@@ -50,6 +50,19 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     pids = emptyList(),
 )
 
-val TEMPLATES = listOf(SWIFT_SPORT_ZC33S)
+val KIA_PICANTO_TA = VehicleTemplate(
+    id = "kia-picanto-ta-g3la",
+    brand = "Kia",
+    model = "Picanto 1.0",
+    code = "TA",
+    engine = "G3LA 1.0 Kappa MPI",
+    power = "69 ch",
+    fuel = "Essence",
+    protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
+    // Liste des PIDs Picanto à intégrer (à fournir ultérieurement).
+    pids = emptyList(),
+)
+
+val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA)
 
 fun templateById(id: String): VehicleTemplate = TEMPLATES.find { it.id == id } ?: SWIFT_SPORT_ZC33S

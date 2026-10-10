@@ -5,7 +5,7 @@ Application Android de diagnostic OBD2 et de suivi de conduite (Kotlin · Jetpac
 ## Fonctionnement
 
 - **Profils de véhicule** : chaque voiture du garage est un profil créé à partir d'un *modèle* (pour l'instant :
-  Suzuki Swift Sport ZC33S · K14C 1.4 BoosterJet · 140 ch). Trajets, diagnostics et boîtier OBD2 sont rattachés au profil.
+  Suzuki Swift Sport ZC33S · K14C 1.4 BoosterJet · 140 ch ; Kia Picanto 1.0 TA · G3LA · 69 ch). Trajets, diagnostics et boîtier OBD2 sont rattachés au profil.
   Le véhicule sélectionné dans le garage est utilisé partout.
 - **Boîtier OBD2 (ELM327)** : Bluetooth classique, Bluetooth LE ou Wi-Fi.
 - **Trajets automatiques** : un service de premier plan se connecte au boîtier du véhicule actif ; dès que le moteur tourne,

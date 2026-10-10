@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import com.cardeck.app.data.AdapterConfig
 import com.cardeck.app.data.FoundCode
 import com.cardeck.app.data.Prefs
-import com.cardeck.app.data.SWIFT_SPORT_ZC33S
 import com.cardeck.app.service.TripService
 import com.cardeck.app.ui.Palette
 import com.cardeck.app.ui.ThemeMode
@@ -73,8 +72,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var pairVehicleId by mutableStateOf<Long?>(null)
         private set
 
-    fun createVehicle(nickname: String, plate: String, year: String) {
-        val id = repo.addVehicle(SWIFT_SPORT_ZC33S.id, nickname, plate, year)
+    fun createVehicle(templateId: String, nickname: String, plate: String, year: String) {
+        val id = repo.addVehicle(templateId, nickname, plate, year)
         repo.select(id)
         pairVehicleId = id
         // Hors onboarding, le retour depuis l'appairage ne doit pas recréer le profil.

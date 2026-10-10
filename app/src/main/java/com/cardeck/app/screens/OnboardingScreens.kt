@@ -61,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -69,7 +70,8 @@ import com.cardeck.app.AppViewModel
 import com.cardeck.app.Perms
 import com.cardeck.app.Screen
 import com.cardeck.app.data.AdapterConfig
-import com.cardeck.app.data.SWIFT_SPORT_ZC33S
+import com.cardeck.app.data.TEMPLATES
+import com.cardeck.app.data.VehicleTemplate
 import com.cardeck.app.data.Transport
 import com.cardeck.app.data.fr
 import com.cardeck.app.ui.ArcGauge
@@ -132,9 +134,14 @@ private fun StepBar(step: Int, onBack: () -> Unit, showSteps: Boolean) {
 @Composable
 fun AddVehicleScreen(vm: AppViewModel) {
     val c = Cd.c
-    val tpl = SWIFT_SPORT_ZC33S
-    val count = vm.repo.vehicles.collectAsState().value.count { it.templateId == tpl.id }
-    var nickname by remember { mutableStateOf(if (count == 0) tpl.model else "${tpl.model} ${count + 1}") }
+    val vehicles = vm.repo.vehicles.collectAsState().value
+    var tpl by remember { mutableStateOf(TEMPLATES.first()) }
+    fun defaultName(t: VehicleTemplate): String {
+        val n = vehicles.count { it.templateId == t.id }
+        return if (n == 0) t.model else "${t.model} ${n + 1}"
+    }
+    var nickname by remember { mutableStateOf(defaultName(tpl)) }
+    var nameEdited by remember { mutableStateOf(false) }
     var plate by remember { mutableStateOf("") }
     var year by remember { mutableStateOf("") }
 
@@ -143,24 +150,30 @@ fun AddVehicleScreen(vm: AppViewModel) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 16.dp)) {
             T("Votre véhicule", 28, lineHeight = 36, modifier = Modifier.padding(bottom = 8.dp))
             T("Choisissez le modèle : il apporte ses fonctionnalités dédiées (données moteur, diagnostic…).", 14, c.onv, lineHeight = 20, modifier = Modifier.padding(bottom = 20.dp))
-            // Modèle disponible (un seul pour le moment)
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sc).border(2.dp, c.p, RoundedCornerShape(20.dp)).padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Box(Modifier.size(48.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 26, c.op) }
-                Column(Modifier.weight(1f)) {
-                    T(tpl.fullName, 16, c.osc, 600)
-                    T(tpl.specs, 13, c.osc)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TEMPLATES.forEach { t ->
+                    val sel = t.id == tpl.id
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (sel) c.sc else c.sf1)
+                            .border(2.dp, if (sel) c.p else Color.Transparent, RoundedCornerShape(20.dp))
+                            .clickable { tpl = t; if (!nameEdited) nickname = defaultName(t) }.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Box(Modifier.size(48.dp).clip(CircleShape).background(if (sel) c.p else c.sf4), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 26, if (sel) c.op else c.onv) }
+                        Column(Modifier.weight(1f)) {
+                            T(t.fullName, 16, if (sel) c.osc else c.on, 600)
+                            T(t.specs, 13, if (sel) c.osc else c.onv)
+                        }
+                        if (sel) Ico(Icons.Rounded.CheckCircle, 24, c.p)
+                    }
                 }
-                Ico(Icons.Rounded.CheckCircle, 24, c.p)
             }
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Ico(Icons.Rounded.Info, 20, c.onv)
                 T("Plusieurs ${tpl.model} ? Créez un profil par voiture : chacune garde ses trajets, ses diagnostics et son boîtier OBD2.", 13, c.onv, lineHeight = 18)
             }
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Field("Nom du profil", nickname, { nickname = it })
+                Field("Nom du profil", nickname, { nickname = it; nameEdited = true })
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Field("Immatriculation", plate, { plate = it.uppercase() }, Modifier.weight(1.4f), mono = true)
                     Field("Année", year, { year = it.filter(Char::isDigit).take(4) }, Modifier.weight(1f), number = true)
@@ -168,7 +181,7 @@ fun AddVehicleScreen(vm: AppViewModel) {
             }
         }
         Box(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 16.dp)) {
-            FilledBtn("Continuer", { vm.createVehicle(nickname.trim(), plate.trim(), year.trim()) }, enabled = nickname.isNotBlank())
+            FilledBtn("Continuer", { vm.createVehicle(tpl.id, nickname.trim(), plate.trim(), year.trim()) }, enabled = nickname.isNotBlank())
         }
     }
 }
