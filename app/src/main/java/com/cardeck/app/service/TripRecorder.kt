@@ -49,6 +49,14 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
     }
 
     /** Vitesse lue sur le véhicule (PID 0D) : distance de secours sans GPS + vitesse max. */
+    @Volatile private var finished = false
+
+    /** Valeurs moteur lues pendant le trajet. */
+    fun addSamples(t: Long, values: List<Pair<String, Double>>) {
+        if (finished || values.isEmpty()) return
+        runCatching { io.execute { repo.addSamples(tripId, t, values) } }
+    }
+
     @Synchronized
     fun onObdSpeed(kmh: Int?) {
         val now = System.currentTimeMillis()
@@ -112,6 +120,7 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
     /** Termine le trajet ; les trajets de moins de 200 m sont supprimés. */
     @Synchronized
     fun finish() {
+        finished = true
         runCatching { lm?.removeUpdates(listener) }
         flush()
         val end = System.currentTimeMillis()

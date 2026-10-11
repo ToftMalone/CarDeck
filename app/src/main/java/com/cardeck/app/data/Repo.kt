@@ -13,7 +13,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, 2) {
+private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, 3) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -36,11 +36,18 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
                t INTEGER NOT NULL, ecus INTEGER NOT NULL, ff_code TEXT, ff_values TEXT)""",
         )
         createCodingTables(db)
+        createSampleTables(db)
         db.execSQL("CREATE TABLE scan_codes(scan_id INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE, code TEXT NOT NULL, status TEXT NOT NULL, ecu TEXT NOT NULL)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) createCodingTables(db)
+        if (oldVersion < 3) createSampleTables(db)
+    }
+
+    private fun createSampleTables(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE trip_samples(trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE, t INTEGER NOT NULL, pid TEXT NOT NULL, value REAL NOT NULL)")
+        db.execSQL("CREATE INDEX trip_samples_trip ON trip_samples(trip_id)")
     }
 
     private fun createCodingTables(db: SQLiteDatabase) {
@@ -133,6 +140,28 @@ class Repo(ctx: Context) {
             db.endTransaction()
         }
     }
+
+    /** Enregistre les valeurs moteur lues à l'instant [t]. */
+    fun addSamples(tripId: Long, t: Long, values: List<Pair<String, Double>>) {
+        if (values.isEmpty()) return
+        db.beginTransaction()
+        try {
+            values.forEach { (pid, v) ->
+                db.insert("trip_samples", null, ContentValues().apply { put("trip_id", tripId); put("t", t); put("pid", pid); put("value", v) })
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Historique des données moteur d'un trajet, par donnée, trié dans le temps. */
+    fun samples(tripId: Long): Map<String, List<Sample>> =
+        db.rawQuery("SELECT pid, t, value FROM trip_samples WHERE trip_id=? ORDER BY t", arrayOf(tripId.toString())).use { c ->
+            val out = LinkedHashMap<String, MutableList<Sample>>()
+            while (c.moveToNext()) out.getOrPut(c.getString(0)) { mutableListOf() }.add(Sample(c.getLong(1), c.getDouble(2)))
+            out
+        }
 
     fun addEvent(tripId: Long, e: TripEvent) {
         db.insert("trip_events", null, ContentValues().apply { put("trip_id", tripId); put("t", e.t); put("type", e.type.name); put("lat", e.lat); put("lon", e.lon); put("g", e.g) })

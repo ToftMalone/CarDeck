@@ -152,6 +152,12 @@ class Elm327Test {
         assertEquals(listOf(0xFF, 0xF7, 0x00), d.applyTo(data, 0x04).toList())
     }
 
+    @Test fun categoriesPids() {
+        val all = com.cardeck.app.data.StdPids.all
+        assertTrue(all.all { it.category in com.cardeck.app.data.StdPids.CATEGORIES })
+        assertEquals("std0C", com.cardeck.app.data.pidById("std0C")!!.id)
+    }
+
     @Test fun effacement() = runBlocking {
         assertTrue(elm(mapOf("04" to "44")).clearDtcs())
     }

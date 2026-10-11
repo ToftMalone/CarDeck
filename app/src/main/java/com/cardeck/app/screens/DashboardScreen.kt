@@ -142,26 +142,28 @@ fun DashboardScreen(vm: AppViewModel) {
                                 if (row.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
-                        cards.chunked(2).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
-                                if (row.size == 1) Spacer(Modifier.weight(1f))
-                            }
-                        }
+                    }
+                    StdPids.CATEGORIES.forEach { cat ->
+                        val inCat = cards.filter { it.category == cat }
+                        if (inCat.isNotEmpty()) PidSection(cat, inCat, values)
                     }
                     T("${std.size} données standard fournies par le véhicule", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
                 }
             }
-            if (tpl.pids.isNotEmpty()) {
-                T("Données spécifiques · ${tpl.model}", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    tpl.pids.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
-                        }
-                    }
-                }
+            tpl.pids.groupBy { it.category }.forEach { (cat, list) -> PidSection("$cat · ${tpl.model}", list, values) }
+        }
+    }
+}
+
+/** Titre de catégorie + cartes des données correspondantes. */
+@Composable
+private fun PidSection(title: String, pids: List<PidDef>, values: Map<String, Double>) {
+    T(title, 14, Cd.c.p, 500, Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        pids.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }

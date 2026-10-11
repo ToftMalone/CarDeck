@@ -7,6 +7,16 @@ import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,6 +52,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +71,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.cardeck.app.AppViewModel
 import com.cardeck.app.Screen
 import com.cardeck.app.data.EventType
+import com.cardeck.app.data.Sample
+import com.cardeck.app.data.StdPids
+import com.cardeck.app.data.PidDef
+import com.cardeck.app.data.pidById
 import com.cardeck.app.data.Trip
 import com.cardeck.app.data.TripEvent
 import com.cardeck.app.data.TripPoint
@@ -187,8 +203,25 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
     LaunchedEffect(id) { trip = withContext(Dispatchers.IO) { vm.repo.trip(id) } }
     var points by remember(id) { mutableStateOf<List<TripPoint>?>(null) }
     LaunchedEffect(id) { points = withContext(Dispatchers.IO) { vm.repo.points(id) } }
+    var samples by remember(id) { mutableStateOf<Map<String, List<Sample>>>(emptyMap()) }
+    LaunchedEffect(id) { samples = withContext(Dispatchers.IO) { vm.repo.samples(id) } }
     var sheetUp by remember { mutableStateOf(false) }
     var evSel by remember { mutableStateOf<Int?>(null) }
+    // Replay : instant affiché (null = pas de replay), lecture en cours, vitesse de lecture.
+    var replayT by remember(id) { mutableStateOf<Long?>(null) }
+    var playing by remember(id) { mutableStateOf(false) }
+    var speedX by remember { mutableIntStateOf(10) }
+    LaunchedEffect(playing, speedX, trip) {
+        val tr = trip ?: return@LaunchedEffect
+        if (!playing) return@LaunchedEffect
+        var last = withFrameMillis { it }
+        while (playing) {
+            val now = withFrameMillis { it }
+            val cur = (replayT ?: tr.start) + (now - last) * speedX
+            last = now
+            if (cur >= tr.end) { replayT = tr.end; playing = false } else replayT = cur
+        }
+    }
     var confirmDelete by remember { mutableStateOf(false) }
     val sheetFrac by animateFloatAsState(if (sheetUp) .8f else .46f, tween(450), label = "sheet")
     val t = trip
@@ -198,7 +231,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
         Box(Modifier.fillMaxWidth().height(mapH).background(c.sf2)) {
             val pts = points
             if (pts != null && pts.size >= 2 && t != null) {
-                TripMap(t.id, pts, t.events, evSel, { evSel = if (evSel == it) null else it }, Modifier.fillMaxSize())
+                TripMap(t.id, pts, t.events, evSel, { evSel = if (evSel == it) null else it }, Modifier.fillMaxSize(), replayT?.let { positionAt(pts, it) }, playing)
             } else if (pts != null) {
                 Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Ico(Icons.Rounded.LocationOff, 36, c.onv)
@@ -221,6 +254,13 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
                     T("${t.from} → ${t.to}", 22, lineHeight = 28)
                     T("${dayLabel(t.start)} · ${timeHm(t.start)} – ${timeHm(t.end)}", 14, c.onv, modifier = Modifier.padding(top = 4.dp))
+                    ReplayBar(
+                        t, replayT, playing, speedX,
+                        onPlay = { if (replayT == null || replayT!! >= t.end) replayT = t.start; playing = !playing; sheetUp = false },
+                        onSeek = { f -> replayT = t.start + ((t.end - t.start) * f).toLong() },
+                        onSpeed = { speedX = REPLAY_SPEEDS[(REPLAY_SPEEDS.indexOf(speedX) + 1) % REPLAY_SPEEDS.size] },
+                        onStop = { playing = false; replayT = null },
+                    )
                     val stats = listOf(
                         "Durée" to durationLabel(t.end - t.start), "Distance" to "${fr(t.distanceKm, 1)} km", "Vit. moyenne" to "${fr(t.avgKmh)} km/h",
                         "Vit. max" to "${fr(t.maxKmh)} km/h", "Événements" to t.events.size.toString(),
@@ -256,6 +296,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                             }
                         }
                     }
+                    EngineHistory(t, samples, replayT)
                 }
             }
         }
@@ -288,7 +329,10 @@ private fun dot(ctx: Context, sizeDp: Int, fill: Int, border: Int): BitmapDrawab
 
 /** Carte OpenStreetMap avec le tracé GPS réel, le départ, l'arrivée et les événements. */
 @Composable
-private fun TripMap(tripId: Long, points: List<TripPoint>, events: List<TripEvent>, selected: Int?, onEvent: (Int) -> Unit, modifier: Modifier) {
+private fun TripMap(
+    tripId: Long, points: List<TripPoint>, events: List<TripEvent>, selected: Int?, onEvent: (Int) -> Unit, modifier: Modifier,
+    cursor: GeoPoint? = null, follow: Boolean = false,
+) {
     val c = Cd.c
     val ctx = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -319,6 +363,9 @@ private fun TripMap(tripId: Long, points: List<TripPoint>, events: List<TripEven
     }
     val geo = remember(tripId, points) { points.map { GeoPoint(it.lat, it.lon) } }
     var fitted by remember(tripId) { mutableStateOf(false) }
+    // Signature des calques fixes : on ne les reconstruit que si elle change (pas à chaque image du replay).
+    val staticSig = remember { arrayOf("") }
+    val cursorMarker = remember { Marker(map).apply { setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER); infoWindow = null } }
 
     LaunchedEffect(selected) {
         val e = selected?.let { events.getOrNull(it) } ?: return@LaunchedEffect
@@ -326,9 +373,13 @@ private fun TripMap(tripId: Long, points: List<TripPoint>, events: List<TripEven
     }
 
     AndroidView(factory = { map }, modifier = modifier, update = { m ->
+        val density = ctx.resources.displayMetrics.density
+        val sig = "$tripId|$selected|${c.dark}|${c.p.toArgb()}"
+        if (sig != staticSig[0]) {
+        staticSig[0] = sig
         m.overlayManager.tilesOverlay.setColorFilter(if (c.dark) TilesOverlay.INVERT_COLORS else null)
         m.overlays.clear()
-        val density = ctx.resources.displayMetrics.density
+        cursorMarker.setIcon(dot(ctx, 26, c.t.toArgb(), android.graphics.Color.WHITE))
         m.overlays.add(Polyline(m).apply {
             setPoints(geo)
             outlinePaint.color = c.p.toArgb()
@@ -351,6 +402,15 @@ private fun TripMap(tripId: Long, points: List<TripPoint>, events: List<TripEven
             val (_, _, mk) = evColors(e.type, c)
             m.overlays.add(marker(GeoPoint(e.lat, e.lon), dot(ctx, if (selected == i) 30 else 22, mk.toArgb(), white)) { onEvent(i) })
         }
+        }
+        // Marqueur du replay
+        if (cursor != null) {
+            cursorMarker.position = cursor
+            if (cursorMarker !in m.overlays) m.overlays.add(cursorMarker)
+            if (follow) m.controller.setCenter(cursor)
+        } else {
+            m.overlays.remove(cursorMarker)
+        }
         if (!fitted) {
             fitted = true
             val box = BoundingBox.fromGeoPointsSafe(geo)
@@ -359,4 +419,130 @@ private fun TripMap(tripId: Long, points: List<TripPoint>, events: List<TripEven
         }
         m.invalidate()
     })
+}
+
+// ---------------------------------------------------------------- Replay et historique moteur
+
+private val REPLAY_SPEEDS = listOf(1, 5, 10, 30, 60)
+
+/** Position interpolée sur le tracé GPS à l'instant [t]. */
+private fun positionAt(points: List<TripPoint>, t: Long): GeoPoint {
+    if (t <= points.first().t) return GeoPoint(points.first().lat, points.first().lon)
+    if (t >= points.last().t) return GeoPoint(points.last().lat, points.last().lon)
+    var i = points.binarySearchBy(t) { it.t }
+    if (i >= 0) return GeoPoint(points[i].lat, points[i].lon)
+    i = -i - 1
+    val a = points[i - 1]
+    val b = points[i]
+    val f = (t - a.t).toDouble() / (b.t - a.t).coerceAtLeast(1)
+    return GeoPoint(a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f)
+}
+
+/** Dernière valeur connue à l'instant [t]. */
+private fun valueAt(s: List<Sample>, t: Long): Double? {
+    var i = s.binarySearchBy(t) { it.t }
+    if (i >= 0) return s[i].v
+    i = -i - 2
+    return s.getOrNull(i)?.v
+}
+
+private fun clock(ms: Long): String {
+    val sec = (ms / 1000).coerceAtLeast(0)
+    return if (sec >= 3600) "%d:%02d:%02d".format(sec / 3600, sec / 60 % 60, sec % 60) else "%d:%02d".format(sec / 60, sec % 60)
+}
+
+@Composable
+private fun ReplayBar(t: Trip, replayT: Long?, playing: Boolean, speedX: Int, onPlay: () -> Unit, onSeek: (Float) -> Unit, onSpeed: () -> Unit, onStop: () -> Unit) {
+    val c = Cd.c
+    if (replayT == null) {
+        Row(
+            Modifier.padding(top = 14.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(c.p).clickable(onClick = onPlay).padding(start = 14.dp, end = 18.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) { Ico(Icons.Rounded.PlayArrow, 22, c.op); T("Rejouer le trajet", 14, c.op, 500) }
+        return
+    }
+    val total = (t.end - t.start).coerceAtLeast(1)
+    Column(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(horizontal = 8.dp, vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBtn(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, onPlay, c.p)
+            Slider(
+                value = ((replayT - t.start).toFloat() / total).coerceIn(0f, 1f), onValueChange = onSeek, modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(thumbColor = c.p, activeTrackColor = c.p, inactiveTrackColor = c.sf4),
+            )
+            Box(Modifier.padding(start = 6.dp).height(32.dp).clip(RoundedCornerShape(8.dp)).background(c.sc).clickable(onClick = onSpeed).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                T("×$speedX", 13, c.osc, 600)
+            }
+            IconBtn(Icons.Rounded.Close, onStop, c.onv)
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            T("${timeHm(replayT)} · ${clock(replayT - t.start)}", 12, c.onv)
+            T(clock(total), 12, c.onv)
+        }
+    }
+}
+
+/** Historique des données moteur du trajet, par catégorie, avec curseur du replay. */
+@Composable
+private fun EngineHistory(t: Trip, samples: Map<String, List<Sample>>, cursor: Long?) {
+    val c = Cd.c
+    T("Données moteur", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
+    val series = samples.mapNotNull { (id, list) -> pidById(id)?.let { it to list } }.filter { it.second.isNotEmpty() }
+    if (series.isEmpty()) {
+        T("Aucune donnée moteur enregistrée pour ce trajet.", 13, c.onv, lineHeight = 18)
+        return
+    }
+    val order = StdPids.CATEGORIES
+    series.groupBy { it.first.category }.toList().sortedBy { (cat, _) -> order.indexOf(cat).let { if (it < 0) order.size else it } }.forEach { (cat, list) ->
+        T(cat, 14, c.p, 500, Modifier.padding(start = 4.dp, top = 14.dp, bottom = 8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            list.forEach { (p, s) -> PidHistoryCard(p, s, t.start, t.end, cursor) }
+        }
+    }
+}
+
+@Composable
+private fun PidHistoryCard(p: PidDef, s: List<Sample>, start: Long, end: Long, cursor: Long?) {
+    val c = Cd.c
+    val min = s.minOf { it.v }
+    val max = s.maxOf { it.v }
+    val avg = s.sumOf { it.v } / s.size
+    val now = cursor?.let { valueAt(s, it) }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Ico(p.icon, 18, c.p)
+            T(p.label, 13, c.onv, modifier = Modifier.weight(1f), maxLines = 1)
+            T((if (cursor != null) now else avg)?.let { fr(it, p.decimals) } ?: "—", 18, weight = 500)
+            T(p.unit, 12, c.onv)
+        }
+        Box(Modifier.fillMaxWidth().padding(top = 8.dp).height(44.dp)) {
+            Sparkline(s, start, end, min, max, c.p, c.olv)
+            if (cursor != null) {
+                val cur = c.t
+                Canvas(Modifier.fillMaxSize()) {
+                    val x = (cursor - start) / (end - start).coerceAtLeast(1).toFloat() * size.width
+                    drawLine(cur, Offset(x, 0f), Offset(x, size.height), 2.dp.toPx())
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            T("min ${fr(min, p.decimals)}", 11, c.onv)
+            T("moy. ${fr(avg, p.decimals)}", 11, c.onv)
+            T("max ${fr(max, p.decimals)}", 11, c.onv)
+        }
+    }
+}
+
+/** Courbe d'une donnée sur la durée du trajet (redessinée seulement si la série change). */
+@Composable
+private fun Sparkline(s: List<Sample>, start: Long, end: Long, min: Double, max: Double, line: Color, track: Color) {
+    Canvas(Modifier.fillMaxSize()) {
+        val span = (end - start).coerceAtLeast(1).toFloat()
+        val range = (max - min).takeIf { it > 1e-9 } ?: 1.0
+        fun x(tt: Long) = (tt - start) / span * size.width
+        fun y(v: Double) = (size.height - ((v - min) / range * size.height)).toFloat()
+        drawLine(track, Offset(0f, size.height), Offset(size.width, size.height), 1f)
+        val path = androidx.compose.ui.graphics.Path()
+        s.forEachIndexed { i, smp -> if (i == 0) path.moveTo(x(smp.t), y(smp.v)) else path.lineTo(x(smp.t), y(smp.v)) }
+        drawPath(path, line, style = Stroke(2.dp.toPx(), join = StrokeJoin.Round, cap = StrokeCap.Round))
+    }
 }

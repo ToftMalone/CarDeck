@@ -17,6 +17,7 @@ import com.cardeck.app.MainActivity
 import com.cardeck.app.Perms
 import com.cardeck.app.R
 import com.cardeck.app.cardeck
+import com.cardeck.app.data.StdPids
 import com.cardeck.app.data.fr
 import com.cardeck.app.obd.ObdState
 import kotlinx.coroutines.CoroutineScope
@@ -97,6 +98,7 @@ class TripService : Service() {
         repo.recoverUnfinished()
         var engineOffSince = 0L
         var lostSince = 0L
+        var cycle = 0
         while (scope.isActive) {
             val v = repo.active
             val adapter = v?.adapter
@@ -138,6 +140,20 @@ class TripService : Service() {
                 if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
                 if (System.currentTimeMillis() - engineOffSince > 20_000) endTrip()
             }
+            // Historique des données moteur : PIDs standard déclarés par le véhicule + PIDs du modèle.
+            recorder?.let { rec2 ->
+                if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
+                val sup = obd.supported.value.orEmpty()
+                val pids = StdPids.all.filter { StdPids.pidNumber(it) in sup } + v.template.pids
+                val now = System.currentTimeMillis()
+                val values = obd.use { e ->
+                    pids.filter { !it.slow || cycle % 6 == 0 }.mapNotNull { p ->
+                        e.query(p.request, p.header)?.takeIf { it.size >= p.size }?.let { b -> runCatching { p.decode(b) }.getOrNull()?.let { p.id to it } }
+                    }
+                }
+                if (values != null) rec2.addSamples(now, values)
+                cycle++
+            }
             val r = recorder
             status(
                 when {
@@ -146,7 +162,7 @@ class TripService : Service() {
                     else -> "${v.nickname} · boîtier connecté, véhicule à l'arrêt"
                 },
             )
-            delay(if (recorder != null) 2000 else 10_000)
+            delay(if (recorder != null) 300 else 10_000)
         }
     }
 

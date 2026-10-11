@@ -21,6 +21,8 @@ data class PidDef(
     val slow: Boolean = false,
     /** Nombre minimal d'octets de données attendus (réponse trop courte ignorée). */
     val size: Int = 1,
+    /** Catégorie d'affichage (tableau de bord, historique des trajets). */
+    val category: String = "Autres",
     val decode: (IntArray) -> Double,
 )
 
@@ -76,5 +78,8 @@ val KIA_PICANTO_TA = VehicleTemplate(
 )
 
 val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA)
+
+/** Retrouve une donnée moteur (standard ou propre à un modèle) par son identifiant. */
+fun pidById(id: String): PidDef? = StdPids.all.find { it.id == id } ?: TEMPLATES.flatMap { it.pids }.find { it.id == id }
 
 fun templateById(id: String): VehicleTemplate = TEMPLATES.find { it.id == id } ?: SWIFT_SPORT_ZC33S

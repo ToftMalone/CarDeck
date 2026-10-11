@@ -45,6 +45,9 @@ enum class EventType(val label: String, val icon: ImageVector) {
 
 data class TripEvent(val t: Long, val type: EventType, val lat: Double, val lon: Double, val g: Double)
 
+/** Valeur d'une donnée moteur à un instant du trajet. */
+data class Sample(val t: Long, val v: Double)
+
 data class TripPoint(val t: Long, val lat: Double, val lon: Double, val speedKmh: Double)
 
 data class Trip(

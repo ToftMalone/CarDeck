@@ -25,7 +25,26 @@ object StdPids {
         decimals: Int = 0, slow: Boolean = false, size: Int = 1, decode: (IntArray) -> Double,
     ) = PidDef(
         id = "std%02X".format(pid), label = label, unit = unit, icon = icon, request = "01%02X".format(pid),
-        decimals = decimals, min = min, max = max, slow = slow, size = size, decode = decode,
+        decimals = decimals, min = min, max = max, slow = slow, size = size, category = CATEGORY.getValue(pid), decode = decode,
+    )
+
+    const val ENGINE = "Moteur"
+    const val TEMPS = "Températures"
+    const val INTAKE = "Admission et papillon"
+    const val FUEL = "Carburant"
+    const val ELEC = "Électrique"
+    const val VEHICLE = "Véhicule"
+
+    /** Ordre d'affichage des catégories. */
+    val CATEGORIES = listOf(ENGINE, VEHICLE, TEMPS, INTAKE, FUEL, ELEC)
+
+    private val CATEGORY: Map<Int, String> = mapOf(
+        0x0C to ENGINE, 0x04 to ENGINE, 0x43 to ENGINE, 0x0E to ENGINE, 0x1F to ENGINE,
+        0x0D to VEHICLE, 0x21 to VEHICLE, 0x31 to VEHICLE,
+        0x05 to TEMPS, 0x0F to TEMPS, 0x5C to TEMPS, 0x46 to TEMPS,
+        0x0B to INTAKE, 0x10 to INTAKE, 0x33 to INTAKE, 0x11 to INTAKE, 0x45 to INTAKE, 0x4C to INTAKE, 0x49 to INTAKE,
+        0x2F to FUEL, 0x0A to FUEL, 0x23 to FUEL, 0x06 to FUEL, 0x07 to FUEL, 0x44 to FUEL, 0x5E to FUEL,
+        0x42 to ELEC,
     )
 
     /** Grandeurs affichées en grandes jauges (si le véhicule les supporte). */
