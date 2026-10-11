@@ -54,6 +54,7 @@ class TripService : Service() {
     }
 
     override fun onDestroy() {
+        live.value = null
         recorder?.finish()
         recorder = null
         scope.cancel()
@@ -86,6 +87,7 @@ class TripService : Service() {
 
     private var lastText = ""
     private fun status(text: String) {
+        live.value = text
         if (text == lastText) return
         lastText = text
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification(text))
@@ -132,13 +134,15 @@ class TripService : Service() {
             obd.voltage.value = volt
             obd.ecuOnline.value = rpm != null
             val engineOn = rpm != null && rpm > 300
+            // Voiture virtuelle : réaction immédiate au démarrage / à l'arrêt du moteur.
+            val isSim = adapter.transport == com.cardeck.app.data.Transport.Sim
             if (engineOn) {
                 engineOffSince = 0L
                 if (recorder == null) startTrip(v.id)
                 recorder?.onObdSpeed(speed)
             } else if (recorder != null) {
                 if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
-                if (System.currentTimeMillis() - engineOffSince > 20_000) endTrip()
+                if (System.currentTimeMillis() - engineOffSince > (if (isSim) 2_000 else 20_000)) endTrip()
             }
             // Historique : toutes les données déclarées par le véhicule + PIDs du modèle + tension du boîtier.
             recorder?.let { rec2 ->
@@ -158,7 +162,7 @@ class TripService : Service() {
                     else -> "${v.nickname} · boîtier connecté, véhicule à l'arrêt"
                 },
             )
-            delay(if (recorder != null) 300 else 10_000)
+            delay(if (recorder != null) 300 else if (isSim) 1_000 else 10_000)
         }
     }
 
@@ -169,13 +173,21 @@ class TripService : Service() {
     }
 
     private fun endTrip() {
-        recorder?.finish()
+        recorder?.finish { saved, km ->
+            lastNote.value = if (saved) "Dernier trajet enregistré · ${fr(km, 1)} km" else "Dernier trajet trop court (moins de 200 m) : non enregistré"
+        }
         recorder = null
     }
 
     companion object {
         private const val CHANNEL = "vehicle"
         private const val NOTIF_ID = 42
+
+        /** État du suivi pour l'interface (null = service arrêté). */
+        val live = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
+        /** Issue du dernier trajet (enregistré ou trop court). */
+        val lastNote = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
         /** Démarre le suivi si un véhicule existe (à appeler depuis le premier plan ou au démarrage du téléphone). */
         fun start(ctx: Context) {

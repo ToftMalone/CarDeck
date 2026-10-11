@@ -262,6 +262,15 @@ private fun SimPanel(vm: AppViewModel) {
             }, color = c.otc, weight = 600)
         }
         if (faults > 0) T("$faults défaut${if (faults > 1) "s" else ""} en mémoire (visible${if (faults > 1) "s" else ""} dans Diagnostic)", 12, c.otc)
+        val live by com.cardeck.app.service.TripService.live.collectAsState()
+        val note by com.cardeck.app.service.TripService.lastNote.collectAsState()
+        Box(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(c.otc.copy(alpha = .12f)).padding(10.dp)) {
+            Column {
+                T("Suivi des trajets : " + (live ?: "arrêté"), 12, c.otc, 500, lineHeight = 16)
+                note?.let { T(it, 12, c.otc, lineHeight = 16, modifier = Modifier.padding(top = 2.dp)) }
+                if (live == null) TextBtn("Démarrer le suivi", { com.cardeck.app.service.TripService.start(ctx) }, color = c.otc, weight = 600)
+            }
+        }
     }
 }
 

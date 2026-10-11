@@ -154,7 +154,7 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
 
     /** Termine le trajet ; les trajets de moins de 200 m sont supprimés. */
     @Synchronized
-    fun finish() {
+    fun finish(onDone: (saved: Boolean, km: Double) -> Unit = { _, _ -> }) {
         finished = true
         runCatching { lm?.removeUpdates(listener) }
         flush()
@@ -166,12 +166,14 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
         io.execute {
             if (dist < 0.2) {
                 repo.deleteTrip(tripId)
+                onDone(false, dist)
             } else {
                 val hours = (end - start) / 3_600_000.0
                 val from = first?.let { place(it) } ?: "Position inconnue"
                 val to = lastLoc?.let { place(it) } ?: "Position inconnue"
                 val max = maxOf(ptsMax, repo.points(tripId).maxOfOrNull { it.speedKmh } ?: 0.0)
                 repo.finishTrip(tripId, end, dist, if (hours > 0) dist / hours else 0.0, max, from, to)
+                onDone(true, dist)
             }
         }
         io.shutdown()
