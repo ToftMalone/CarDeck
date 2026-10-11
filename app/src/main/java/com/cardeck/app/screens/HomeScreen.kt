@@ -4,10 +4,6 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -76,6 +72,7 @@ fun HomeScreen(vm: AppViewModel) {
     val codes = scan?.codes?.size ?: 0
     val tiles = listOf(
         Tile("Tableau de bord", Icons.Rounded.Dashboard, 'p', { vm.go(Screen.Dash) }),
+        Tile("Données OBD2", Icons.Rounded.Memory, 'p', { vm.go(Screen.ObdData) }),
         Tile("Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
         Tile("Codage", Icons.Rounded.Build, 'p', { vm.go(Screen.Coding) }),
@@ -211,14 +208,8 @@ private fun StripNode(icon: ImageVector, label: String, on: Boolean) {
 @Composable
 private fun StripLink(modifier: Modifier, on: Boolean) {
     val c = Cd.c
-    val inf = rememberInfiniteTransition(label = "link")
-    val x by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400)), label = "x")
     Canvas(modifier.height(20.dp)) {
         val y = size.height / 2 - 9.dp.toPx()
         drawLine(if (on) c.g.copy(alpha = .9f) else c.olv, Offset(0f, y), Offset(size.width, y), strokeWidth = 2.dp.toPx())
-        if (on) {
-            val a = when { x < .2f -> x / .2f; x > .8f -> (1 - x) / .2f; else -> 1f }
-            drawCircle(c.g.copy(alpha = a), 4.dp.toPx(), Offset(size.width * x, y))
-        }
     }
 }

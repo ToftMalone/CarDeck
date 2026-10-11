@@ -20,6 +20,11 @@ class Prefs(ctx: Context) {
         get() = runCatching { Palette.valueOf(sp.getString("palette", null)!!) }.getOrDefault(Palette.Bleu)
         set(v) = sp.edit().putString("palette", v.name).apply()
 
+    /** Tableau de bord affiché : « standard » ou « sport ». */
+    var dashMode: String
+        get() = sp.getString("dashMode", "standard") ?: "standard"
+        set(v) = sp.edit().putString("dashMode", v).apply()
+
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)
         set(v) = sp.edit().putLong("activeVehicle", v).apply()

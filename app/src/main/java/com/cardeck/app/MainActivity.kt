@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.cardeck.app.screens.AddVehicleScreen
 import com.cardeck.app.screens.CodingScreen
+import com.cardeck.app.screens.ObdDataScreen
 import com.cardeck.app.screens.DashboardScreen
 import com.cardeck.app.screens.DiagScreen
 import com.cardeck.app.screens.DtcDetailScreen
@@ -103,6 +104,7 @@ private fun CarDeckRoot(vm: AppViewModel) {
                 is Screen.Trip -> TripDetailScreen(vm, screen.id)
                 Screen.Settings -> SettingsScreen(vm)
                 Screen.Coding -> CodingScreen(vm)
+                Screen.ObdData -> ObdDataScreen(vm)
             }
         }
         Snack(vm.snack, Modifier.align(Alignment.BottomCenter))

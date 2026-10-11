@@ -37,6 +37,7 @@ sealed interface Screen {
     data class Trip(val id: Long) : Screen
     data object Settings : Screen
     data object Coding : Screen
+    data object ObdData : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -69,6 +70,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var palette by mutableStateOf(prefs.palette)
         private set
+
+    var dashSport by mutableStateOf(prefs.dashMode == "sport")
+        private set
+
+    fun updateDashSport(sport: Boolean) { dashSport = sport; prefs.dashMode = if (sport) "sport" else "standard" }
 
     fun updateThemeMode(m: ThemeMode) { themeMode = m; prefs.themeMode = m }
     fun updatePalette(p: Palette) { palette = p; prefs.palette = p }
