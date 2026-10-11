@@ -164,7 +164,8 @@ class TripService : Service() {
 
     private fun startTrip(vehicleId: Long) {
         if (!withLocation && Perms.locationOk(this)) goForeground("Trajet en cours")
-        recorder = TripRecorder(this, cardeck.repo, vehicleId).also { it.begin() }
+        val sim = cardeck.repo.active?.adapter?.transport == com.cardeck.app.data.Transport.Sim
+        recorder = TripRecorder(this, cardeck.repo, vehicleId, sim).also { it.begin() }
     }
 
     private fun endTrip() {

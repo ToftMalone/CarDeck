@@ -20,7 +20,7 @@ import kotlin.math.abs
  * Enregistre un trajet : points GPS, distance, vitesses et événements de conduite
  * (freinages / accélérations / virages détectés à partir de la vitesse et du cap GPS).
  */
-class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: Long) {
+class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: Long, private val simulated: Boolean = false) {
     private val io = Executors.newSingleThreadExecutor()
     private val lm = ctx.getSystemService(LocationManager::class.java)
     val start = System.currentTimeMillis()
@@ -43,9 +43,23 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
 
     @SuppressLint("MissingPermission")
     fun begin() {
+        if (simulated) { simTick(); return }
         if (Perms.locationOk(ctx) && lm != null && lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             runCatching { lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, listener, Looper.getMainLooper()) }
         }
+    }
+
+    private val handler = android.os.Handler(Looper.getMainLooper())
+
+    /** Positions GPS de la voiture virtuelle, une par seconde. */
+    private fun simTick() {
+        if (finished) return
+        val st = com.cardeck.app.sim.SimCar.state()
+        onLocation(Location("sim").apply {
+            latitude = st.lat; longitude = st.lon; time = System.currentTimeMillis()
+            speed = (st.speedKmh / 3.6).toFloat(); bearing = st.heading.toFloat(); accuracy = 4f; altitude = 85.0
+        })
+        handler.postDelayed({ simTick() }, 1000)
     }
 
     /** Vitesse lue sur le véhicule (PID 0D) : distance de secours sans GPS + vitesse max. */

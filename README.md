@@ -18,6 +18,12 @@ Application Android de diagnostic OBD2 et de suivi de conduite (Kotlin · Jetpac
   vérification par relecture et restauration.
 - **Tableau de bord** : état de la liaison + lecture de tous les PIDs standard OBD2 (service 01) que le véhicule déclare supporter (régime, vitesse, températures, charge, MAP/MAF, corrections carburant, etc.). Les PIDs propres au modèle s'ajoutent dans `data/Templates.kt`.
 
+## Voiture de simulation
+
+Le modèle « CarDeck Simulateur » utilise un boîtier ELM327 virtuel (`sim/`) : l'appli dialogue avec lui exactement
+comme avec un vrai boîtier (OBD2, codes défaut, données figées, VIN, UDS / codage). Depuis le tableau de bord :
+démarrer / couper le moteur (un trajet est enregistré sur un circuit GPS virtuel) et injecter des défauts.
+
 ## Compiler
 
 Prérequis : JDK 17+ et Android SDK (platform 35).

@@ -82,6 +82,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val id = repo.addVehicle(templateId, nickname, plate, year)
         repo.select(id)
         pairVehicleId = id
+        if (templateId == com.cardeck.app.data.SIMULATOR.id) {
+            finishPairing(AdapterConfig(com.cardeck.app.data.Transport.Sim, "sim", "Boîtier OBD2 simulé"), "CARDECKSIM0000001")
+            return
+        }
         // Hors onboarding, le retour depuis l'appairage ne doit pas recréer le profil.
         if (onboarded) stack.remove(Screen.AddVehicle)
         go(Screen.Pair)

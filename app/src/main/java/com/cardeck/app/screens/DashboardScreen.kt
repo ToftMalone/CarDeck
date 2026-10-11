@@ -27,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -128,6 +130,7 @@ fun DashboardScreen(vm: AppViewModel) {
             val std = if (sup == null) emptyList() else StdPids.forSupported(sup)
             val gauges = std.filter { it in StdPids.headline }
             val cards = std.filter { it !in StdPids.headline }
+            if (v.adapter?.transport == com.cardeck.app.data.Transport.Sim) SimPanel(vm)
             T("Données moteur", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
             when {
                 !connected -> EmptyNote(Icons.Rounded.HourglassEmpty, "Boîtier non connecté", "Connectez le boîtier OBD2 pour lire les données du moteur.")
@@ -225,4 +228,49 @@ private fun InfoRow(label: String, value: String) {
         T(label, 14, c.onv, modifier = Modifier.weight(1f))
         T(value, 14, weight = 500, align = TextAlign.End, modifier = Modifier.weight(1.6f))
     }
+}
+
+/** Commandes de la voiture virtuelle (profil « Simulateur »). */
+@Composable
+private fun SimPanel(vm: AppViewModel) {
+    val c = Cd.c
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var on by remember { mutableStateOf(com.cardeck.app.sim.SimCar.engineOn) }
+    var faults by remember { mutableStateOf(com.cardeck.app.sim.SimCar.dtcs.size) }
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.tc).padding(16.dp)) {
+        T("Voiture virtuelle", 16, c.otc, 500)
+        T(
+            if (on) "Moteur en marche : la voiture roule sur un circuit, le trajet est enregistré automatiquement."
+            else "Démarrez le moteur pour simuler un trajet. Coupez-le pour terminer le trajet (environ 20 s après).",
+            13, c.otc, lineHeight = 18, modifier = Modifier.padding(top = 4.dp),
+        )
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextBtn(if (on) "Couper le moteur" else "Démarrer le moteur", {
+                val car = com.cardeck.app.sim.SimCar
+                if (car.engineOn) car.stopEngine() else {
+                    // Le circuit est placé autour de la dernière position connue du téléphone.
+                    lastKnownLocation(ctx)?.let { car.setCenter(it.latitude, it.longitude) }
+                    car.startEngine()
+                }
+                on = car.engineOn
+                vm.connectNow()
+            }, color = c.otc, weight = 600)
+            TextBtn("Simuler un défaut", {
+                val code = com.cardeck.app.sim.SimCar.injectFault()
+                faults = com.cardeck.app.sim.SimCar.dtcs.size
+                vm.showSnack("Défaut $code ajouté à la voiture virtuelle")
+            }, color = c.otc, weight = 600)
+        }
+        if (faults > 0) T("$faults défaut${if (faults > 1) "s" else ""} en mémoire (visible${if (faults > 1) "s" else ""} dans Diagnostic)", 12, c.otc)
+    }
+}
+
+/** Dernière position connue du téléphone (null sans autorisation de localisation). */
+@android.annotation.SuppressLint("MissingPermission")
+private fun lastKnownLocation(ctx: android.content.Context): android.location.Location? {
+    if (!com.cardeck.app.Perms.locationOk(ctx)) return null
+    val lm = ctx.getSystemService(android.location.LocationManager::class.java) ?: return null
+    return runCatching {
+        lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER) ?: lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+    }.getOrNull()
 }

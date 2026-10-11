@@ -43,6 +43,7 @@ class ObdManager(private val ctx: Context) {
         _state.value = ObdState.Connecting(a)
         val t = when (a.transport) {
             Transport.Classic -> ClassicTransport(ctx, a.address)
+            Transport.Sim -> com.cardeck.app.sim.SimTransport()
             Transport.Ble -> BleTransport(ctx, a.address)
             Transport.Wifi -> {
                 val host = a.address.substringBefore(':')
