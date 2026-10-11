@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOn
@@ -77,6 +78,7 @@ fun HomeScreen(vm: AppViewModel) {
         Tile("Tableau de bord", Icons.Rounded.Dashboard, 'p', { vm.go(Screen.Dash) }),
         Tile("Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
+        Tile("Codage", Icons.Rounded.Build, 'p', { vm.go(Screen.Coding) }),
         Tile("Ajouter un véhicule", Icons.Rounded.AddCircle, 'p', { vm.go(Screen.AddVehicle) }),
         Tile("Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 'p', { vm.pairActive() }),
         Tile("Paramètres", Icons.Rounded.Settings, 'p', { vm.go(Screen.Settings) }),

@@ -13,7 +13,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, 1) {
+private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, 2) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -35,10 +35,20 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
             """CREATE TABLE scans(id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
                t INTEGER NOT NULL, ecus INTEGER NOT NULL, ff_code TEXT, ff_values TEXT)""",
         )
+        createCodingTables(db)
         db.execSQL("CREATE TABLE scan_codes(scan_id INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE, code TEXT NOT NULL, status TEXT NOT NULL, ecu TEXT NOT NULL)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) createCodingTables(db)
+    }
+
+    private fun createCodingTables(db: SQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE coding_backups(vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE, tx TEXT NOT NULL, rx TEXT,
+               did INTEGER NOT NULL, module TEXT NOT NULL, data TEXT NOT NULL, t INTEGER NOT NULL, PRIMARY KEY(vehicle_id, tx, did))""",
+        )
+    }
 }
 
 /** Accès aux données locales. Toutes les données sont rattachées à un profil de véhicule. */
@@ -176,6 +186,29 @@ class Repo(ctx: Context) {
             val hours = (end - start) / 3_600_000.0
             finishTrip(id, end, dist, if (hours > 0) dist / hours else 0.0, pts.maxOf { it.speedKmh }, "Position inconnue", "Position inconnue")
         }
+    }
+
+    // ---- Codage ----
+
+    /** Enregistre le codage d'origine d'un bloc, uniquement s'il n'a pas déjà été sauvegardé. */
+    fun saveCodingBackupIfAbsent(b: CodingBackup) {
+        db.insertWithOnConflict("coding_backups", null, ContentValues().apply {
+            put("vehicle_id", b.vehicleId); put("tx", b.txHeader.uppercase()); put("rx", b.rxHeader); put("did", b.did)
+            put("module", b.module); put("data", b.data.toHex()); put("t", b.t)
+        }, SQLiteDatabase.CONFLICT_IGNORE)
+        bump()
+    }
+
+    fun codingBackups(vehicleId: Long): List<CodingBackup> =
+        db.rawQuery("SELECT * FROM coding_backups WHERE vehicle_id=? ORDER BY t", arrayOf(vehicleId.toString())).use { c ->
+            buildList {
+                while (c.moveToNext()) add(CodingBackup(vehicleId, c.str("tx")!!, c.str("rx"), c.getInt(c.getColumnIndexOrThrow("did")), c.str("module")!!, hexToInts(c.str("data")!!), c.long("t")))
+            }
+        }
+
+    fun deleteCodingBackups(vehicleId: Long) {
+        db.delete("coding_backups", "vehicle_id=?", arrayOf(vehicleId.toString()))
+        bump()
     }
 
     // ---- Diagnostics ----

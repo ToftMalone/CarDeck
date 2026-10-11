@@ -12,8 +12,10 @@ import org.junit.Test
 private class FakeElm(private val answers: Map<String, String>) : ObdTransport {
     override val incoming = Channel<ByteArray>(Channel.UNLIMITED)
     override suspend fun open() {}
+    val sent = mutableListOf<String>()
     override suspend fun send(data: ByteArray) {
         val cmd = String(data).trim()
+        sent += cmd
         val r = answers[cmd] ?: "OK"
         incoming.trySend("$r\r\r>".toByteArray())
     }
@@ -110,6 +112,44 @@ class Elm327Test {
         assertEquals(12.34, maf.decode(intArrayOf(0x04, 0xD2)), 0.01)
         val trim = com.cardeck.app.data.StdPids.all.first { it.request == "0106" }
         assertEquals(0.0, trim.decode(intArrayOf(128)), 0.01)
+    }
+
+    @Test fun udsLectureDid() = runBlocking {
+        val e = elm(mapOf("22B001" to "62 B0 01 12 34 56"))
+        assertEquals(listOf(0x12, 0x34, 0x56), e.readDid(0xB001).toList())
+    }
+
+    @Test fun udsLectureDidMultiTrame() = runBlocking {
+        val e = elm(mapOf("22B002" to "00B\r0: 62 B0 02 01 02 03\r1: 04 05 06 07 08 AA AA"))
+        assertEquals(listOf(1, 2, 3, 4, 5, 6, 7, 8), e.readDid(0xB002).toList())
+    }
+
+    @Test fun udsReponseNegative() = runBlocking {
+        val e = elm(mapOf("2EB00101" to "7F 2E 33"))
+        try { e.writeDid(0xB001, intArrayOf(1)); org.junit.Assert.fail() } catch (x: UdsError) { assertTrue(x.message!!.contains("sécurisé")) }
+    }
+
+    @Test fun udsReponseEnAttente() = runBlocking {
+        val e = elm(mapOf("1003" to "7F 10 78\r50 03 00 32 01 F4"))
+        e.extendedSession()
+    }
+
+    @Test fun udsEcritureLongueIsoTp() = runBlocking {
+        val fake = FakeElm(base + mapOf(
+            "100A2EB001010203" to "30 00 00 00 00 00 00 00",
+            "2104050607000000" to "03 6E B0 01",
+        ))
+        val e = Elm327(fake)
+        e.writeDid(0xB001, intArrayOf(1, 2, 3, 4, 5, 6, 7))
+        assertTrue(fake.sent.containsAll(listOf("ATCAF0", "100A2EB001010203", "2104050607000000", "ATCAF1")))
+    }
+
+    @Test fun codageApplique() {
+        val d = com.cardeck.app.data.CodingDef("t", "Confort", "Test", "", "BCM", "750", "758", 0xB001, 1, 0x0C,
+            listOf(com.cardeck.app.data.CodingOption("A", 0x00), com.cardeck.app.data.CodingOption("B", 0x04)))
+        val data = intArrayOf(0xFF, 0xF3, 0x00)
+        assertEquals(0x00, d.valueIn(data))
+        assertEquals(listOf(0xFF, 0xF7, 0x00), d.applyTo(data, 0x04).toList())
     }
 
     @Test fun effacement() = runBlocking {

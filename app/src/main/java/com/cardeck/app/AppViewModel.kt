@@ -9,6 +9,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cardeck.app.data.AdapterConfig
+import com.cardeck.app.data.CodingBackup
+import com.cardeck.app.data.VehicleTemplate
+import com.cardeck.app.data.fr
+import com.cardeck.app.obd.Elm327
+import com.cardeck.app.obd.UdsError
 import com.cardeck.app.data.FoundCode
 import com.cardeck.app.data.Prefs
 import com.cardeck.app.service.TripService
@@ -31,6 +36,7 @@ sealed interface Screen {
     data object Trips : Screen
     data class Trip(val id: Long) : Screen
     data object Settings : Screen
+    data object Coding : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -179,6 +185,160 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } else {
                 showSnack("Effacement refusé : mettez le contact, moteur arrêté")
             }
+        }
+    }
+
+    // ---- Codage ----
+    /** Étape en cours (null = inactif). */
+    var codingBusy by mutableStateOf<String?>(null)
+        private set
+    /** Données lues par bloc (calculateur + DID). */
+    var codingData by mutableStateOf<Map<String, IntArray>>(emptyMap())
+        private set
+    var codingErrors by mutableStateOf<Map<String, String>>(emptyMap())
+        private set
+    /** Valeurs choisies mais pas encore écrites (id du réglage → valeur). */
+    var codingPending by mutableStateOf<Map<String, Int>>(emptyMap())
+        private set
+    /** Compte rendu de la dernière écriture / restauration. */
+    var codingReport by mutableStateOf<Pair<Boolean, String>?>(null)
+        private set
+    private var codingVehicleId: Long? = null
+
+    fun codingFor(vehicleId: Long) {
+        if (codingVehicleId == vehicleId) return
+        codingVehicleId = vehicleId
+        codingData = emptyMap(); codingErrors = emptyMap(); codingPending = emptyMap(); codingReport = null
+    }
+
+    fun choose(id: String, value: Int, current: Int?) {
+        codingPending = if (value == current) codingPending - id else codingPending + (id to value)
+    }
+
+    fun readCoding() {
+        val v = repo.active ?: return
+        val defs = v.template.codings
+        if (defs.isEmpty() || codingBusy != null) return
+        codingBusy = "Lecture du codage…"
+        codingReport = null
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.IO) {
+                obd.use { e ->
+                    val data = mutableMapOf<String, IntArray>()
+                    val errors = mutableMapOf<String, String>()
+                    for ((key, group) in defs.groupBy { it.blockKey }) {
+                        val d = group.first()
+                        try {
+                            e.udsOpen(d.txHeader, d.rxHeader)
+                            data[key] = e.readDid(d.did)
+                        } catch (x: UdsError) {
+                            errors[key] = x.message ?: "Erreur de lecture"
+                        } finally {
+                            e.udsClose()
+                        }
+                    }
+                    data to errors
+                }
+            }
+            if (out == null) showSnack("Boîtier OBD2 non connecté")
+            else { codingData = out.first; codingErrors = out.second; codingPending = emptyMap() }
+            codingBusy = null
+        }
+    }
+
+    /** Écrit un bloc complet puis le relit ; renvoie un message d'erreur ou null si tout est conforme. */
+    private suspend fun writeBlock(e: Elm327, tpl: VehicleTemplate, tx: String, rx: String?, did: Int, module: String, data: IntArray): String? {
+        val level = tpl.codings.filter { it.blockKey == com.cardeck.app.data.blockKey(tx, did) }.mapNotNull { it.securityLevel }.maxOrNull()
+        return try {
+            e.udsOpen(tx, rx)
+            e.extendedSession()
+            if (level != null) e.securityAccess(level, tpl.securityKey)
+            e.writeDid(did, data)
+            if (e.readDid(did).contentEquals(data)) null else "$module : la relecture ne correspond pas à l'écriture"
+        } catch (x: UdsError) {
+            "$module : ${x.message}"
+        } finally {
+            e.defaultSession()
+            e.udsClose()
+        }
+    }
+
+    /** Contrôles avant toute écriture : moteur arrêté, batterie suffisamment chargée. */
+    private suspend fun preWriteCheck(e: Elm327): String? {
+        val rpm = e.rpm()
+        if (rpm != null && rpm > 300) return "Coupez le moteur (en laissant le contact mis) avant de coder."
+        val volt = e.voltage()
+        if (volt != null && volt < 12.0) return "Tension batterie trop faible (${fr(volt, 1)} V) : branchez un chargeur avant de coder."
+        return null
+    }
+
+    fun applyCoding() {
+        val v = repo.active ?: return
+        val tpl = v.template
+        val changed = tpl.codings.filter { it.id in codingPending }
+        if (changed.isEmpty() || codingBusy != null) return
+        codingBusy = "Écriture du codage…"
+        codingReport = null
+        val pending = codingPending
+        val before = codingData
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.IO) {
+                obd.use { e ->
+                    preWriteCheck(e)?.let { return@use Triple(listOf(it), emptyMap<String, IntArray>(), false) }
+                    val errors = mutableListOf<String>()
+                    val written = mutableMapOf<String, IntArray>()
+                    for ((key, group) in changed.groupBy { it.blockKey }) {
+                        val d = group.first()
+                        val orig = before[key] ?: continue
+                        var data = orig
+                        group.forEach { data = it.applyTo(data, pending.getValue(it.id)) }
+                        if (data.contentEquals(orig)) continue
+                        repo.saveCodingBackupIfAbsent(CodingBackup(v.id, d.txHeader, d.rxHeader, d.did, d.module, orig, System.currentTimeMillis()))
+                        val err = writeBlock(e, tpl, d.txHeader, d.rxHeader, d.did, d.module, data)
+                        if (err == null) written[key] = data else errors += err
+                    }
+                    Triple(errors, written, true)
+                }
+            }
+            when {
+                out == null -> codingReport = false to "Liaison avec le boîtier perdue pendant le codage. Relisez le codage avant de réessayer."
+                !out.third -> codingReport = false to out.first.first()
+                else -> {
+                    codingData = codingData + out.second
+                    codingPending = codingPending.filterKeys { id -> tpl.codings.find { it.id == id }?.blockKey !in out.second.keys }
+                    codingReport = if (out.first.isEmpty()) true to "Codage appliqué. Coupez puis remettez le contact pour le prendre en compte."
+                    else false to out.first.joinToString("\n")
+                }
+            }
+            codingBusy = null
+        }
+    }
+
+    fun restoreCoding() {
+        val v = repo.active ?: return
+        val tpl = v.template
+        if (codingBusy != null) return
+        codingBusy = "Restauration du codage d'origine…"
+        codingReport = null
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.IO) {
+                val backups = repo.codingBackups(v.id)
+                if (backups.isEmpty()) return@withContext emptyList<String>()
+                obd.use { e ->
+                    preWriteCheck(e)?.let { return@use listOf(it) }
+                    backups.mapNotNull { b -> writeBlock(e, tpl, b.txHeader, b.rxHeader, b.did, b.module, b.data) }
+                }
+            }
+            codingReport = when {
+                out == null -> false to "Liaison avec le boîtier perdue pendant la restauration."
+                out.isEmpty() -> true to "Codage d'origine restauré. Coupez puis remettez le contact."
+                else -> false to out.joinToString("\n")
+            }
+            if (out != null && out.isEmpty()) {
+                withContext(Dispatchers.IO) { repo.deleteCodingBackups(v.id) }
+                codingData = emptyMap(); codingPending = emptyMap()
+            }
+            codingBusy = null
         }
     }
 

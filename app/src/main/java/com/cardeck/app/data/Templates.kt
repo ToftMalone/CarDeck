@@ -36,6 +36,10 @@ data class VehicleTemplate(
     val protocol: String,
     /** PIDs spécifiques au véhicule, affichés au tableau de bord. */
     val pids: List<PidDef>,
+    /** Réglages de codage disponibles pour ce modèle. */
+    val codings: List<CodingDef> = emptyList(),
+    /** Calcul de la clé SecurityAccess (niveau, graine) → clé, si un module l'exige. */
+    val securityKey: ((Int, IntArray) -> IntArray)? = null,
 ) {
     val fullName get() = "$brand $model $code"
     val specs get() = "$engine · $power · $fuel"
@@ -52,6 +56,8 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
     // Liste des PIDs Swift Sport à intégrer (fournie ultérieurement).
     pids = emptyList(),
+    // Fonctions de codage Swift Sport à intégrer (données à fournir).
+    codings = emptyList(),
 )
 
 val KIA_PICANTO_TA = VehicleTemplate(
@@ -65,6 +71,8 @@ val KIA_PICANTO_TA = VehicleTemplate(
     protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
     // Liste des PIDs Picanto à intégrer (à fournir ultérieurement).
     pids = emptyList(),
+    // Fonctions de codage Picanto à intégrer (données à fournir).
+    codings = emptyList(),
 )
 
 val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA)

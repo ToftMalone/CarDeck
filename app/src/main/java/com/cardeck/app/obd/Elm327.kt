@@ -5,6 +5,10 @@ import com.cardeck.app.data.FoundCode
 import com.cardeck.app.data.fr
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
+import kotlinx.coroutines.delay
+
+/** Refus ou absence de réponse d'un calculateur en UDS (la liaison avec le boîtier reste valide). */
+class UdsError(message: String) : Exception(message)
 
 /** Dialogue avec un interpréteur ELM327 (commandes AT + requêtes OBD2). */
 class Elm327(private val t: ObdTransport) {
@@ -224,4 +228,117 @@ class Elm327(private val t: ObdTransport) {
 
     /** Effacement des codes défaut et du voyant moteur (service 04). */
     suspend fun clearDtcs(): Boolean = tokens(raw("04", 12000)).contains("44")
+
+    // ---------------------------------------------------------------- UDS (codage)
+
+    private fun hex(b: IntArray) = b.joinToString("") { "%02X".format(it) }
+
+    /** Ouvre un dialogue avec un calculateur précis (en-tête d'émission + filtre de réception). */
+    suspend fun udsOpen(tx: String, rx: String?) {
+        raw("ATSH$tx")
+        if (rx != null) raw("ATCRA$rx")
+        raw("ATSTFF")
+    }
+
+    /** Revient au dialogue OBD2 standard. */
+    suspend fun udsClose() {
+        raw("ATCRA")
+        raw("ATSH7DF")
+        raw("ATST32")
+        raw("ATCAF1")
+    }
+
+    /**
+     * Découpe une réponse (en-têtes masqués) en messages : trames simples ou messages multi-trames
+     * affichés par l'ELM327 sous la forme « 00E » puis « 0: … », « 1: … ».
+     */
+    private fun udsMessages(r: String): List<IntArray> {
+        val out = mutableListOf<IntArray>()
+        var multi: MutableList<Int>? = null
+        var len = 0
+        fun flush() { multi?.let { out += it.take(len).toIntArray() }; multi = null }
+        for (line in r.lines().map { it.trim() }) {
+            when {
+                Regex("^[0-9A-Fa-f]{3}$").matches(line) -> { flush(); len = line.toInt(16); multi = mutableListOf() }
+                Regex("^[0-9A-Fa-f]:.*").matches(line) && multi != null -> multi!!.addAll(tokens(line.substringAfter(':')).map { it.toInt(16) })
+                else -> { flush(); tokens(line).map { it.toInt(16) }.takeIf { it.isNotEmpty() }?.let { out += it.toIntArray() } }
+            }
+        }
+        flush()
+        return out
+    }
+
+    /** Analyse la réponse à un service UDS : renvoie la réponse positive ou lève [UdsError]. */
+    private fun udsAnswer(service: Int, messages: List<IntArray>): IntArray {
+        val final = messages.lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }
+            ?: throw UdsError("Le module n'a pas donné de réponse définitive")
+        if (final[0] == 0x7F) throw UdsError("Refus du module : " + com.cardeck.app.data.nrcLabel(final.getOrElse(2) { 0 }))
+        if (final[0] != service + 0x40) throw UdsError("Réponse inattendue du module")
+        return final
+    }
+
+    /** Envoie une requête UDS tenant dans une trame (≤ 7 octets). */
+    suspend fun uds(request: IntArray): IntArray {
+        val r = raw(hex(request), 6000)
+        if (isError(r)) throw UdsError("Le module ne répond pas")
+        return udsAnswer(request[0], udsMessages(r))
+    }
+
+    /** Passe le calculateur en session étendue (nécessaire pour l'écriture). */
+    suspend fun extendedSession() { uds(intArrayOf(0x10, 0x03)) }
+
+    /** Retour en session par défaut (erreurs ignorées). */
+    suspend fun defaultSession() { runCatching { uds(intArrayOf(0x10, 0x01)) } }
+
+    /** SecurityAccess : demande la graine du [level] puis envoie la clé calculée par [keyFn]. */
+    suspend fun securityAccess(level: Int, keyFn: ((Int, IntArray) -> IntArray)?) {
+        val seed = uds(intArrayOf(0x27, level)).drop(2).toIntArray()
+        if (seed.all { it == 0 }) return // déjà déverrouillé
+        val fn = keyFn ?: throw UdsError("Ce module exige un accès sécurisé dont l'algorithme n'est pas encore intégré")
+        uds(intArrayOf(0x27, level + 1) + fn(level, seed))
+    }
+
+    /** ReadDataByIdentifier (0x22) : données du DID. */
+    suspend fun readDid(did: Int): IntArray {
+        val a = uds(intArrayOf(0x22, did shr 8, did and 0xFF))
+        if (a.size < 3 || a[1] != did shr 8 || a[2] != did and 0xFF) throw UdsError("Réponse inattendue du module")
+        return a.drop(3).toIntArray()
+    }
+
+    /**
+     * WriteDataByIdentifier (0x2E). Au-delà de 4 octets de données, l'envoi est découpé
+     * manuellement en trames ISO-TP (première trame, contrôle de flux, trames consécutives).
+     */
+    suspend fun writeDid(did: Int, data: IntArray) {
+        val payload = intArrayOf(0x2E, did shr 8, did and 0xFF) + data
+        if (payload.size <= 7) { uds(payload); return }
+        if (payload.size > 0xFFF) throw UdsError("Bloc de données trop long")
+        raw("ATCAF0")
+        try {
+            val first = intArrayOf(0x10 or (payload.size shr 8), payload.size and 0xFF) + payload.copyOfRange(0, 6)
+            val fc = rawFrames(raw(hex(first), 3000))
+            val flow = fc.firstOrNull { it.isNotEmpty() && it[0] shr 4 == 3 } ?: throw UdsError("Le module refuse l'écriture longue")
+            if (flow[0] and 0x0F == 2) throw UdsError("Le module refuse l'écriture longue (dépassement)")
+            val stMin = flow.getOrElse(2) { 0 }.let { if (it in 1..0x7F) it.toLong() else 0L }
+            var seq = 1
+            var i = 6
+            var last = ""
+            while (i < payload.size) {
+                val end = minOf(i + 7, payload.size)
+                val frame = (intArrayOf(0x20 or (seq and 0x0F)) + payload.copyOfRange(i, end)).copyOf(8)
+                last = raw(hex(frame), if (end == payload.size) 6000 else 3000)
+                if (stMin > 0) delay(stMin)
+                seq++
+                i = end
+            }
+            // Réponse finale (trames brutes : octet PCI puis données).
+            val answers = rawFrames(last).mapNotNull { f -> if (f.isNotEmpty() && f[0] shr 4 == 0) f.drop(1).take(f[0] and 0x0F).toIntArray() else null }
+            if (answers.isEmpty()) throw UdsError("Pas de confirmation d'écriture du module")
+            udsAnswer(0x2E, answers)
+        } finally {
+            raw("ATCAF1")
+        }
+    }
+
+    private fun rawFrames(r: String): List<IntArray> = if (isError(r)) emptyList() else r.lines().map { l -> tokens(l).map { it.toInt(16) }.toIntArray() }.filter { it.isNotEmpty() }
 }
