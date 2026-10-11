@@ -100,7 +100,7 @@ class Elm327(private val t: ObdTransport) {
     suspend fun supportedPids(): Set<Int>? {
         val out = mutableSetOf<Int>()
         var base = 0
-        while (base <= 0x60) {
+        while (base <= 0xC0) {
             val p = "%02X".format(base)
             val r = raw("01$p", 10000)
             if (isError(r)) return if (base == 0) null else out
@@ -121,6 +121,13 @@ class Elm327(private val t: ObdTransport) {
         }
         return out
     }
+
+    /** Lit chaque requête une seule fois puis décode toutes les valeurs qui en dépendent. */
+    suspend fun readAll(defs: List<com.cardeck.app.data.PidDef>): List<Pair<String, Double>> =
+        defs.groupBy { it.request to it.header }.flatMap { (key, group) ->
+            val bytes = query(key.first, key.second) ?: return@flatMap emptyList()
+            group.mapNotNull { p -> if (bytes.size < p.size) null else runCatching { p.decode(bytes) }.getOrNull()?.takeIf { !it.isNaN() }?.let { p.id to it } }
+        }
 
     suspend fun rpm(): Double? = pid01(0x0C)?.takeIf { it.size >= 2 }?.let { (it[0] * 256 + it[1]) / 4.0 }
 

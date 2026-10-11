@@ -140,18 +140,14 @@ class TripService : Service() {
                 if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
                 if (System.currentTimeMillis() - engineOffSince > 20_000) endTrip()
             }
-            // Historique des données moteur : PIDs standard déclarés par le véhicule + PIDs du modèle.
+            // Historique : toutes les données déclarées par le véhicule + PIDs du modèle + tension du boîtier.
             recorder?.let { rec2 ->
                 if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
                 val sup = obd.supported.value.orEmpty()
-                val pids = StdPids.all.filter { StdPids.pidNumber(it) in sup } + v.template.pids
+                val pids = (StdPids.forSupported(sup) + v.template.pids).filter { !it.slow || cycle % 6 == 0 }
                 val now = System.currentTimeMillis()
-                val values = obd.use { e ->
-                    pids.filter { !it.slow || cycle % 6 == 0 }.mapNotNull { p ->
-                        e.query(p.request, p.header)?.takeIf { it.size >= p.size }?.let { b -> runCatching { p.decode(b) }.getOrNull()?.let { p.id to it } }
-                    }
-                }
-                if (values != null) rec2.addSamples(now, values)
+                val values = obd.use { e -> e.readAll(pids) }
+                if (values != null) rec2.addSamples(now, values + listOfNotNull(volt?.let { "elm_volt" to it }))
                 cycle++
             }
             val r = recorder

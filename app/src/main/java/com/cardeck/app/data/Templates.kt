@@ -80,6 +80,6 @@ val KIA_PICANTO_TA = VehicleTemplate(
 val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA)
 
 /** Retrouve une donnée moteur (standard ou propre à un modèle) par son identifiant. */
-fun pidById(id: String): PidDef? = StdPids.all.find { it.id == id } ?: TEMPLATES.flatMap { it.pids }.find { it.id == id }
+fun pidById(id: String): PidDef? = TEMPLATES.flatMap { it.pids }.find { it.id == id } ?: StdPids.byId(id)
 
 fun templateById(id: String): VehicleTemplate = TEMPLATES.find { it.id == id } ?: SWIFT_SPORT_ZC33S

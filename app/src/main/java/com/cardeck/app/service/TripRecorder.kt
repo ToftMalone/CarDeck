@@ -79,8 +79,29 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
             detectEvents(prev, loc)
         }
         last = loc
+        addSamples(loc.time, buildList {
+            if (loc.hasSpeed()) add("gps_speed" to loc.speed * 3.6)
+            if (loc.hasAltitude()) add("gps_alt" to loc.altitude)
+            if (loc.hasBearing()) add("gps_heading" to loc.bearing.toDouble())
+            if (loc.hasAccuracy()) add("gps_acc" to loc.accuracy.toDouble())
+            if (prev != null) gForces(prev, loc)?.let { (lon, lat) -> add("acc_long" to lon); add("acc_lat" to lat) }
+        })
         pending += TripPoint(loc.time, loc.latitude, loc.longitude, kmh)
         if (pending.size >= 10) flush()
+    }
+
+    /** Accélérations longitudinale et latérale (en g) déduites de deux positions GPS successives. */
+    private fun gForces(prev: Location, loc: Location): Pair<Double, Double>? {
+        val dt = (loc.time - prev.time) / 1000.0
+        if (dt !in 0.5..3.0 || !prev.hasSpeed() || !loc.hasSpeed()) return null
+        val lon = (loc.speed - prev.speed) / dt / 9.81
+        var lat = 0.0
+        if (prev.hasBearing() && loc.hasBearing() && loc.speed > 2f) {
+            var db = abs(loc.bearing - prev.bearing).toDouble()
+            if (db > 180) db = 360 - db
+            lat = loc.speed * Math.toRadians(db) / dt / 9.81
+        }
+        return lon to lat
     }
 
     private fun detectEvents(prev: Location, loc: Location) {

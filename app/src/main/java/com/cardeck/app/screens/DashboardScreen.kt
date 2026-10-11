@@ -80,11 +80,10 @@ fun DashboardScreen(vm: AppViewModel) {
                 if (sup.isNullOrEmpty()) { delay(5000); continue }
                 vm.obd.supported.value = sup
             }
-            val list = StdPids.all.filter { StdPids.pidNumber(it) in sup } + tpl.pids
-            for (p in list) {
-                if (p.slow && cycle % 6 != 0) continue
-                val bytes = withContext(Dispatchers.IO) { vm.obd.use { it.query(p.request, p.header) } }
-                if (bytes != null && bytes.size >= p.size) runCatching { p.decode(bytes) }.getOrNull()?.let { values[p.id] = it }
+            val list = (StdPids.forSupported(sup) + tpl.pids).filter { !it.slow || cycle % 6 == 0 }
+            // Par petits paquets pour rafraîchir l'écran au fil de la lecture.
+            for (chunk in list.groupBy { it.request to it.header }.values.chunked(4)) {
+                withContext(Dispatchers.IO) { vm.obd.use { it.readAll(chunk.flatten()) } }?.forEach { (id, v) -> values[id] = v }
             }
             cycle++
             delay(100)
@@ -126,7 +125,7 @@ fun DashboardScreen(vm: AppViewModel) {
                 }
             }
             val sup = supported
-            val std = if (sup == null) emptyList() else StdPids.all.filter { StdPids.pidNumber(it) in sup }
+            val std = if (sup == null) emptyList() else StdPids.forSupported(sup)
             val gauges = std.filter { it in StdPids.headline }
             val cards = std.filter { it !in StdPids.headline }
             T("Données moteur", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
