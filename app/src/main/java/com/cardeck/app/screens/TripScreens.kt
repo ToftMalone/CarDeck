@@ -18,6 +18,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
+import com.cardeck.app.ui.Spinner
+import com.cardeck.app.export.TripExport
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -223,6 +228,9 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
         }
     }
     var confirmDelete by remember { mutableStateOf(false) }
+    var exporting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val ctx = LocalContext.current
     val sheetFrac by animateFloatAsState(if (sheetUp) .8f else .46f, tween(450), label = "sheet")
     val t = trip
 
@@ -241,7 +249,24 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
             }
         }
         IconBtn(Icons.AutoMirrored.Rounded.ArrowBack, { vm.back() }, c.on, c.sf3, Modifier.padding(12.dp).shadow(4.dp, CircleShape))
-        IconBtn(Icons.Rounded.Delete, { confirmDelete = true }, c.on, c.sf3, Modifier.align(Alignment.TopEnd).padding(12.dp).shadow(4.dp, CircleShape))
+        Row(Modifier.align(Alignment.TopEnd).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (exporting) Box(Modifier.size(48.dp).shadow(4.dp, CircleShape).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Spinner() }
+            else IconBtn(Icons.Rounded.Share, {
+                val tr = trip ?: return@IconBtn
+                exporting = true
+                scope.launch {
+                    val file = runCatching {
+                        withContext(Dispatchers.IO) {
+                            val vehicle = vm.repo.vehicles.value.find { it.id == tr.vehicleId }
+                            TripExport.writeZip(java.io.File(ctx.cacheDir, "exports"), tr, vehicle, vm.repo.points(tr.id), vm.repo.samples(tr.id))
+                        }
+                    }.getOrNull()
+                    exporting = false
+                    if (file == null) vm.showSnack("Échec de l'export du trajet") else shareFile(ctx, file)
+                }
+            }, c.on, c.sf3, Modifier.shadow(4.dp, CircleShape))
+            IconBtn(Icons.Rounded.Delete, { confirmDelete = true }, c.on, c.sf3, Modifier.shadow(4.dp, CircleShape))
+        }
 
         if (t != null) {
             Column(
@@ -545,4 +570,16 @@ private fun Sparkline(s: List<Sample>, start: Long, end: Long, min: Double, max:
         s.forEachIndexed { i, smp -> if (i == 0) path.moveTo(x(smp.t), y(smp.v)) else path.lineTo(x(smp.t), y(smp.v)) }
         drawPath(path, line, style = Stroke(2.dp.toPx(), join = StrokeJoin.Round, cap = StrokeCap.Round))
     }
+}
+
+/** Ouvre le menu de partage Android pour l'archive exportée. */
+private fun shareFile(ctx: Context, file: java.io.File) {
+    val uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", file)
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "application/zip"
+        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        putExtra(android.content.Intent.EXTRA_SUBJECT, file.nameWithoutExtension)
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    ctx.startActivity(android.content.Intent.createChooser(send, "Exporter le trajet"))
 }
