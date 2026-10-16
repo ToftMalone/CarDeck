@@ -4,27 +4,15 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Arc de compteur (270°) -->
+    <!-- Ombre portée en diagonale -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#2F3441"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:pathData="M33.5,74.5 A29,29 0 1 1 74.5,74.5" />
+        android:fillColor="#4705603F"
+        android:pathData="M68,32.5 L81,47 L80,70 L75,76 L36,76 L96,136 L140,92 Z" />
+    <!-- Voiture -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#8FB4FF"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:pathData="M33.5,74.5 A29,29 0 0 1 28.3,46.5 A29,29 0 0 1 58,25.3" />
-    <!-- Aiguille -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#E6E9F2"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:pathData="M54,54 L68,37" />
-    <path
-        android:fillColor="#E6E9F2"
-        android:pathData="M54,49 a5,5 0 1 0 0.01,0 z" />
+        android:fillColor="#FF86EFC0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3.6"
+        android:strokeLineJoin="round"
+        android:pathData="M42,32 H66 Q71,32 72.6,36.6 L75.4,45 H78 Q81,45 81,48 Q81,50.5 78.8,51 Q80,52.5 80,56 V66 Q80,70 76,70 H75 V73 Q75,76 72,76 H68 Q65,76 65,73 V70 H43 V73 Q43,76 40,76 H36 Q33,76 33,73 V70 H32 Q28,70 28,66 V56 Q28,52.5 29.2,51 Q27,50.5 27,48 Q27,45 30,45 H32.6 L35.4,36.6 Q37,32 42,32 Z" />
 </vector>
