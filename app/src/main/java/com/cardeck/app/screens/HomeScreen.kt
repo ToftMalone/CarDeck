@@ -6,6 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -119,7 +122,6 @@ fun HomeScreen(vm: AppViewModel) {
                 }
                 TripPermissionCard()
                 ReorderableTiles(tiles, vm.homeOrder) { vm.updateHomeOrder(it) }
-                T("Appui long sur une carte pour la déplacer", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
             }
         }
         ConnectionStrip(vm)
@@ -171,9 +173,14 @@ private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: 
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     val byId = tiles.associateBy { it.id }
-    var current by remember(order) { mutableStateOf(order.filter { it in byId } + tiles.map { it.id }.filter { it !in order }) }
+    fun normalize(o: List<String>) = o.filter { it in byId } + tiles.map { it.id }.filter { it !in o }
+    // Un seul état pour toute la vie de l'écran : le geste d'appui long garde toujours la liste affichée.
+    var current by remember { mutableStateOf(normalize(order)) }
     var dragId by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    val save by rememberUpdatedState(onReorder)
+    var dragEndedAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(order) { if (dragId == null) current = normalize(order) }
     BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
         val gap = 10.dp
         val cellH = 116.dp
@@ -190,8 +197,10 @@ private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: 
                     val dragging = dragId == id
                     val anim by animateOffsetAsState(pos(i), label = "tile")
                     val p = if (dragging) pos(i) + dragOffset else anim
+                    // Pas d'ouverture de la carte à la fin d'un appui long / déplacement.
+                    val tile = t.copy(onClick = { if (dragId == null && System.currentTimeMillis() - dragEndedAt > 400) t.onClick() })
                     TileCard(
-                        t, c,
+                        tile, c,
                         Modifier
                             .offset { IntOffset(p.x.roundToInt(), p.y.roundToInt()) }
                             .zIndex(if (dragging) 1f else 0f)
@@ -202,7 +211,7 @@ private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: 
                                     shadowElevation = 12.dp.toPx(); shape = RoundedCornerShape(20.dp)
                                 }
                             }
-                            .pointerInput(id) {
+                            .pointerInput(id, cellWPx, cellHPx) {
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -215,15 +224,16 @@ private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: 
                                         val from = current.indexOf(id)
                                         val center = pos(from) + dragOffset + Offset(cellWPx / 2, cellHPx / 2)
                                         val col = (center.x / (cellWPx + gapPx)).toInt().coerceIn(0, 2)
-                                        val row = (center.y / (cellHPx + gapPx)).toInt().coerceIn(0, rows - 1)
+                                        val rowCount = (current.size + 2) / 3
+                                        val row = (center.y / (cellHPx + gapPx)).toInt().coerceIn(0, rowCount - 1)
                                         val to = (row * 3 + col).coerceIn(0, current.size - 1)
                                         if (to != from) {
                                             current = current.toMutableList().apply { add(to, removeAt(from)) }
                                             dragOffset -= pos(to) - pos(from)
                                         }
                                     },
-                                    onDragEnd = { dragId = null; dragOffset = Offset.Zero; onReorder(current) },
-                                    onDragCancel = { dragId = null; dragOffset = Offset.Zero; onReorder(current) },
+                                    onDragEnd = { dragEndedAt = System.currentTimeMillis(); dragId = null; dragOffset = Offset.Zero; save(current) },
+                                    onDragCancel = { dragEndedAt = System.currentTimeMillis(); dragId = null; dragOffset = Offset.Zero; save(current) },
                                 )
                             },
                     )
