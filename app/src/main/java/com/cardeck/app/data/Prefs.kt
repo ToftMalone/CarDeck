@@ -13,7 +13,7 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putBoolean("onboarded", v).apply()
 
     var themeMode: ThemeMode
-        get() = runCatching { ThemeMode.valueOf(sp.getString("themeMode", null)!!) }.getOrDefault(ThemeMode.Dark)
+        get() = runCatching { ThemeMode.valueOf(sp.getString("themeMode", null)!!) }.getOrDefault(ThemeMode.System)
         set(v) = sp.edit().putString("themeMode", v.name).apply()
 
     var palette: Palette
@@ -24,6 +24,11 @@ class Prefs(ctx: Context) {
     var dashMode: String
         get() = sp.getString("dashMode", "standard") ?: "standard"
         set(v) = sp.edit().putString("dashMode", v).apply()
+
+    /** Ordre des cartes de l'écran d'accueil (identifiants séparés par des virgules). */
+    var homeOrder: List<String>
+        get() = sp.getString("homeOrder", null)?.split(',')?.filter { it.isNotBlank() } ?: emptyList()
+        set(v) = sp.edit().putString("homeOrder", v.joinToString(",")).apply()
 
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)

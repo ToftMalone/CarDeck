@@ -6,6 +6,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +74,7 @@ import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.TextBtn
 
-private data class Tile(val label: String, val icon: ImageVector, val kind: Char, val onClick: () -> Unit, val badge: String = "")
+private data class Tile(val id: String, val label: String, val icon: ImageVector, val kind: Char, val onClick: () -> Unit, val badge: String = "")
 
 @Composable
 fun HomeScreen(vm: AppViewModel) {
@@ -70,14 +84,14 @@ fun HomeScreen(vm: AppViewModel) {
     val (connLabel, connKind) = connStatus(vm, v)
     val codes = scan?.codes?.size ?: 0
     val tiles = listOf(
-        Tile("Tableau de bord", Icons.Rounded.Dashboard, 'p', { vm.go(Screen.Dash) }),
-        Tile("Données OBD2", Icons.Rounded.Memory, 'p', { vm.go(Screen.ObdData) }),
-        Tile("Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
-        Tile("Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
-        Tile("Codage", Icons.Rounded.Build, 'p', { vm.go(Screen.Coding) }),
-        Tile("Ajouter un véhicule", Icons.Rounded.AddCircle, 'p', { vm.go(Screen.AddVehicle) }),
-        Tile("Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 'p', { vm.pairActive() }),
-        Tile("Paramètres", Icons.Rounded.Settings, 'p', { vm.go(Screen.Settings) }),
+        Tile("dash", "Tableau de bord", Icons.Rounded.Dashboard, 'p', { vm.go(Screen.Dash) }),
+        Tile("obd", "Données OBD2", Icons.Rounded.Memory, 'p', { vm.go(Screen.ObdData) }),
+        Tile("diag", "Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
+        Tile("trips", "Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
+        Tile("coding", "Codage", Icons.Rounded.Build, 'p', { vm.go(Screen.Coding) }),
+        Tile("add", "Ajouter un véhicule", Icons.Rounded.AddCircle, 'p', { vm.go(Screen.AddVehicle) }),
+        Tile("pair", "Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 'p', { vm.pairActive() }),
+        Tile("settings", "Paramètres", Icons.Rounded.Settings, 'p', { vm.go(Screen.Settings) }),
     )
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -104,14 +118,8 @@ fun HomeScreen(vm: AppViewModel) {
                     }
                 }
                 TripPermissionCard()
-                Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    tiles.chunked(3).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            row.forEach { t -> TileCard(t, c, Modifier.weight(1f)) }
-                            repeat(3 - row.size) { Box(Modifier.weight(1f)) }
-                        }
-                    }
-                }
+                ReorderableTiles(tiles, vm.homeOrder) { vm.updateHomeOrder(it) }
+                T("Appui long sur une carte pour la déplacer", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
             }
         }
         ConnectionStrip(vm)
@@ -151,6 +159,75 @@ private fun TripPermissionCard() {
                         bgLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                     }
                 }, color = c.otc, weight = 600)
+            }
+        }
+    }
+}
+
+/** Grille de cartes réorganisable : appui long puis glisser pour déplacer une carte. */
+@Composable
+private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: (List<String>) -> Unit) {
+    val c = Cd.c
+    val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+    val byId = tiles.associateBy { it.id }
+    var current by remember(order) { mutableStateOf(order.filter { it in byId } + tiles.map { it.id }.filter { it !in order }) }
+    var dragId by remember { mutableStateOf<String?>(null) }
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        val gap = 10.dp
+        val cellH = 116.dp
+        val cellW = (maxWidth - gap * 2) / 3
+        val rows = (current.size + 2) / 3
+        val gapPx = with(density) { gap.toPx() }
+        val cellWPx = with(density) { cellW.toPx() }
+        val cellHPx = with(density) { cellH.toPx() }
+        fun pos(i: Int) = Offset((i % 3) * (cellWPx + gapPx), (i / 3) * (cellHPx + gapPx))
+        Box(Modifier.fillMaxWidth().height(cellH * rows + gap * (rows - 1))) {
+            current.forEachIndexed { i, id ->
+                val t = byId[id] ?: return@forEachIndexed
+                key(id) {
+                    val dragging = dragId == id
+                    val anim by animateOffsetAsState(pos(i), label = "tile")
+                    val p = if (dragging) pos(i) + dragOffset else anim
+                    TileCard(
+                        t, c,
+                        Modifier
+                            .offset { IntOffset(p.x.roundToInt(), p.y.roundToInt()) }
+                            .zIndex(if (dragging) 1f else 0f)
+                            .width(cellW)
+                            .graphicsLayer {
+                                if (dragging) {
+                                    scaleX = 1.06f; scaleY = 1.06f
+                                    shadowElevation = 12.dp.toPx(); shape = RoundedCornerShape(20.dp)
+                                }
+                            }
+                            .pointerInput(id) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        dragId = id
+                                        dragOffset = Offset.Zero
+                                    },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        dragOffset += amount
+                                        val from = current.indexOf(id)
+                                        val center = pos(from) + dragOffset + Offset(cellWPx / 2, cellHPx / 2)
+                                        val col = (center.x / (cellWPx + gapPx)).toInt().coerceIn(0, 2)
+                                        val row = (center.y / (cellHPx + gapPx)).toInt().coerceIn(0, rows - 1)
+                                        val to = (row * 3 + col).coerceIn(0, current.size - 1)
+                                        if (to != from) {
+                                            current = current.toMutableList().apply { add(to, removeAt(from)) }
+                                            dragOffset -= pos(to) - pos(from)
+                                        }
+                                    },
+                                    onDragEnd = { dragId = null; dragOffset = Offset.Zero; onReorder(current) },
+                                    onDragCancel = { dragId = null; dragOffset = Offset.Zero; onReorder(current) },
+                                )
+                            },
+                    )
+                }
             }
         }
     }

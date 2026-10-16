@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.CarDeck" parent="android:Theme.Material.NoActionBar">
+    <!-- Thème de la fenêtre au lancement : clair ou sombre selon le réglage du téléphone (voir values-night). -->
+    <style name="Theme.CarDeck" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/cd_window_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

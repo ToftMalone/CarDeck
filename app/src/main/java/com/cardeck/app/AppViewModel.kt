@@ -71,6 +71,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var palette by mutableStateOf(prefs.palette)
         private set
 
+    var homeOrder by mutableStateOf(prefs.homeOrder)
+        private set
+
+    fun updateHomeOrder(order: List<String>) { homeOrder = order; prefs.homeOrder = order }
+
     var dashSport by mutableStateOf(prefs.dashMode == "sport")
         private set
 
