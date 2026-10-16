@@ -14,7 +14,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 enum class Palette(val label: String, val hue: Double) {
-    Bleu("Bleu", 250.0),
+    Vert("Vert", 158.0),
     Turquoise("Turquoise", 190.0),
     Violet("Violet", 300.0),
     Orange("Orange", 50.0),
@@ -98,7 +98,7 @@ fun cdColors(h: Double, dark: Boolean): CdColors {
     )
 }
 
-val LocalCd = staticCompositionLocalOf { cdColors(250.0, true) }
+val LocalCd = staticCompositionLocalOf { cdColors(158.0, true) }
 
 object Cd {
     val c: CdColors

@@ -17,7 +17,7 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putString("themeMode", v.name).apply()
 
     var palette: Palette
-        get() = runCatching { Palette.valueOf(sp.getString("palette", null)!!) }.getOrDefault(Palette.Bleu)
+        get() = runCatching { Palette.valueOf(sp.getString("palette", null)!!) }.getOrDefault(Palette.Vert)
         set(v) = sp.edit().putString("palette", v.name).apply()
 
     /** Tableau de bord affiché : « standard » ou « sport ». */

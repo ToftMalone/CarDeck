@@ -44,7 +44,6 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.WifiFind
 import androidx.compose.runtime.Composable
@@ -98,7 +97,7 @@ fun WelcomeScreen(vm: AppViewModel) {
     val progress by animateFloatAsState(if (anim) .7f else 0f, spring(dampingRatio = .6f, stiffness = 40f), label = "w")
     Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)) {
         Row(Modifier.height(48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Speed, 20, c.op) }
+            androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cardeck.app.R.drawable.ic_logo), contentDescription = "CarDeck", modifier = Modifier.size(32.dp))
             T("CarDeck", 20, weight = 600)
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

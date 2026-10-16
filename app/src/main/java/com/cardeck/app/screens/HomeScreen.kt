@@ -32,7 +32,6 @@ import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
 import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Troubleshoot
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -86,7 +85,7 @@ fun HomeScreen(vm: AppViewModel) {
                 Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Speed, 20, c.op) }
+                androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cardeck.app.R.drawable.ic_logo), contentDescription = "CarDeck", modifier = Modifier.size(32.dp))
                 T("CarDeck", 20, weight = 600, modifier = Modifier.weight(1f))
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
