@@ -233,7 +233,7 @@ private fun SimPanel(vm: AppViewModel) {
         T("Voiture virtuelle", 16, c.otc, 500)
         T(
             if (on) "Moteur en marche : la voiture roule sur un circuit, le trajet est enregistré automatiquement."
-            else "Démarrez le moteur pour simuler un trajet. Coupez-le pour terminer le trajet (environ 20 s après).",
+            else "Démarrez le moteur pour simuler un trajet. Coupez-le pour terminer le trajet.",
             13, c.otc, lineHeight = 18, modifier = Modifier.padding(top = 4.dp),
         )
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

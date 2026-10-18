@@ -19,12 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Air
-import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.HourglassEmpty
-import androidx.compose.material.icons.rounded.LocalGasStation
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.cardeck.app.AppViewModel
-import com.cardeck.app.data.PidDef
+import com.cardeck.app.data.DashGauges
 import com.cardeck.app.data.StdPids
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Ico
@@ -46,29 +42,6 @@ import com.cardeck.app.ui.TextBtn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlin.math.max
-
-/** Données lues pour chaque tableau de bord (identifiants des PIDs standard). */
-private val STANDARD_IDS = listOf("std0D", "std0C", "std05", "std5C", "std2F", "std42", "std10", "std5E")
-private val SPORT_IDS = listOf("std0F", "std0B", "std33", "std0E")
-
-/** Lus moins souvent (varient peu). */
-private val SLOW_IDS = setOf("std2F", "std33")
-
-private const val BARO_DEFAULT_KPA = 101.3
-
-/** Essence : rapport air/carburant stœchiométrique et masse volumique (g/L). */
-private const val AFR = 14.7
-private const val FUEL_DENSITY = 745.0
-
-private fun pseudo(id: String, label: String, unit: String, icon: androidx.compose.ui.graphics.vector.ImageVector, decimals: Int, min: Double, max: Double) =
-    PidDef(id, label, unit, icon, "", decimals = decimals, min = min, max = max) { 0.0 }
-
-private val MAP_BAR = pseudo("dash_map", "Pression collecteur (MAP)", "bar", Icons.Rounded.Air, 2, 0.0, 2.5)
-private val BOOST_BAR = pseudo("dash_boost", "Pression de suralimentation", "bar", Icons.Rounded.Speed, 2, -1.0, 1.5)
-private val VOLT = pseudo("dash_volt", "Tension batterie", "V", Icons.Rounded.BatteryChargingFull, 1, 11.0, 15.0)
-private val CONSO_100 = pseudo("dash_conso", "Consommation", "L/100 km", Icons.Rounded.LocalGasStation, 1, 0.0, 20.0)
-private val CONSO_H = pseudo("dash_conso_h", "Consommation", "L/h", Icons.Rounded.LocalGasStation, 1, 0.0, 5.0)
 
 @Composable
 fun DashboardScreen(vm: AppViewModel) {
@@ -79,7 +52,7 @@ fun DashboardScreen(vm: AppViewModel) {
     val supported by vm.obd.supported.collectAsState()
     val values = remember { mutableStateMapOf<String, Double>() }
     val sport = vm.dashSport
-    val ids = if (sport) SPORT_IDS else STANDARD_IDS
+    val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
 
     // Lecture en continu des seules données du tableau de bord affiché (rafraîchissement rapide).
     LaunchedEffect(connected, sport) {
@@ -93,13 +66,14 @@ fun DashboardScreen(vm: AppViewModel) {
                 vm.obd.supported.value = sup
             }
             val defs = ids.mapNotNull { id -> StdPids.all.find { it.id == id } }
-                .filter { StdPids.pidNumber(it) in sup && (it.id !in SLOW_IDS || cycle % 15 == 0) }
+                .filter { StdPids.pidNumber(it) in sup && (it.id !in DashGauges.SLOW_IDS || cycle % 15 == 0) }
             val readVolt = !sport && 0x42 !in sup && cycle % 10 == 0
             val out = withContext(Dispatchers.IO) {
                 vm.obd.use { e -> e.readAll(defs) to (if (readVolt) e.voltage() else null) }
             }
             out?.first?.forEach { (id, x) -> values[id] = x }
             out?.second?.let { values["elm_volt"] = it }
+            out?.let { (read, volt) -> vm.obd.publish(read + listOfNotNull(volt?.let { "elm_volt" to it })) }
             cycle++
             delay(80)
         }
@@ -129,35 +103,11 @@ fun DashboardScreen(vm: AppViewModel) {
                 }
                 sup == null -> EmptyNote(Icons.Rounded.HourglassEmpty, "Lecture des données disponibles…", "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.")
                 else -> {
-                    fun std(id: String) = StdPids.all.first { it.id == id }
-                    fun has(id: String) = StdPids.pidNumber(std(id)) in sup
-                    val missing = "Non fourni par le véhicule"
-                    fun gauge(id: String) = Triple(std(id), values[id], if (has(id)) null else missing)
-                    val gauges: List<Triple<PidDef, Double?, String?>> = if (!sport) {
-                        // Consommation : débit de carburant (PID 5E) ou calcul à partir du débit d'air (MAF).
-                        val speed = values["std0D"]
-                        val lph = values["std5E"] ?: values["std10"]?.let { it / AFR * 3600 / FUEL_DENSITY }
-                        val conso = when {
-                            lph == null -> Triple(CONSO_100, null, if (has("std5E") || has("std10")) null else missing)
-                            speed != null && speed >= 5 -> Triple(CONSO_100, lph / speed * 100, null)
-                            else -> Triple(CONSO_H, lph, "À l'arrêt")
-                        }
-                        val volt = if (has("std42")) Triple(VOLT, values["std42"], "Calculateur") else Triple(VOLT, values["elm_volt"], "Prise OBD")
-                        STANDARD_IDS.take(5).map { gauge(it) } + listOf(conso, volt)
-                    } else {
-                        val map = values["std0B"]
-                        val baro = values["std33"] ?: BARO_DEFAULT_KPA
-                        listOf(
-                            gauge("std0F"),
-                            Triple(MAP_BAR, map?.let { it / 100 }, if (has("std0B")) "Absolue" else missing),
-                            Triple(BOOST_BAR, map?.let { (it - baro) / 100 }, if (has("std0B")) "Relative (MAP − pression atmosphérique)" else missing),
-                            gauge("std0E"),
-                        )
-                    }
+                    val gauges = DashGauges.gauges(sport, values, sup)
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         gauges.chunked(2).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                row.forEach { (p, x, note) -> GaugeCard(p, x?.let { if (it.isNaN()) null else it }, Modifier.weight(1f), note) }
+                                row.forEach { g -> GaugeCard(g.def, g.value, Modifier.weight(1f), g.note) }
                                 if (row.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }

@@ -139,6 +139,7 @@ class TripService : Service() {
             val (rpm, speed, volt) = snap
             obd.voltage.value = volt
             obd.ecuOnline.value = rpm != null
+            obd.publish(listOfNotNull(rpm?.let { "std0C" to it }, speed?.let { "std0D" to it.toDouble() }, volt?.let { "elm_volt" to it }))
             val engineOn = rpm != null && rpm > 300
             val isSim = adapter.transport == com.cardeck.app.data.Transport.Sim
             if (engineOn) {
@@ -160,7 +161,10 @@ class TripService : Service() {
                 val pids = (StdPids.forSupported(sup) + v.template.pids).filter { !it.slow || cycle % 6 == 0 }
                 val now = System.currentTimeMillis()
                 val values = obd.use { e -> e.readAll(pids) }
-                if (values != null) rec2.addSamples(now, values + listOfNotNull(volt?.let { "elm_volt" to it }))
+                if (values != null) {
+                    rec2.addSamples(now, values + listOfNotNull(volt?.let { "elm_volt" to it }))
+                    obd.publish(values)
+                }
                 cycle++
             }
             val r = recorder
