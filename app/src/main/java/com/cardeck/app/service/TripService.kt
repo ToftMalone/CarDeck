@@ -117,32 +117,41 @@ class TripService : Service() {
             }
             val rec = recorder
             if (obd.connectedAddress != adapter.address || obd.state.value !is ObdState.Connected) {
-                if (rec != null) {
-                    if (lostSince == 0L) lostSince = System.currentTimeMillis()
-                    if (System.currentTimeMillis() - lostSince > 90_000) endTrip()
-                }
-                status(if (recorder != null) "Trajet en cours · reconnexion au boîtier…" else "Recherche de ${adapter.name}…")
+                // Boîtier perdu (contact coupé, sortie du véhicule) : le trajet s'arrête aussitôt.
+                if (rec != null) endTrip()
+                status("Recherche de ${adapter.name}…")
                 if (obd.connect(adapter).isFailure) {
-                    delay(if (recorder != null) 5000 else 30_000)
+                    delay(30_000)
                     continue
                 }
             }
-            lostSince = 0L
             val snap = obd.use { e -> Triple(e.rpm(), e.speed(), e.voltage()) }
-            if (snap == null) { delay(2000); continue }
+            if (snap == null) {
+                // Plus de réponse du boîtier : on ne trace pas sans données moteur.
+                if (recorder != null) {
+                    if (lostSince == 0L) lostSince = System.currentTimeMillis()
+                    if (System.currentTimeMillis() - lostSince > NO_ANSWER_MS) endTrip()
+                }
+                delay(1000)
+                continue
+            }
+            lostSince = 0L
             val (rpm, speed, volt) = snap
             obd.voltage.value = volt
             obd.ecuOnline.value = rpm != null
             val engineOn = rpm != null && rpm > 300
-            // Voiture virtuelle : réaction immédiate au démarrage / à l'arrêt du moteur.
             val isSim = adapter.transport == com.cardeck.app.data.Transport.Sim
             if (engineOn) {
                 engineOffSince = 0L
                 if (recorder == null) startTrip(v.id)
                 recorder?.onObdSpeed(speed)
             } else if (recorder != null) {
-                if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
-                if (System.currentTimeMillis() - engineOffSince > (if (isSim) 2_000 else 20_000)) endTrip()
+                // Régime à 0 : fin immédiate du trajet. Calculateur muet : courte tolérance (lecture ratée).
+                if (rpm != null) endTrip()
+                else {
+                    if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
+                    if (System.currentTimeMillis() - engineOffSince > NO_ANSWER_MS) endTrip()
+                }
             }
             // Historique : toutes les données déclarées par le véhicule + PIDs du modèle + tension du boîtier.
             recorder?.let { rec2 ->
@@ -182,6 +191,9 @@ class TripService : Service() {
     companion object {
         private const val CHANNEL = "vehicle"
         private const val NOTIF_ID = 42
+
+        /** Délai sans réponse du moteur avant de clore le trajet. */
+        private const val NO_ANSWER_MS = 3_000L
 
         /** État du suivi pour l'interface (null = service arrêté). */
         val live = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
