@@ -2,11 +2,15 @@ package com.cardeck.app.obd
 
 import android.content.Context
 import com.cardeck.app.data.AdapterConfig
+import com.cardeck.app.data.PidDef
 import com.cardeck.app.data.Transport
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
 sealed interface ObdState {
@@ -38,6 +42,35 @@ class ObdManager(private val ctx: Context) {
 
     fun publish(values: List<Pair<String, Double>>) {
         if (values.isNotEmpty()) live.value = live.value + values
+    }
+
+    /**
+     * Lit en continu les données renvoyées par [defs] (selon les PIDs déclarés par le véhicule) et les publie dans [live],
+     * tant que l'appelant est actif (écran affiché). Les données lentes ne sont relues qu'un cycle sur 15.
+     */
+    suspend fun watch(
+        slow: (PidDef) -> Boolean = { it.slow },
+        withVolt: (Set<Int>) -> Boolean = { false },
+        defs: (Set<Int>) -> List<PidDef>,
+    ) {
+        var cycle = 0
+        while (true) {
+            if (_state.value !is ObdState.Connected) { delay(1000); continue }
+            var sup = supported.value
+            if (sup == null) {
+                sup = withContext(Dispatchers.IO) { use { it.supportedPids() } }
+                if (sup.isNullOrEmpty()) { delay(5000); continue }
+                supported.value = sup
+            }
+            val list = defs(sup).filter { !slow(it) || cycle % 15 == 0 }
+            val readVolt = withVolt(sup) && cycle % 10 == 0
+            val out = withContext(Dispatchers.IO) {
+                use { e -> e.readAll(list) + listOfNotNull(if (readVolt) e.voltage()?.let { "elm_volt" to it } else null) }
+            }
+            if (out != null) publish(out)
+            cycle++
+            delay(80)
+        }
     }
 
     /** Pendant l'appairage, le service de trajets laisse la main à l'écran d'appairage. */

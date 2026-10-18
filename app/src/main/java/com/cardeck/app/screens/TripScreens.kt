@@ -108,7 +108,15 @@ import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.TilesOverlay
 import kotlin.math.abs
 
-private val TRIP_FILTERS = listOf("all" to "Tous", "today" to "Aujourd'hui", "7" to "7 jours", "30" to "30 jours")
+internal val TRIP_FILTERS = listOf("all" to "Tous", "today" to "Aujourd'hui", "7" to "7 jours", "30" to "30 jours")
+
+/** Le trajet fait-il partie de la période choisie (filtre de l'historique) ? */
+internal fun tripInPeriod(t: Trip, filter: String, now: Long): Boolean = when (filter) {
+    "today" -> dayLabel(t.start) == "Aujourd'hui"
+    "7" -> t.start >= now - 7 * 86_400_000L
+    "30" -> t.start >= now - 30 * 86_400_000L
+    else -> true
+}
 
 private fun evColors(t: EventType, c: CdColors): Triple<Color, Color, Color> = when (t) {
     EventType.Brake -> Triple(c.ec, c.oec, c.e)
@@ -126,14 +134,7 @@ fun TripsScreen(vm: AppViewModel) {
     val scroll = rememberScrollState()
     val tf = vm.tripFilter
     val now = System.currentTimeMillis()
-    val list = all.orEmpty().filter {
-        when (tf) {
-            "today" -> dayLabel(it.start) == "Aujourd'hui"
-            "7" -> it.start >= now - 7 * 86_400_000L
-            "30" -> it.start >= now - 30 * 86_400_000L
-            else -> true
-        }
-    }
+    val list = all.orEmpty().filter { tripInPeriod(it, tf, now) }
     val km = list.sumOf { it.distanceKm }
     Column(Modifier.fillMaxSize()) {
         BackBar("Trajets", scroll.value > 48, { vm.back() })

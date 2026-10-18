@@ -102,6 +102,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         go(Screen.Pair)
     }
 
+    /** Nom proposé pour un nouveau profil : « Swift Sport », puis « Swift Sport 2 »… */
+    fun defaultName(t: VehicleTemplate): String {
+        val n = repo.vehicles.value.count { it.templateId == t.id }
+        return if (n == 0) t.model else "${t.model} ${n + 1}"
+    }
+
+    /** Création d'un profil depuis Android Auto (nom par défaut, boîtier associé ensuite). */
+    fun createVehicleQuick(templateId: String): Long {
+        val t = com.cardeck.app.data.templateById(templateId)
+        val id = repo.addVehicle(templateId, defaultName(t), "", "")
+        repo.select(id)
+        if (templateId == com.cardeck.app.data.SIMULATOR.id) {
+            repo.setAdapter(id, AdapterConfig(com.cardeck.app.data.Transport.Sim, "sim", "Boîtier OBD2 simulé"), "CARDECKSIM0000001")
+        }
+        if (!onboarded) {
+            prefs.onboarded = true
+            onboarded = true
+            stack.clear()
+            stack.add(Screen.Home)
+        }
+        TripService.start(ctx)
+        return id
+    }
+
     fun pairActive() {
         pairVehicleId = repo.active?.id ?: return
         go(Screen.Pair)

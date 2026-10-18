@@ -30,6 +30,11 @@ class Prefs(ctx: Context) {
         get() = sp.getString("homeOrder", null)?.split(',')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = sp.edit().putString("homeOrder", v.joinToString(",")).apply()
 
+    /** Autorisation « vitesse du véhicule » déjà demandée par Android Auto. */
+    var carSpeedAsked: Boolean
+        get() = sp.getBoolean("carSpeedAsked", false)
+        set(v) = sp.edit().putBoolean("carSpeedAsked", v).apply()
+
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)
         set(v) = sp.edit().putLong("activeVehicle", v).apply()

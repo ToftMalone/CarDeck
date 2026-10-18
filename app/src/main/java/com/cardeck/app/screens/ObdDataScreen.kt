@@ -268,7 +268,7 @@ private fun SimPanel(vm: AppViewModel) {
 
 /** Dernière position connue du téléphone (null sans autorisation de localisation). */
 @android.annotation.SuppressLint("MissingPermission")
-private fun lastKnownLocation(ctx: android.content.Context): android.location.Location? {
+internal fun lastKnownLocation(ctx: android.content.Context): android.location.Location? {
     if (!com.cardeck.app.Perms.locationOk(ctx)) return null
     val lm = ctx.getSystemService(android.location.LocationManager::class.java) ?: return null
     return runCatching {

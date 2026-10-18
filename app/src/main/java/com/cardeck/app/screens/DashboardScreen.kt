@@ -25,8 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,9 +37,6 @@ import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.TextBtn
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 
 @Composable
 fun DashboardScreen(vm: AppViewModel) {
@@ -50,32 +45,15 @@ fun DashboardScreen(vm: AppViewModel) {
     val (_, connKind) = connStatus(vm, v)
     val connected = connKind == ConnKind.Ok
     val supported by vm.obd.supported.collectAsState()
-    val values = remember { mutableStateMapOf<String, Double>() }
+    val values by vm.obd.live.collectAsState()
     val sport = vm.dashSport
     val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
 
     // Lecture en continu des seules données du tableau de bord affiché (rafraîchissement rapide).
     LaunchedEffect(connected, sport) {
         if (!connected) return@LaunchedEffect
-        var cycle = 0
-        while (true) {
-            var sup = vm.obd.supported.value
-            if (sup == null) {
-                sup = withContext(Dispatchers.IO) { vm.obd.use { it.supportedPids() } }
-                if (sup.isNullOrEmpty()) { delay(5000); continue }
-                vm.obd.supported.value = sup
-            }
-            val defs = ids.mapNotNull { id -> StdPids.all.find { it.id == id } }
-                .filter { StdPids.pidNumber(it) in sup && (it.id !in DashGauges.SLOW_IDS || cycle % 15 == 0) }
-            val readVolt = !sport && 0x42 !in sup && cycle % 10 == 0
-            val out = withContext(Dispatchers.IO) {
-                vm.obd.use { e -> e.readAll(defs) to (if (readVolt) e.voltage() else null) }
-            }
-            out?.first?.forEach { (id, x) -> values[id] = x }
-            out?.second?.let { values["elm_volt"] = it }
-            out?.let { (read, volt) -> vm.obd.publish(read + listOfNotNull(volt?.let { "elm_volt" to it })) }
-            cycle++
-            delay(80)
+        vm.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport && 0x42 !in it }) { sup ->
+            ids.mapNotNull { id -> StdPids.all.find { it.id == id } }.filter { StdPids.pidNumber(it) in sup }
         }
     }
 

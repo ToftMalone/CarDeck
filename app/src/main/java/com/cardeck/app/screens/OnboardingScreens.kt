@@ -133,12 +133,8 @@ private fun StepBar(step: Int, onBack: () -> Unit, showSteps: Boolean) {
 @Composable
 fun AddVehicleScreen(vm: AppViewModel) {
     val c = Cd.c
-    val vehicles = vm.repo.vehicles.collectAsState().value
     var tpl by remember { mutableStateOf(TEMPLATES.first()) }
-    fun defaultName(t: VehicleTemplate): String {
-        val n = vehicles.count { it.templateId == t.id }
-        return if (n == 0) t.model else "${t.model} ${n + 1}"
-    }
+    fun defaultName(t: VehicleTemplate): String = vm.defaultName(t)
     var nickname by remember { mutableStateOf(defaultName(tpl)) }
     var nameEdited by remember { mutableStateOf(false) }
     var plate by remember { mutableStateOf("") }
