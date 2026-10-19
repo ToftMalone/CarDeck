@@ -381,6 +381,45 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Identification ----
+    var identBusy by mutableStateOf(false)
+        private set
+    /** Résultat par calculateur : (nom, lignes « libellé : valeur »). */
+    var ident by mutableStateOf<List<Pair<String, List<String>>>?>(null)
+        private set
+
+    fun readIdent() {
+        val v = repo.active ?: return
+        if (identBusy || v.template.idents.isEmpty()) return
+        identBusy = true
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.IO) {
+                obd.use { e -> v.template.idents.map { ecu -> ecu to runCatching { e.identify(ecu) }.getOrDefault(emptyList()) } }
+            }
+            if (out == null) showSnack("Boîtier OBD2 non connecté")
+            else {
+                ident = out.map { (ecu, lines) -> ecu.name to lines.map { (req, txt) -> identLabel(req) + " : " + txt } }
+                // VIN lu par l'identification : enregistré dans le profil du véhicule.
+                val vin = out.flatMap { it.second }.firstOrNull { (req, txt) -> (req == "1A90" || req == "22F190") && txt.length >= 17 }?.second?.take(17)
+                val a = v.adapter
+                if (vin != null && a != null && v.vin != vin) withContext(Dispatchers.IO) { repo.setAdapter(v.id, a, vin) }
+                if (out.all { it.second.isEmpty() }) showSnack("Aucun calculateur n'a répondu : mettez le contact")
+            }
+            identBusy = false
+        }
+    }
+
+    private fun identLabel(req: String): String = when (req) {
+        "1A90", "22F190" -> "VIN"
+        "1A8A", "22F188", "22F101" -> "Référence"
+        "1A8B" -> "Calculateur"
+        "1A8E" -> "Matériel"
+        "1A9E", "1A9F" -> "Logiciel"
+        "22F18C" -> "N° de série"
+        "1A99" -> "Date (probable)"
+        else -> req
+    }
+
     // ---- Trajets ----
     var tripFilter by mutableStateOf("all")
 

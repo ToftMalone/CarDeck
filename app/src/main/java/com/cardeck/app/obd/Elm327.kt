@@ -36,6 +36,9 @@ class Elm327(private val t: ObdTransport) {
     /** Protocole imposé par le modèle de véhicule (null = recherche automatique). */
     private var forcedProtocol: String? = null
 
+    /** Commandes AT propres au modèle (rejouées après un dialogue avec un autre calculateur). */
+    private var extraInit: List<String> = emptyList()
+
     /** Calculateurs déjà passés en session par défaut KWP (10 81) depuis l'initialisation. */
     private val sessions = mutableSetOf<String>()
 
@@ -72,6 +75,7 @@ class Elm327(private val t: ObdTransport) {
         forcedProtocol = protocol
         // Requêtes OBD en adressage fonctionnel (7DF) : certains moteurs refusent le service 01 adressé directement.
         raw("ATE0"); raw("ATL0"); raw("ATS1"); raw("ATH0"); raw("ATAT1"); raw("ATST32"); raw("ATSP${protocol ?: "0"}")
+        extraInit = extra
         extra.forEach { raw(it) }
         sessions.clear()
     }
@@ -310,6 +314,33 @@ class Elm327(private val t: ObdTransport) {
         val b = query("1A90", "7E0") ?: return null
         val vin = b.filter { it in 0x30..0x5A }.map { it.toChar() }.joinToString("").filter { it.isLetterOrDigit() }
         return if (vin.length >= 17) vin.take(17) else null
+    }
+
+    /**
+     * Identification d'un calculateur (lecture seule) : réponses positives aux requêtes 1A xx (KWP) ou 22 xxxx (UDS),
+     * renvoyées sous forme de texte (ou d'octets en hexadécimal si ce n'est pas du texte).
+     */
+    suspend fun identify(ecu: com.cardeck.app.data.EcuIdent): List<Pair<String, String>> {
+        val out = mutableListOf<Pair<String, String>>()
+        raw("ATSH${ecu.tx}"); raw("ATCRA${ecu.rx}"); raw("ATFCSH${ecu.tx}")
+        try {
+            raw(if (ecu.uds) "1001" else "1081")
+            for (req in ecu.requests) {
+                val r = raw(req, 3000)
+                if (isError(r)) continue
+                val q = req.chunked(2).map { it.toInt(16) }
+                val echo = listOf(q[0] + 0x40) + q.drop(1)
+                val m = udsMessages(r).firstOrNull { it.size > echo.size && it.take(echo.size) == echo } ?: continue
+                val data = m.drop(echo.size)
+                val txt = data.filter { it in 0x20..0x7E }.map { it.toChar() }.joinToString("").trim()
+                out += req to if (txt.length >= 3 && txt.length * 2 >= data.size) txt else data.joinToString(" ") { "%02X".format(it) }
+            }
+        } finally {
+            raw("ATCRA"); raw("ATSH7DF")
+            extraInit.forEach { raw(it) }
+            sessions.remove(ecu.tx)
+        }
+        return out
     }
 
     /** Lecture des codes défaut. [mode] = « 03 » (mémorisés), « 07 » (en attente) ou « 0A » (permanents). */

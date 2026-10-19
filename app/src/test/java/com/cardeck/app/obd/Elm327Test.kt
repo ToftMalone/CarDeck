@@ -279,4 +279,13 @@ class Elm327Test {
         assertEquals(1.0, v.getValue("swift_blink"), 0.01)
         assertTrue("ATH0" == fake.sent.last())
     }
+
+    @Test fun identificationKwp() = runBlocking {
+        val fake = FakeElm(base + mapOf("1A8A" to "5A 8A 33 39 38 30 2D", "1A8B" to "7F 1A 12"))
+        val e = Elm327(fake)
+        val ecu = com.cardeck.app.data.EcuIdent("Moteur", "7E0", "7E8", false, listOf("1A8A", "1A8B"))
+        assertEquals(listOf("1A8A" to "3980-"), e.identify(ecu))
+        assertEquals(listOf("ATSH7E0", "ATCRA7E8", "ATFCSH7E0", "1081"), fake.sent.take(4))
+        assertEquals("ATSH7DF", fake.sent.last())
+    }
 }

@@ -49,6 +49,12 @@ internal class ObdCarScreen(ctx: CarContext) : CarScreen(ctx) {
                     .setBrowsable(true).setOnClickListener { push(SimCarScreen(carContext)) }.build(),
             )
         }
+        if (v.template.idents.isNotEmpty()) {
+            items.addItem(
+                Row.Builder().setTitle("Identification").addText("VIN, kilométrage, références des calculateurs")
+                    .setBrowsable(true).setOnClickListener { push(IdentCarScreen(carContext)) }.build(),
+            )
+        }
         // Toujours les mêmes lignes (une par catégorie) : Android Auto ne compte alors qu'un rafraîchissement.
         val sup = app.obd.supported.value
         val std = if (connected && sup != null) StdPids.forSupported(sup) else emptyList()
@@ -164,5 +170,25 @@ internal class SimCarScreen(ctx: CarContext) : CarScreen(ctx) {
             )
             .build()
         return PaneTemplate.Builder(pane).setTitle("Voiture virtuelle").setHeaderAction(Action.BACK).build()
+    }
+}
+
+/** Identification du véhicule : VIN, kilométrage, références et logiciels des calculateurs. */
+internal class IdentCarScreen(ctx: CarContext) : CarScreen(ctx) {
+    override suspend fun snapshot(): Any? = listOf(vm.identBusy, vm.ident, app.obd.live.value["swift_odo"])
+
+    override fun onGetTemplate(): Template {
+        val b = ListTemplate.Builder().setTitle("Identification").setHeaderAction(Action.BACK)
+        if (vm.identBusy) return b.setLoading(true).build()
+        val items = ItemList.Builder()
+        items.addItem(Row.Builder().setTitle("VIN").addText(active?.vin ?: "Non lu").build())
+        app.obd.live.value["swift_odo"]?.let { items.addItem(Row.Builder().setTitle("Kilométrage").addText(fr(it) + " km").build()) }
+        vm.ident?.forEach { (ecu, lines) ->
+            items.addItem(Row.Builder().setTitle(ecu).addText(if (lines.isEmpty()) "Pas de réponse" else lines.filter { !it.startsWith("VIN") }.joinToString(" · ")).build())
+        }
+        if (vm.ident == null) items.addItem(Row.Builder().setTitle("Calculateurs").addText("Appuyez sur « Lire », contact mis").build())
+        return b.setActionStrip(
+            ActionStrip.Builder().addAction(action("Lire") { if (connected) vm.readIdent() else toast("Boîtier OBD2 non connecté"); invalidate() }).build(),
+        ).setSingleList(items.build()).build()
     }
 }

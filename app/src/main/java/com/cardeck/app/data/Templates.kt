@@ -53,6 +53,12 @@ data class PidDef(
     fun withUnit(v: Double): String = if (states != null) text(v) else "${text(v)} $unit".trim()
 }
 
+/**
+ * Calculateur interrogé pour l'identification (références, logiciels, VIN), en lecture seule.
+ * [rx] : adresse de réponse ; [uds] : UDS (22 xxxx, session 10 01) sinon KWP2000 (1A xx, session 10 81).
+ */
+data class EcuIdent(val name: String, val tx: String, val rx: String, val uds: Boolean, val requests: List<String>)
+
 /** Modèle de véhicule : caractéristiques + fonctionnalités dédiées (PIDs…). Un profil est créé à partir d'un modèle. */
 data class VehicleTemplate(
     val id: String,
@@ -77,6 +83,8 @@ data class VehicleTemplate(
     val elmInit: List<String> = emptyList(),
     /** Données du modèle ajoutées au tableau de bord Sport. */
     val dashSport: List<String> = emptyList(),
+    /** Calculateurs à interroger pour l'identification. */
+    val idents: List<EcuIdent> = emptyList(),
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
@@ -137,6 +145,9 @@ private val SWIFT_BUS = listOf(
     },
 )
 
+/** Identifiants KWP 1A essayés sur les calculateurs Suzuki (références, versions). */
+private val KWP_IDS = listOf("1A8A", "1A8B", "1A8C", "1A8D", "1A8E", "1A9E", "1A9F")
+
 val SWIFT_SPORT_ZC33S = VehicleTemplate(
     id = "suzuki-swift-sport-zc33s",
     brand = "Suzuki",
@@ -160,6 +171,15 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
         ) { it[8] - 40.0 },
     ) + SWIFT_BUS,
     dashSport = listOf("swift_steer"),
+    // Identification : le calculateur 7F1 (neutralisation des airbags, ISO 26021) n'est jamais interrogé.
+    idents = listOf(
+        EcuIdent("Moteur", "7E0", "7E8", false, listOf("1A90", "1A8A", "1A8B", "1A8E", "1A9E", "1A9F", "1A98", "1A99")),
+        EcuIdent("Airbags", "793", "7A3", true, listOf("22F190", "22F188", "22F101", "22F18C")),
+        EcuIdent("ABS / ESP (estimé)", "798", "7A8", false, KWP_IDS),
+        EcuIdent("Calculateur 776 (radar ?)", "776", "786", false, KWP_IDS),
+        EcuIdent("Calculateur 778 (caméra ?)", "778", "788", false, KWP_IDS),
+        EcuIdent("Calculateur 79A", "79A", "7AA", false, KWP_IDS),
+    ),
     // Fonctions de codage Swift Sport à intégrer (données à fournir).
     codings = emptyList(),
 )

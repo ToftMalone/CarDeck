@@ -127,6 +127,7 @@ fun ObdDataScreen(vm: AppViewModel) {
                     if (connKind == ConnKind.Off) TextBtn("Se connecter", { vm.connectNow() })
                 }
             }
+            if (tpl.idents.isNotEmpty()) IdentCard(vm, connected)
             val sup = supported
             val std = if (sup == null) emptyList() else StdPids.forSupported(sup)
             if (v.adapter?.transport == com.cardeck.app.data.Transport.Sim) SimPanel(vm)
@@ -145,6 +146,28 @@ fun ObdDataScreen(vm: AppViewModel) {
             }
             tpl.pids.groupBy { it.category }.forEach { (cat, list) -> PidSection("$cat · ${tpl.model}", list, values) }
         }
+    }
+}
+
+/** Identification du véhicule : VIN, kilométrage, références et logiciels des calculateurs (lecture seule). */
+@Composable
+private fun IdentCard(vm: AppViewModel, connected: Boolean) {
+    val c = Cd.c
+    val live by vm.obd.live.collectAsState()
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
+        T("Identification", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
+        live["swift_odo"]?.let { InfoRow("Kilométrage", fr(it) + " km") }
+        val list = vm.ident
+        when {
+            vm.identBusy -> T("Lecture des calculateurs…", 14, c.onv)
+            list == null -> T("Références, logiciels et VIN des calculateurs, lus sans rien modifier.", 14, c.onv, lineHeight = 20)
+            else -> list.forEach { (ecu, lines) ->
+                T(ecu, 14, c.p, 500, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
+                if (lines.isEmpty()) T("Pas de réponse", 13, c.onv)
+                lines.forEach { l -> InfoRow(l.substringBefore(" : "), l.substringAfter(" : ")) }
+            }
+        }
+        if (connected && !vm.identBusy) TextBtn(if (list == null) "Lire l'identification" else "Relire", { vm.readIdent() })
     }
 }
 
