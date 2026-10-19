@@ -55,6 +55,12 @@ internal class ObdCarScreen(ctx: CarContext) : CarScreen(ctx) {
                     .setBrowsable(true).setOnClickListener { push(IdentCarScreen(carContext)) }.build(),
             )
         }
+        if (v.template.airbag != null) {
+            items.addItem(
+                Row.Builder().setTitle("État sécurité (airbags)").addText("Circuits d'allumage, estimé")
+                    .setBrowsable(true).setOnClickListener { push(SafetyCarScreen(carContext)) }.build(),
+            )
+        }
         // Toujours les mêmes lignes (une par catégorie) : Android Auto ne compte alors qu'un rafraîchissement.
         val sup = app.obd.supported.value
         val std = if (connected && sup != null) StdPids.forSupported(sup) else emptyList()
@@ -189,6 +195,33 @@ internal class IdentCarScreen(ctx: CarContext) : CarScreen(ctx) {
         if (vm.ident == null) items.addItem(Row.Builder().setTitle("Calculateurs").addText("Appuyez sur « Lire », contact mis").build())
         return b.setActionStrip(
             ActionStrip.Builder().addAction(action("Lire") { if (connected) vm.readIdent() else toast("Boîtier OBD2 non connecté"); invalidate() }).build(),
+        ).setSingleList(items.build()).build()
+    }
+}
+
+/** État sécurité : circuits d'allumage des airbags (estimé), temps depuis la mise du contact. */
+internal class SafetyCarScreen(ctx: CarContext) : CarScreen(ctx) {
+    override suspend fun snapshot(): Any? = listOf(vm.safetyBusy, vm.safety)
+
+    override fun onGetTemplate(): Template {
+        val b = ListTemplate.Builder().setTitle("État sécurité").setHeaderAction(Action.BACK)
+        if (vm.safetyBusy) return b.setLoading(true).build()
+        val items = ItemList.Builder()
+        val r = vm.safety
+        if (r == null) {
+            items.addItem(Row.Builder().setTitle("Airbags").addText("Appuyez sur « Lire », contact mis").build())
+        } else {
+            val normal = com.cardeck.app.data.AirbagReport.NORMAL
+            val bad = r.circuits.count { it !in normal }
+            items.addItem(
+                Row.Builder().setTitle("Bilan (estimé)")
+                    .addText(if (r.circuits.isEmpty()) "Pas de mesure" else if (bad == 0) "${r.circuits.size} circuits dans la plage normale" else "$bad circuit(s) hors plage").build(),
+            )
+            items.addItem(Row.Builder().setTitle("Circuits (Ω, estimé)").addText(r.circuits.joinToString(" · ") { fr(it, 1) }).build())
+            r.secondsOn?.let { items.addItem(Row.Builder().setTitle("Contact mis depuis").addText("$it s").build()) }
+        }
+        return b.setActionStrip(
+            ActionStrip.Builder().addAction(action("Lire") { if (connected) vm.readSafety() else toast("Boîtier OBD2 non connecté"); invalidate() }).build(),
         ).setSingleList(items.build()).build()
     }
 }

@@ -85,6 +85,8 @@ data class VehicleTemplate(
     val dashSport: List<String> = emptyList(),
     /** Calculateurs à interroger pour l'identification. */
     val idents: List<EcuIdent> = emptyList(),
+    /** Calculateur d'airbags (page « État sécurité ») : 22 1000 = circuits d'allumage, 22 1F00 = contact / tension. */
+    val airbag: EcuIdent? = null,
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
@@ -172,6 +174,7 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     ) + SWIFT_BUS,
     dashSport = listOf("swift_steer"),
     // Identification : le calculateur 7F1 (neutralisation des airbags, ISO 26021) n'est jamais interrogé.
+    airbag = EcuIdent("Airbags", "793", "7A3", true, listOf("221000", "221F00")),
     idents = listOf(
         EcuIdent("Moteur", "7E0", "7E8", false, listOf("1A90", "1A8A", "1A8B", "1A8E", "1A9E", "1A9F", "1A98", "1A99")),
         EcuIdent("Airbags", "793", "7A3", true, listOf("22F190", "22F188", "22F101", "22F18C")),

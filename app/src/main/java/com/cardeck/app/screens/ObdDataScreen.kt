@@ -128,6 +128,7 @@ fun ObdDataScreen(vm: AppViewModel) {
                 }
             }
             if (tpl.idents.isNotEmpty()) IdentCard(vm, connected)
+            if (tpl.airbag != null) SafetyCard(vm, connected)
             val sup = supported
             val std = if (sup == null) emptyList() else StdPids.forSupported(sup)
             if (v.adapter?.transport == com.cardeck.app.data.Transport.Sim) SimPanel(vm)
@@ -168,6 +169,31 @@ private fun IdentCard(vm: AppViewModel, connected: Boolean) {
             }
         }
         if (connected && !vm.identBusy) TextBtn(if (list == null) "Lire l'identification" else "Relire", { vm.readIdent() })
+    }
+}
+
+/** État sécurité : circuits d'allumage des airbags et prétensionneurs (estimé), lu sans rien modifier. */
+@Composable
+private fun SafetyCard(vm: AppViewModel, connected: Boolean) {
+    val c = Cd.c
+    val r = vm.safety
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
+        T("État sécurité (airbags)", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
+        when {
+            vm.safetyBusy -> T("Lecture du calculateur d'airbags…", 14, c.onv)
+            r == null -> T("Résistance des circuits d'allumage des airbags et prétensionneurs, lue sans rien modifier.", 14, c.onv, lineHeight = 20)
+            else -> {
+                val bad = r.circuits.count { it !in com.cardeck.app.data.AirbagReport.NORMAL }
+                InfoRow("Bilan (estimé)", if (r.circuits.isEmpty()) "Pas de mesure" else if (bad == 0) "${r.circuits.size} circuits dans la plage normale" else "$bad circuit${if (bad > 1) "s" else ""} hors plage")
+                r.circuits.forEachIndexed { i, ohm ->
+                    InfoRow("Circuit ${i + 1} (estimé)", fr(ohm, 1) + " Ω" + if (ohm in com.cardeck.app.data.AirbagReport.NORMAL) "" else " · à vérifier")
+                }
+                r.secondsOn?.let { InfoRow("Contact mis depuis", com.cardeck.app.data.durationLabel(it * 1000L).let { d -> if (it < 60) "$it s" else d }) }
+                r.voltage?.let { InfoRow("Tension (estimé)", fr(it, 1) + " V") }
+                T("Le voyant airbag du tableau de bord reste la référence : en cas de doute, consultez un garage.", 12, c.onv, lineHeight = 16, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+        if (connected && !vm.safetyBusy) TextBtn(if (r == null) "Lire l'état" else "Relire", { vm.readSafety() })
     }
 }
 

@@ -288,4 +288,13 @@ class Elm327Test {
         assertEquals(listOf("ATSH7E0", "ATCRA7E8", "ATFCSH7E0", "1081"), fake.sent.take(4))
         assertEquals("ATSH7DF", fake.sent.last())
     }
+
+    @Test fun etatAirbags() {
+        val r = com.cardeck.app.data.AirbagReport.from(
+            mapOf("221000" to listOf(0x00, 0x15, 0x1B, 0xFF, 0x18), "221F00" to listOf(0xAB, 0, 0, 0, 0, 0, 0, 0x01, 0x2C)), 0L,
+        )
+        assertEquals(listOf(2.1, 2.7, 2.4), r.circuits)
+        assertEquals(300, r.secondsOn)
+        assertEquals(13.36, r.voltage!!, 0.01)
+    }
 }

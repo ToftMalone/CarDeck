@@ -420,6 +420,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         else -> req
     }
 
+    // ---- État sécurité (airbags) ----
+    var safetyBusy by mutableStateOf(false)
+        private set
+    var safety by mutableStateOf<com.cardeck.app.data.AirbagReport?>(null)
+        private set
+
+    fun readSafety() {
+        val ecu = repo.active?.template?.airbag ?: return
+        if (safetyBusy) return
+        safetyBusy = true
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.IO) { obd.use { e -> runCatching { e.readEcu(ecu) }.getOrDefault(emptyList()) } }
+            when {
+                out == null -> showSnack("Boîtier OBD2 non connecté")
+                out.isEmpty() -> showSnack("Le calculateur d'airbags ne répond pas : mettez le contact")
+                else -> safety = com.cardeck.app.data.AirbagReport.from(out.toMap(), System.currentTimeMillis())
+            }
+            safetyBusy = false
+        }
+    }
+
     // ---- Trajets ----
     var tripFilter by mutableStateOf("all")
 

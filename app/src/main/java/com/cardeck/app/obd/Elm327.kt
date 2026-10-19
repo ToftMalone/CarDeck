@@ -320,8 +320,15 @@ class Elm327(private val t: ObdTransport) {
      * Identification d'un calculateur (lecture seule) : réponses positives aux requêtes 1A xx (KWP) ou 22 xxxx (UDS),
      * renvoyées sous forme de texte (ou d'octets en hexadécimal si ce n'est pas du texte).
      */
-    suspend fun identify(ecu: com.cardeck.app.data.EcuIdent): List<Pair<String, String>> {
-        val out = mutableListOf<Pair<String, String>>()
+    suspend fun identify(ecu: com.cardeck.app.data.EcuIdent): List<Pair<String, String>> =
+        readEcu(ecu).map { (req, data) ->
+            val txt = data.filter { it in 0x20..0x7E }.map { it.toChar() }.joinToString("").trim()
+            req to if (txt.length >= 3 && txt.length * 2 >= data.size) txt else data.joinToString(" ") { "%02X".format(it) }
+        }
+
+    /** Réponses positives d'un calculateur précis (données après l'écho service + identifiant), en lecture seule. */
+    suspend fun readEcu(ecu: com.cardeck.app.data.EcuIdent): List<Pair<String, List<Int>>> {
+        val out = mutableListOf<Pair<String, List<Int>>>()
         raw("ATSH${ecu.tx}"); raw("ATCRA${ecu.rx}"); raw("ATFCSH${ecu.tx}")
         try {
             raw(if (ecu.uds) "1001" else "1081")
@@ -331,9 +338,7 @@ class Elm327(private val t: ObdTransport) {
                 val q = req.chunked(2).map { it.toInt(16) }
                 val echo = listOf(q[0] + 0x40) + q.drop(1)
                 val m = udsMessages(r).firstOrNull { it.size > echo.size && it.take(echo.size) == echo } ?: continue
-                val data = m.drop(echo.size)
-                val txt = data.filter { it in 0x20..0x7E }.map { it.toChar() }.joinToString("").trim()
-                out += req to if (txt.length >= 3 && txt.length * 2 >= data.size) txt else data.joinToString(" ") { "%02X".format(it) }
+                out += req to m.drop(echo.size)
             }
         } finally {
             raw("ATCRA"); raw("ATSH7DF")
