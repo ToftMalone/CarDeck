@@ -29,7 +29,8 @@ class SimTransport : ObdTransport {
     private fun respond(cmd: String): String {
         if (cmd.startsWith("AT")) return at(cmd.substring(2))
         if (!caf) return "NO DATA"
-        val req = cmd.chunked(2).mapNotNull { it.toIntOrNull(16) }
+        // Un chiffre final impair = nombre de réponses attendues (réponse rapide) : ignoré.
+        val req = (if (cmd.length % 2 == 1) cmd.dropLast(1) else cmd).chunked(2).mapNotNull { it.toIntOrNull(16) }
         if (req.isEmpty()) return "?"
         val (ecu, payload) = when (tx) {
             "7DF", "7E0" -> "7E8" to ecm(req)
@@ -135,6 +136,11 @@ class SimTransport : ObdTransport {
         return when (req[0]) {
             0x01 -> {
                 val pid = req.getOrNull(1) ?: return null
+                if (req.size > 2) {
+                    // Plusieurs PIDs dans une requête : « 41 PID données PID données… ».
+                    val parts = req.drop(1).filter { it % 0x20 != 0 && it in supported }.mapNotNull { p -> pidValue(p, st)?.let { listOf(p) + it.toList() } }
+                    return if (parts.isEmpty()) null else (listOf(0x41) + parts.flatten()).toIntArray()
+                }
                 if (pid % 0x20 == 0) intArrayOf(0x41, pid) + bitmap(pid)
                 else if (pid in supported) pidValue(pid, st)?.let { intArrayOf(0x41, pid) + it } else null
             }

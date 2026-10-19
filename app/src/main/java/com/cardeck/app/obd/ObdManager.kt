@@ -1,6 +1,7 @@
 package com.cardeck.app.obd
 
 import android.content.Context
+import com.cardeck.app.cardeck
 import com.cardeck.app.data.AdapterConfig
 import com.cardeck.app.data.PidDef
 import com.cardeck.app.data.Transport
@@ -94,7 +95,10 @@ class ObdManager(private val ctx: Context) {
         try {
             t.open()
             val e = Elm327(t)
-            e.init()
+            // Réglages du modèle du véhicule actif : protocole connu, lecture seule.
+            val tpl = runCatching { ctx.cardeck.repo.active?.template }.getOrNull()
+            e.readOnly = tpl?.readOnly == true
+            e.init(tpl?.elmProtocol)
             transport = t
             elm = e
             _state.value = ObdState.Connected(a, e.version)

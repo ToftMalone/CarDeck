@@ -23,10 +23,24 @@ class Elm327(private val t: ObdTransport) {
     var protocolName: String = ""
         private set
 
+    /** Lecture seule (modèle qui l'exige) : seuls les services de la liste blanche partent vers la voiture. */
+    var readOnly = false
+
+    /**
+     * Réponse rapide : un « 1 » ajouté aux requêtes OBD dont la réponse tient dans une trame évite d'attendre
+     * la fin du délai (~200 ms) prévu pour d'autres calculateurs. Activé seulement si le boîtier l'accepte.
+     */
+    var fast = false
+        private set
+
+    /** Protocole imposé par le modèle de véhicule (null = recherche automatique). */
+    private var forcedProtocol: String? = null
+
     private val isCan get() = protocolNum.lastOrNull()?.let { it in '6'..'9' || it in 'A'..'C' } ?: true
 
     /** Envoie une commande et renvoie la réponse nettoyée (lignes non vides, sans écho ni « SEARCHING… »). */
     suspend fun raw(cmd: String, timeoutMs: Long = 8000): String {
+        if (!allowed(cmd)) return BLOCKED
         while (t.incoming.tryReceive().isSuccess) { /* purge */ }
         buf.clear()
         t.send((cmd + "\r").toByteArray(Charsets.US_ASCII))
@@ -45,32 +59,51 @@ class Elm327(private val t: ObdTransport) {
 
     fun isError(r: String): Boolean {
         val u = r.uppercase()
-        return r.isBlank() || listOf("NO DATA", "UNABLE", "ERROR", "STOPPED", "?", "BUFFER FULL", "BUS BUSY", "NOT CONNECTED").any { u.contains(it) }
+        return r.isBlank() || listOf(BLOCKED, "NO DATA", "UNABLE", "ERROR", "STOPPED", "?", "BUFFER FULL", "BUS BUSY", "NOT CONNECTED").any { u.contains(it) }
     }
 
-    suspend fun init() {
+    /** [protocol] : protocole connu du modèle (ex. « 6 » = CAN 11 bits 500 kb/s), sinon recherche automatique. */
+    suspend fun init(protocol: String? = null) {
         val z = raw("ATZ", 6000)
         version = z.lines().lastOrNull { it.contains("ELM", true) || it.contains("v", true) }?.trim() ?: "ELM327"
-        raw("ATE0"); raw("ATL0"); raw("ATS1"); raw("ATH0"); raw("ATAT1"); raw("ATSP0")
+        forcedProtocol = protocol
+        // Requêtes OBD en adressage fonctionnel (7DF) : certains moteurs refusent le service 01 adressé directement.
+        raw("ATE0"); raw("ATL0"); raw("ATS1"); raw("ATH0"); raw("ATAT1"); raw("ATST32"); raw("ATSP${protocol ?: "0"}")
     }
 
     /** Interroge le véhicule (0100). Renvoie true si au moins un calculateur répond (contact mis). */
     suspend fun probe(): Boolean {
-        val r = raw("0100", 15000)
-        val ok = !isError(r) && tokens(r).windowed(2).any { it[0] == "41" && it[1] == "00" }
+        var r = raw("0100", 15000)
+        var ok = !isError(r) && tokens(r).windowed(2).any { it[0] == "41" && it[1] == "00" }
+        if (!ok && forcedProtocol != null && !r.contains(BLOCKED)) {
+            // Protocole du modèle refusé (boîtier ou véhicule différent) : retour à la recherche automatique.
+            forcedProtocol = null
+            raw("ATSP0")
+            r = raw("0100", 15000)
+            ok = !isError(r) && tokens(r).windowed(2).any { it[0] == "41" && it[1] == "00" }
+        }
         if (ok) {
             protocolNum = raw("ATDPN").trim().uppercase()
             protocolName = raw("ATDP").trim()
+            // Réponse rapide, testée une fois : en CAN, la réponse à 0100 tient dans une trame.
+            fast = false
+            if (isCan) {
+                val f = raw("01001", 3000)
+                fast = !isError(f) && tokens(f).windowed(2).any { it[0] == "41" && it[1] == "00" }
+            }
         }
         return ok
     }
+
+    /** « 1 » final (réponse rapide) si la réponse du PID tient dans une trame CAN. */
+    private fun quick(pid: Int): String = if (fast && (PID_LEN[pid] ?: 99) <= 5) "1" else ""
 
     private fun tokens(r: String): List<String> = r.split(Regex("\\s+")).filter { it.length == 2 && it.all { c -> c.isDigit() || c.uppercaseChar() in 'A'..'F' } }.map { it.uppercase() }
 
     /** Octets de données d'un PID du service 01 (premier calculateur répondant), ou null. */
     suspend fun pid01(pid: Int): IntArray? {
         val p = "%02X".format(pid)
-        val r = raw("01$p")
+        val r = raw("01$p" + quick(pid))
         if (isError(r)) return null
         for (line in r.lines()) {
             val tk = tokens(line)
@@ -84,7 +117,8 @@ class Elm327(private val t: ObdTransport) {
     suspend fun query(request: String, header: String? = null): IntArray? {
         if (header != null) raw("ATSH$header")
         try {
-            val r = raw(request)
+            val single01 = header == null && request.length == 4 && request.startsWith("01")
+            val r = raw(request + if (single01) quick(request.substring(2).toInt(16)) else "")
             if (isError(r)) return null
             val req = request.chunked(2).map { it.uppercase() }
             val echo = listOf("%02X".format(req[0].toInt(16) + 0x40)) + req.drop(1)
@@ -122,12 +156,53 @@ class Elm327(private val t: ObdTransport) {
         return out
     }
 
-    /** Lit chaque requête une seule fois puis décode toutes les valeurs qui en dépendent. */
-    suspend fun readAll(defs: List<com.cardeck.app.data.PidDef>): List<Pair<String, Double>> =
-        defs.groupBy { it.request to it.header }.flatMap { (key, group) ->
-            val bytes = query(key.first, key.second) ?: return@flatMap emptyList()
+    /**
+     * Lit chaque requête une seule fois puis décode toutes les valeurs qui en dépendent.
+     * Sans réponse rapide, les PIDs standard sont groupés par 6 dans une même requête (un seul délai d'attente).
+     */
+    suspend fun readAll(defs: List<com.cardeck.app.data.PidDef>): List<Pair<String, Double>> {
+        val byReq = defs.groupBy { it.request to it.header }
+        fun decode(group: List<com.cardeck.app.data.PidDef>, bytes: IntArray) =
             group.mapNotNull { p -> if (bytes.size < p.size) null else runCatching { p.decode(bytes) }.getOrNull()?.takeIf { !it.isNaN() }?.let { p.id to it } }
+        val groupable = if (fast || !isCan) emptyList() else byReq.keys.filter { (req, hdr) ->
+            hdr == null && req.length == 4 && req.startsWith("01") && req.substring(2).toIntOrNull(16)?.let { it in PID_LEN && it % 0x20 != 0 } == true
         }
+        val out = mutableListOf<Pair<String, Double>>()
+        for (chunk in groupable.chunked(6)) {
+            val pids = chunk.map { it.first.substring(2).toInt(16) }
+            val got = multi01(pids)
+            for (key in chunk) {
+                val bytes = got[key.first.substring(2).toInt(16)] ?: query(key.first, null) ?: continue
+                out += decode(byReq.getValue(key), bytes)
+            }
+        }
+        for ((key, group) in byReq) {
+            if (key in groupable) continue
+            val bytes = query(key.first, key.second) ?: continue
+            out += decode(group, bytes)
+        }
+        return out
+    }
+
+    /** Plusieurs PIDs du service 01 en une requête (ex. 010C0B040E0F33) ; réponse « 41 PID données PID données… ». */
+    private suspend fun multi01(pids: List<Int>): Map<Int, IntArray> {
+        if (pids.size == 1) return emptyMap()
+        val r = raw("01" + pids.joinToString("") { "%02X".format(it) })
+        if (isError(r)) return emptyMap()
+        val out = HashMap<Int, IntArray>()
+        for (m in udsMessages(r)) {
+            if (m.isEmpty() || m[0] != 0x41) continue
+            var i = 1
+            while (i < m.size) {
+                val pid = m[i]
+                val len = PID_LEN[pid] ?: break
+                if (pid !in pids || i + 1 + len > m.size) break
+                out[pid] = m.copyOfRange(i + 1, i + 1 + len)
+                i += 1 + len
+            }
+        }
+        return out
+    }
 
     suspend fun rpm(): Double? = pid01(0x0C)?.takeIf { it.size >= 2 }?.let { (it[0] * 256 + it[1]) / 4.0 }
 
@@ -344,6 +419,40 @@ class Elm327(private val t: ObdTransport) {
             udsAnswer(0x2E, answers)
         } finally {
             raw("ATCAF1")
+        }
+    }
+
+    /** Liste blanche : commandes du boîtier sans effet durable ; en lecture seule, services de lecture uniquement. */
+    private fun allowed(cmd: String): Boolean {
+        val c = cmd.uppercase().replace(" ", "")
+        if (c.startsWith("AT")) {
+            val a = c.substring(2)
+            if (listOf("PP", "WM", "SW", "BRD").any { a.startsWith(it) }) return false
+            // Interface ISO 26021 de neutralisation des airbags : jamais interrogée.
+            if (Regex("^(SH|FCSH)0*7F1$").matches(a) || Regex("^CRA0*7F9$").matches(a)) return false
+            return true
+        }
+        if (!readOnly) return true
+        return when (val svc = c.take(2)) {
+            "10" -> c.startsWith("1001") || c.startsWith("1081")
+            else -> svc in READ_SERVICES
+        }
+    }
+
+    companion object {
+        /** Réponse à une commande refusée par la liste blanche (jamais envoyée). */
+        const val BLOCKED = "BLOCKED"
+
+        private val READ_SERVICES = setOf("01", "02", "03", "05", "06", "07", "09", "0A", "12", "13", "17", "18", "1A", "21", "19", "22", "23", "24", "3E")
+
+        /** Nombre d'octets de données des PIDs du service 01 (SAE J1979), pour découper les réponses groupées. */
+        val PID_LEN: Map<Int, Int> = buildMap {
+            val four = listOf(0x00, 0x01, 0x20, 0x40, 0x4F, 0x50) + (0x24..0x2B) + (0x34..0x3B)
+            val two = listOf(0x02, 0x03, 0x0C, 0x10, 0x1F, 0x21, 0x22, 0x23, 0x31, 0x32, 0x42, 0x43, 0x44, 0x4D, 0x4E, 0x53, 0x54, 0x59, 0x5D, 0x5E) +
+                (0x14..0x1B) + (0x3C..0x3F) + (0x55..0x58)
+            for (p in 0x00..0x5F) put(p, 1)
+            four.forEach { put(it, 4) }
+            two.forEach { put(it, 2) }
         }
     }
 

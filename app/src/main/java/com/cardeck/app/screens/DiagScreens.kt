@@ -199,11 +199,13 @@ fun DiagScreen(vm: AppViewModel) {
                         Modifier.weight(1f).height(48.dp).alpha(if (connected) 1f else .38f).clip(RoundedCornerShape(24.dp)).border(1.dp, c.ol, RoundedCornerShape(24.dp)).clickable(enabled = connected) { vm.startScan() },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
                     ) { Ico(Icons.Rounded.Refresh, 18, c.p); T("  Nouveau scan", 14, c.p, 500) }
-                    Row(
+                    // Modèle en lecture seule : rien n'est jamais écrit dans la voiture, pas même l'effacement des défauts.
+                    if (!v.template.readOnly) Row(
                         Modifier.weight(1f).height(48.dp).alpha(if (connected) 1f else .38f).clip(RoundedCornerShape(24.dp)).background(c.e).clickable(enabled = connected) { dialog = true },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
                     ) { Ico(Icons.Rounded.DeleteSweep, 18, c.oe); T("  Effacer les défauts", 14, c.oe, 500) }
                 }
+                if (v.template.readOnly) T("${v.template.model} : lecture seule, les défauts ne sont pas effacés par CarDeck.", 12, c.onv, modifier = Modifier.padding(top = 8.dp), lineHeight = 16)
                 if (!connected) ConnectAction(vm, v.adapter != null)
             }
 

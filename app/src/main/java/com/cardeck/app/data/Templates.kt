@@ -44,6 +44,10 @@ data class VehicleTemplate(
     val codings: List<CodingDef> = emptyList(),
     /** Calcul de la clé SecurityAccess (niveau, graine) → clé, si un module l'exige. */
     val securityKey: ((Int, IntArray) -> IntArray)? = null,
+    /** Protocole imposé à l'ELM327 (ATSP), connu pour ce modèle : évite la recherche automatique. */
+    val elmProtocol: String? = null,
+    /** Lecture seule : seuls les services de lecture sont envoyés (ni effacement des défauts, ni écriture). */
+    val readOnly: Boolean = false,
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
@@ -58,6 +62,9 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     power = "140 ch",
     fuel = "Essence",
     protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
+    elmProtocol = "6",
+    // Rétro-ingénierie ZC33S : lecture seule (liste blanche des services de lecture).
+    readOnly = true,
     // Liste des PIDs Swift Sport à intégrer (fournie ultérieurement).
     pids = emptyList(),
     // Fonctions de codage Swift Sport à intégrer (données à fournir).
@@ -73,6 +80,7 @@ val KIA_PICANTO_TA = VehicleTemplate(
     power = "69 ch",
     fuel = "Essence",
     protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
+    elmProtocol = "6",
     // Liste des PIDs Picanto à intégrer (à fournir ultérieurement).
     pids = emptyList(),
     // Fonctions de codage Picanto à intégrer (données à fournir).

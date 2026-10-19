@@ -185,4 +185,67 @@ class Elm327Test {
     @Test fun effacement() = runBlocking {
         assertTrue(elm(mapOf("04" to "44")).clearDtcs())
     }
+
+    private fun std(vararg ids: String) = ids.map { id -> com.cardeck.app.data.StdPids.all.first { it.id == id } }
+
+    @Test fun reponseRapideSiAcceptee() = runBlocking {
+        val fake = FakeElm(base + mapOf("01001" to "41 00 BE 3F A8 13", "010C1" to "41 0C 1A F8"))
+        val e = Elm327(fake)
+        e.init(); e.probe()
+        assertTrue(e.fast)
+        assertEquals(1726.0, e.rpm()!!, 0.01)
+        assertTrue("010C1" in fake.sent)
+    }
+
+    @Test fun pidsGroupesSansReponseRapide() = runBlocking {
+        // Réponse multi-trames à une requête de 3 PIDs : 41 0C xx xx 0D xx 05 xx
+        val fake = FakeElm(base + mapOf("01001" to "NO DATA", "010C0D05" to "008\r0: 41 0C 1A F8 0D 32\r1: 05 5A"))
+        val e = Elm327(fake)
+        e.init(); e.probe()
+        val v = e.readAll(std("std0C", "std0D", "std05")).toMap()
+        assertEquals(1726.0, v.getValue("std0C"), 0.01)
+        assertEquals(50.0, v.getValue("std0D"), 0.01)
+        assertEquals(50.0, v.getValue("std05"), 0.01)
+        assertEquals(1, fake.sent.count { it.startsWith("010") && it != "0100" && it != "01001" })
+    }
+
+    @Test fun lectureSeuleBloqueEcritureEtEffacement() = runBlocking {
+        val fake = FakeElm(base + mapOf("04" to "44"))
+        val e = Elm327(fake)
+        e.readOnly = true
+        assertTrue(!e.clearDtcs())
+        assertTrue("04" !in fake.sent)
+        e.raw("2EB00101")
+        e.raw("1003")
+        assertTrue(fake.sent.none { it.startsWith("2E") || it == "1003" })
+        e.raw("1081"); e.raw("2100"); e.raw("22F190")
+        assertTrue(fake.sent.containsAll(listOf("1081", "2100", "22F190")))
+    }
+
+    @Test fun calculateur7F1JamaisInterroge() = runBlocking {
+        val fake = FakeElm(base)
+        val e = Elm327(fake)
+        e.raw("ATSH7F1"); e.raw("ATCRA7F9"); e.raw("ATPP0CSV00")
+        assertTrue(fake.sent.isEmpty())
+    }
+
+    @Test fun protocoleDuModeleRefuseRetourAuto() = runBlocking {
+        // Avec ATSP6 le véhicule ne répond pas, puis répond après ATSP0.
+        val answers = base.toMutableMap()
+        val fake = object : ObdTransport {
+            override val incoming = Channel<ByteArray>(Channel.UNLIMITED)
+            var auto = false
+            override suspend fun open() {}
+            override suspend fun send(data: ByteArray) {
+                val cmd = String(data).trim()
+                if (cmd == "ATSP0") auto = true
+                val r = if (cmd == "0100" && !auto) "UNABLE TO CONNECT" else answers[cmd] ?: "OK"
+                incoming.trySend("$r\r\r>".toByteArray())
+            }
+            override fun close() {}
+        }
+        val e = Elm327(fake)
+        e.init("6")
+        assertTrue(e.probe())
+    }
 }

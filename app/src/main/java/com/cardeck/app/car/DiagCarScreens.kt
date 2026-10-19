@@ -71,7 +71,7 @@ internal class DiagCarScreen(ctx: CarContext) : CarScreen(ctx) {
                 .setBrowsable(true).setOnClickListener { push(DtcSearchCarScreen(carContext)) }.build(),
         )
         val strip = ActionStrip.Builder().addAction(action(if (s == null) "Lancer" else "Relancer") { start() })
-        if ((s?.codes?.size ?: 0) > 0) {
+        if ((s?.codes?.size ?: 0) > 0 && !v.template.readOnly) {
             strip.addAction(
                 action("Effacer") {
                     if (!connected) { toast("Boîtier OBD2 non connecté"); return@action }
