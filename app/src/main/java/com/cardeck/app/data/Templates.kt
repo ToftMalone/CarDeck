@@ -1,7 +1,17 @@
 package com.cardeck.app.data
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AcUnit
+import androidx.compose.material.icons.rounded.AirlineSeatReclineNormal
 import androidx.compose.material.icons.rounded.DeviceThermostat
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Highlight
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Thermostat
+import androidx.compose.material.icons.rounded.TireRepair
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -26,8 +36,22 @@ data class PidDef(
     val size: Int = 1,
     /** Catégorie d'affichage (tableau de bord, historique des trajets). */
     val category: String = "Autres",
+    /** Donnée lue par écoute du bus CAN : identifiant de la trame (null = requête de diagnostic). */
+    val can: Int? = null,
+    /** Durée d'écoute minimale (ms) pour voir passer la trame au moins une fois. */
+    val window: Long = 200,
+    /** Libellés des états (0, 1, 2…) pour une donnée tout-ou-rien ou à plusieurs positions. */
+    val states: List<String>? = null,
+    /** Garder la plus grande valeur vue pendant l'écoute (signal qui clignote). */
+    val peak: Boolean = false,
     val decode: (IntArray) -> Double,
-)
+) {
+    /** Valeur mise en forme pour l'affichage (état en clair ou nombre à la française), sans l'unité. */
+    fun text(v: Double): String = states?.getOrNull(v.toInt()) ?: fr(v, decimals)
+
+    /** Valeur avec son unité (« 92 km/h », « Enfoncée »). */
+    fun withUnit(v: Double): String = if (states != null) text(v) else "${text(v)} $unit".trim()
+}
 
 /** Modèle de véhicule : caractéristiques + fonctionnalités dédiées (PIDs…). Un profil est créé à partir d'un modèle. */
 data class VehicleTemplate(
@@ -51,10 +75,67 @@ data class VehicleTemplate(
     val readOnly: Boolean = false,
     /** Commandes AT propres au modèle, envoyées après l'initialisation (contrôle de flux…). */
     val elmInit: List<String> = emptyList(),
+    /** Données du modèle ajoutées au tableau de bord Sport. */
+    val dashSport: List<String> = emptyList(),
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
 }
+
+private fun u16(d: IntArray, i: Int) = (d[i] * 256 + d[i + 1]).toDouble()
+private fun bit(d: IntArray, i: Int, mask: Int) = if (d[i] and mask != 0) 1.0 else 0.0
+
+private fun bus(
+    id: String, label: String, unit: String, icon: ImageVector, can: Int, category: String, size: Int, window: Long,
+    min: Double = 0.0, max: Double = 1.0, decimals: Int = 0, slow: Boolean = false, states: List<String>? = null, peak: Boolean = false,
+    decode: (IntArray) -> Double,
+) = PidDef(
+    id, label, unit, icon, request = "", decimals = decimals, min = min, max = max, slow = slow, size = size,
+    category = category, can = can, window = window, states = states, peak = peak, decode = decode,
+)
+
+private const val CHASSIS = "Châssis"
+private const val PEDALS = "Pédales et boîte"
+private const val CABIN = "Habitacle"
+private const val LIGHTS = "Éclairage"
+private const val COUNTERS = "Compteurs"
+private val ONOFF = listOf("Éteinte", "Allumée")
+
+/**
+ * Données diffusées sur le bus CAN de la Swift ZC33S (rétro-ingénierie, uniquement les mesures confirmées).
+ * Fenêtres d'écoute selon la fréquence des trames : ~100/s → 40 ms, ~50/s → 60 ms, ~10/s → 200 ms, ~1/s → 1,2 s.
+ */
+private val SWIFT_BUS = listOf(
+    // Carburant : octet 5 de 0x3B9 (lissé), 240 = plein ≈ 37 L. L'octet 4 (flotteur brut) n'est jamais utilisé.
+    bus("std2F", "Carburant", "%", Icons.Rounded.LocalGasStation, 0x3B9, "Carburant", 6, 200, max = 100.0, slow = true) { (it[5] / 240.0 * 100).coerceAtMost(100.0) },
+    bus("swift_fuel_l", "Carburant (litres, estimé)", "L", Icons.Rounded.LocalGasStation, 0x3B9, "Carburant", 6, 200, max = 37.0, decimals = 1, slow = true) { it[5] / 6.5 },
+    bus("std46", "Temp. extérieure", "°C", Icons.Rounded.Thermostat, 0x3BA, "Températures", 1, 200, min = -20.0, max = 50.0, slow = true) { it[0] / 2.0 - 40 },
+    bus("swift_odo", "Kilométrage", "km", Icons.Rounded.Speed, 0x460, COUNTERS, 3, 1200, max = 300_000.0, slow = true) { it[0] * 65536.0 + it[1] * 256 + it[2] },
+    // Vitesses des roues : valeurs confirmées, ordre des roues probable (à confirmer par un virage serré).
+    bus("swift_wheel1", "Roue 1 (av. droite, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 0) * 0.028 },
+    bus("swift_wheel2", "Roue 2 (av. gauche, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 2) * 0.028 },
+    bus("swift_wheel3", "Roue 3 (ar. droite, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 4) * 0.028 },
+    bus("swift_wheel4", "Roue 4 (ar. gauche, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 6) * 0.028 },
+    bus("swift_steer", "Angle volant", "°", Icons.Rounded.Explore, 0x119, CHASSIS, 4, 60, min = -490.0, max = 490.0) { (u16(it, 2) - 32768) / 10 },
+    bus("swift_effort", "Effort au volant", "", Icons.Rounded.Explore, 0x1AC, CHASSIS, 4, 40, min = -400.0, max = 400.0) { ((it[2] and 0x0F) * 256 + it[3]) - 1024.0 },
+    bus("swift_brake", "Pédale de frein", "", Icons.Rounded.Speed, 0x318, PEDALS, 1, 200, states = listOf("Relâchée", "Enfoncée")) { bit(it, 0, 0x04) },
+    bus("swift_clutch", "Embrayage", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Relâché", "Enfoncé")) { if (it[5] and 0xC0 == 0xC0) 1.0 else 0.0 },
+    bus("swift_handbrake", "Frein à main", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Desserré", "Serré")) { bit(it, 5, 0x10) },
+    bus("swift_reverse", "Marche arrière", "", Icons.Rounded.Speed, 0x3A1, PEDALS, 2, 200, states = listOf("Non", "Engagée")) { bit(it, 1, 0x40) },
+    bus("swift_door_d", "Porte conducteur", "", Icons.Rounded.DirectionsCar, 0x3D5, CABIN, 4, 200, states = listOf("Fermée", "Ouverte")) { bit(it, 3, 0x80) },
+    bus("swift_door_p", "Porte passager", "", Icons.Rounded.DirectionsCar, 0x3D5, CABIN, 4, 200, states = listOf("Fermée", "Ouverte")) { bit(it, 3, 0x40) },
+    bus("swift_trunk", "Coffre", "", Icons.Rounded.DirectionsCar, 0x3D5, CABIN, 4, 200, states = listOf("Fermé", "Ouvert")) { bit(it, 3, 0x04) },
+    bus("swift_belt", "Ceinture conducteur", "", Icons.Rounded.AirlineSeatReclineNormal, 0x3D1, CABIN, 6, 200, states = listOf("Débouclée", "Bouclée")) { bit(it, 5, 0x80) },
+    bus("swift_ac", "Climatisation", "", Icons.Rounded.AcUnit, 0x3D0, CABIN, 2, 200, states = ONOFF) { bit(it, 1, 0x10) },
+    bus("swift_wipers", "Essuie-glaces", "", Icons.Rounded.WaterDrop, 0x3D4, CABIN, 4, 200, states = listOf("Arrêt", "Marche")) { bit(it, 3, 0x20) },
+    bus("swift_lights", "Feux", "", Icons.Rounded.Highlight, 0x3D0, LIGHTS, 3, 200, max = 3.0, states = listOf("Éteints", "Veilleuses", "Codes", "Pleins phares")) {
+        when { it[2] and 0x10 != 0 -> 3.0; it[2] and 0x20 != 0 -> 2.0; it[2] and 0x08 != 0 -> 1.0; else -> 0.0 }
+    },
+    // Les clignotants clignotent : écoute d'au moins 1 s, « actif » si le bit a été vu à 1.
+    bus("swift_blink", "Clignotants", "", Icons.Rounded.SwapHoriz, 0x3D0, LIGHTS, 5, 1100, max = 3.0, slow = true, peak = true, states = listOf("Aucun", "Gauche", "Droit", "Warnings")) {
+        (if (it[4] and 0x40 != 0) 1.0 else 0.0) + (if (it[4] and 0x80 != 0) 2.0 else 0.0)
+    },
+)
 
 val SWIFT_SPORT_ZC33S = VehicleTemplate(
     id = "suzuki-swift-sport-zc33s",
@@ -77,7 +158,8 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
             "std5C", "Temp. huile", "°C", Icons.Rounded.DeviceThermostat, request = "2100", header = "7E0",
             min = 20.0, max = 150.0, slow = true, size = 9, category = "Températures",
         ) { it[8] - 40.0 },
-    ),
+    ) + SWIFT_BUS,
+    dashSport = listOf("swift_steer"),
     // Fonctions de codage Swift Sport à intégrer (données à fournir).
     codings = emptyList(),
 )

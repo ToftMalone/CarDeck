@@ -184,7 +184,7 @@ private fun PidCard(p: PidDef, value: Double?, modifier: Modifier) {
             T(p.label, 12, c.onv, lineHeight = 16, modifier = Modifier.weight(1f))
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            T(value?.let { fr(it, p.decimals) } ?: "—", 24, weight = 500, lineHeight = 32)
+            T(value?.let { p.text(it) } ?: "—", 24, weight = 500, lineHeight = 32)
             T(p.unit, 12, c.onv, modifier = Modifier.padding(bottom = 4.dp))
         }
         val pct by animateFloatAsState(value?.let { ((it - p.min) / (p.max - p.min)).toFloat().coerceIn(0f, 1f) } ?: 0f, tween(500), label = "pid")
@@ -205,7 +205,7 @@ internal fun GaugeCard(p: PidDef, value: Double?, modifier: Modifier, note: Stri
         Box(Modifier.padding(top = 4.dp).size(138.dp), contentAlignment = Alignment.Center) {
             ArcGauge(value?.let { ((it - p.min) / (p.max - p.min)).toFloat() } ?: 0f, c.p, 8f, Modifier.fillMaxSize())
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                T(value?.let { fr(it, p.decimals) } ?: "—", 30, weight = 500, lineHeight = 36, spacing = -.5f)
+                T(value?.let { p.text(it) } ?: "—", 30, weight = 500, lineHeight = 36, spacing = -.5f)
                 T(p.unit, 12, c.onv)
             }
         }

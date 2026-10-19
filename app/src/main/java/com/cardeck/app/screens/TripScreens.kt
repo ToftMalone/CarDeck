@@ -537,7 +537,7 @@ private fun PidHistoryCard(p: PidDef, s: List<Sample>, start: Long, end: Long, c
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Ico(p.icon, 18, c.p)
             T(p.label, 13, c.onv, modifier = Modifier.weight(1f), maxLines = 1)
-            T((if (cursor != null) now else avg)?.let { fr(it, p.decimals) } ?: "—", 18, weight = 500)
+            T((if (cursor != null) now else avg)?.let { p.text(it) } ?: "—", 18, weight = 500)
             T(p.unit, 12, c.onv)
         }
         Box(Modifier.fillMaxWidth().padding(top = 8.dp).height(44.dp)) {

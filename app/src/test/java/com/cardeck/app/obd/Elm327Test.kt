@@ -260,4 +260,23 @@ class Elm327Test {
         assertEquals(85.0, v.getValue("std5C"), 0.01)
         assertEquals(listOf("ATSH7E0", "1081", "2100", "ATSH7DF"), fake.sent)
     }
+
+    @Test fun groupesDuBus() {
+        // 0x1AC + 0x1B8 : exemple éprouvé ATCF1A8 / ATCM7EB.
+        assertEquals(0x7EB, Elm327.busMask(listOf(0x1AC, 0x1B8)))
+        assertEquals(listOf(listOf(0x1AC, 0x1B8), listOf(0x3B9)), Elm327.busGroups(listOf(0x3B9, 0x1B8, 0x1AC)))
+    }
+
+    @Test fun carburantEtFeuxParEcouteDuBus() = runBlocking {
+        val fake = FakeElm(base + mapOf("ATMA" to "3B9 00 00 00 00 F0 C0\r3D0 80 10 29 00 40 00 00 00\r3D0 80 10 29 00 00 00 00 00"))
+        val e = Elm327(fake)
+        e.init(); e.probe()
+        val swift = com.cardeck.app.data.SWIFT_SPORT_ZC33S.pids
+        val v = e.readAll(swift.filter { it.id in setOf("std2F", "swift_lights", "swift_ac", "swift_blink") }).toMap()
+        assertEquals(80.0, v.getValue("std2F"), 0.01)
+        assertEquals(2.0, v.getValue("swift_lights"), 0.01)
+        assertEquals(1.0, v.getValue("swift_ac"), 0.01)
+        assertEquals(1.0, v.getValue("swift_blink"), 0.01)
+        assertTrue("ATH0" == fake.sent.last())
+    }
 }

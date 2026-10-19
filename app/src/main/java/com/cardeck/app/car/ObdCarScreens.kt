@@ -119,7 +119,7 @@ internal class ObdValuesCarScreen(ctx: CarContext, private val title: String, pr
         defs.forEach { p ->
             items.addItem(
                 Row.Builder().setTitle(p.label)
-                    .addText(values[p.id]?.let { "${fr(it, p.decimals)} ${p.unit}".trim() } ?: "—")
+                    .addText(values[p.id]?.let { p.withUnit(it) } ?: "—")
                     .setImage(CarIcons.of(p.icon)).build(),
             )
         }

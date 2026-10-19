@@ -47,7 +47,7 @@ object DashGauges {
      * [sup] : PIDs déclarés par le véhicule (null = pas encore connus, aucune donnée n'est marquée absente).
      * [provided] : données lues autrement par le modèle (bloc constructeur…), sous l'identifiant du PID standard.
      */
-    fun gauges(sport: Boolean, values: Map<String, Double>, sup: Set<Int>?, provided: Set<String> = emptySet()): List<Gauge> {
+    fun gauges(sport: Boolean, values: Map<String, Double>, sup: Set<Int>?, provided: Set<String> = emptySet(), extra: List<PidDef> = emptyList()): List<Gauge> {
         fun std(id: String) = StdPids.all.first { it.id == id }
         fun has(id: String) = sup == null || id in provided || StdPids.pidNumber(std(id)) in sup
         fun gauge(id: String) = Gauge(std(id), values[id], if (has(id)) null else MISSING)
@@ -72,6 +72,7 @@ object DashGauges {
                 gauge("std0E"),
             )
         }
-        return list.map { if (it.value?.isNaN() == true) it.copy(value = null) else it }
+        val all = list + extra.map { Gauge(it, values[it.id], null) }
+        return all.map { if (it.value?.isNaN() == true) it.copy(value = null) else it }
     }
 }

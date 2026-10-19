@@ -167,7 +167,8 @@ class Elm327(private val t: ObdTransport) {
      * Lit chaque requête une seule fois puis décode toutes les valeurs qui en dépendent.
      * Sans réponse rapide, les PIDs standard sont groupés par 6 dans une même requête (un seul délai d'attente).
      */
-    suspend fun readAll(defs: List<com.cardeck.app.data.PidDef>): List<Pair<String, Double>> {
+    suspend fun readAll(all: List<com.cardeck.app.data.PidDef>): List<Pair<String, Double>> {
+        val (bus, defs) = all.partition { it.can != null }
         val byReq = defs.groupBy { it.request to it.header }
         fun decode(group: List<com.cardeck.app.data.PidDef>, bytes: IntArray) =
             group.mapNotNull { p -> if (bytes.size < p.size) null else runCatching { p.decode(bytes) }.getOrNull()?.takeIf { !it.isNaN() }?.let { p.id to it } }
@@ -188,7 +189,75 @@ class Elm327(private val t: ObdTransport) {
             val bytes = query(key.first, key.second) ?: continue
             out += decode(group, bytes)
         }
+        if (bus.isNotEmpty() && isCan) out += readBus(bus)
         return out
+    }
+
+    /**
+     * Données diffusées en permanence sur le bus CAN : écoute (ATMA) avec filtre matériel, par petits groupes
+     * d'identifiants voisins (sans filtre, le lien Bluetooth sature en 1 à 2 s).
+     */
+    private suspend fun readBus(defs: List<com.cardeck.app.data.PidDef>): List<Pair<String, Double>> {
+        val byId = defs.groupBy { it.can!! }
+        val frames = monitor(busGroups(byId.keys).map { g -> g to g.maxOf { id -> byId.getValue(id).maxOf { it.window } } })
+        return defs.mapNotNull { p ->
+            val seen = frames[p.can!!].orEmpty().filter { it.size >= p.size }
+            if (seen.isEmpty()) return@mapNotNull null
+            val v = if (p.peak) seen.mapNotNull { runCatching { p.decode(it) }.getOrNull() }.maxOrNull()
+            else runCatching { p.decode(seen.last()) }.getOrNull()
+            v?.takeIf { !it.isNaN() }?.let { p.id to it }
+        }
+    }
+
+    /**
+     * Écoute du bus : pour chaque groupe (identifiants, durée en ms), filtre ATCF/ATCM puis ATMA, arrêt par un caractère.
+     * L'adaptateur ne répond à aucune requête pendant l'écoute ; il est remis en mode requête à la fin.
+     */
+    suspend fun monitor(groups: List<Pair<List<Int>, Long>>): Map<Int, List<IntArray>> {
+        val out = HashMap<Int, MutableList<IntArray>>()
+        if (groups.isEmpty()) return out
+        raw("ATH1"); raw("ATCAF0"); raw("ATCRA")
+        try {
+            for ((ids, ms) in groups) {
+                val m = busMask(ids)
+                raw("ATCF%03X".format(ids[0] and m))
+                raw("ATCM%03X".format(m))
+                val text = listen(ms)
+                for (line in text.replace('\r', '\n').lines()) {
+                    val parts = line.trim().split(Regex("\\s+"))
+                    if (parts.size < 2 || parts[0].length != 3) continue
+                    val id = parts[0].toIntOrNull(16) ?: continue
+                    if (id !in ids) continue
+                    val data = parts.drop(1).mapNotNull { if (it.length == 2) it.toIntOrNull(16) else null }
+                    if (data.isNotEmpty()) out.getOrPut(id) { mutableListOf() } += data.toIntArray()
+                }
+            }
+        } finally {
+            raw("ATCAF1"); raw("ATCRA"); raw("ATH0")
+        }
+        return out
+    }
+
+    /** ATMA pendant [ms], puis un espace pour l'arrêter (jamais un retour chariot seul : il répète la commande). */
+    private suspend fun listen(ms: Long): String {
+        if (!allowed("ATMA")) return ""
+        while (t.incoming.tryReceive().isSuccess) { /* purge */ }
+        val sb = StringBuilder()
+        t.send("ATMA\r".toByteArray(Charsets.US_ASCII))
+        withTimeoutOrNull(ms) {
+            while (true) {
+                val chunk = t.incoming.receiveCatching().getOrNull() ?: throw IOException("Connexion au boîtier perdue")
+                sb.append(String(chunk, Charsets.US_ASCII))
+            }
+        }
+        t.send(" ".toByteArray(Charsets.US_ASCII))
+        withTimeoutOrNull(3000) {
+            while (sb.indexOf(">") < 0) {
+                val chunk = t.incoming.receiveCatching().getOrNull() ?: throw IOException("Connexion au boîtier perdue")
+                sb.append(String(chunk, Charsets.US_ASCII))
+            }
+        }
+        return sb.toString().replace(">", "")
     }
 
     /** Plusieurs PIDs du service 01 en une requête (ex. 010C0B040E0F33) ; réponse « 41 PID données PID données… ». */
@@ -455,6 +524,19 @@ class Elm327(private val t: ObdTransport) {
     }
 
     companion object {
+        /** Masque ATCM qui laisse passer tous les identifiants de [ids] (et quelques voisins). */
+        fun busMask(ids: List<Int>): Int = 0x7FF and ids.fold(0) { acc, i -> acc or (i xor ids[0]) }.inv()
+
+        /** Regroupe des identifiants voisins : au plus 2 bits libres dans le masque, soit 4 trames possibles par écoute. */
+        fun busGroups(ids: Collection<Int>): List<List<Int>> {
+            val groups = mutableListOf<MutableList<Int>>()
+            for (id in ids.sorted()) {
+                val g = groups.firstOrNull { Integer.bitCount(0x7FF and busMask(it + id).inv()) <= 2 }
+                if (g != null) g += id else groups += mutableListOf(id)
+            }
+            return groups
+        }
+
         /** Réponse à une commande refusée par la liste blanche (jamais envoyée). */
         const val BLOCKED = "BLOCKED"
 

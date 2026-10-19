@@ -169,7 +169,8 @@ internal class DashCarScreen(ctx: CarContext, private val sport: Boolean, privat
     override suspend fun whileVisible() {
         val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
         app.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport && 0x42 !in it }) { sup ->
-            DashGauges.defs(ids, sup, (vm.repo.active?.template?.pids).orEmpty())
+            val tpl = vm.repo.active?.template
+            DashGauges.defs(ids + if (sport) tpl?.dashSport.orEmpty() else emptyList(), sup, tpl?.pids.orEmpty())
         }
     }
 
@@ -182,9 +183,12 @@ internal class DashCarScreen(ctx: CarContext, private val sport: Boolean, privat
         val status = TripService.live.value ?: "Suivi inactif · ouvrez CarDeck sur le téléphone"
         val track = Tile("Suivi", if (v?.adapter == null) "Aucun boîtier associé" else status, Icons.Rounded.DirectionsCar)
         val values = if (connected) app.obd.live.value else emptyMap()
-        val gauges = DashGauges.gauges(sport, values, app.obd.supported.value, v?.template?.pids.orEmpty().map { it.id }.toSet()).map { g ->
+        val gauges = DashGauges.gauges(
+            sport, values, app.obd.supported.value, v?.template?.pids.orEmpty().map { it.id }.toSet(),
+            if (sport) v?.template?.let { t -> t.pids.filter { it.id in t.dashSport } }.orEmpty() else emptyList(),
+        ).map { g ->
             val text = when {
-                g.value != null -> "${fr(g.value, g.def.decimals)} ${g.def.unit}"
+                g.value != null -> g.def.withUnit(g.value)
                 g.note == DashGauges.MISSING -> "Non fourni"
                 else -> "—"
             }
