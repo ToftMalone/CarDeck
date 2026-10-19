@@ -1,6 +1,7 @@
 package com.cardeck.app.data
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DeviceThermostat
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -48,6 +49,8 @@ data class VehicleTemplate(
     val elmProtocol: String? = null,
     /** Lecture seule : seuls les services de lecture sont envoyés (ni effacement des défauts, ni écriture). */
     val readOnly: Boolean = false,
+    /** Commandes AT propres au modèle, envoyées après l'initialisation (contrôle de flux…). */
+    val elmInit: List<String> = emptyList(),
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
@@ -65,8 +68,16 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     elmProtocol = "6",
     // Rétro-ingénierie ZC33S : lecture seule (liste blanche des services de lecture).
     readOnly = true,
-    // Liste des PIDs Swift Sport à intégrer (fournie ultérieurement).
-    pids = emptyList(),
+    // Contrôle de flux vers le moteur, 5 ms entre trames : sans cela les longs blocs saturent le Bluetooth (BUFFER FULL).
+    elmInit = listOf("ATFCSH7E0", "ATFCSD300005", "ATFCSM1"),
+    pids = listOf(
+        // Bloc constructeur KWP 21 00 du moteur (210 octets, ~230 ms) : l'huile n'existe pas en PID OBD (5C non supporté).
+        // Octet 10 de la réponse (écho « 61 00 » compris) = huile − 40, confirmé sur bus 0x32F et démarrage à froid.
+        PidDef(
+            "std5C", "Temp. huile", "°C", Icons.Rounded.DeviceThermostat, request = "2100", header = "7E0",
+            min = 20.0, max = 150.0, slow = true, size = 9, category = "Températures",
+        ) { it[8] - 40.0 },
+    ),
     // Fonctions de codage Swift Sport à intégrer (données à fournir).
     codings = emptyList(),
 )

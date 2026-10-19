@@ -98,7 +98,7 @@ class ObdManager(private val ctx: Context) {
             // Réglages du modèle du véhicule actif : protocole connu, lecture seule.
             val tpl = runCatching { ctx.cardeck.repo.active?.template }.getOrNull()
             e.readOnly = tpl?.readOnly == true
-            e.init(tpl?.elmProtocol)
+            e.init(tpl?.elmProtocol, tpl?.elmInit.orEmpty())
             transport = t
             elm = e
             _state.value = ObdState.Connected(a, e.version)

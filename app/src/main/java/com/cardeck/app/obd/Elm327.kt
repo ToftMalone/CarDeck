@@ -36,6 +36,9 @@ class Elm327(private val t: ObdTransport) {
     /** Protocole imposé par le modèle de véhicule (null = recherche automatique). */
     private var forcedProtocol: String? = null
 
+    /** Calculateurs déjà passés en session par défaut KWP (10 81) depuis l'initialisation. */
+    private val sessions = mutableSetOf<String>()
+
     private val isCan get() = protocolNum.lastOrNull()?.let { it in '6'..'9' || it in 'A'..'C' } ?: true
 
     /** Envoie une commande et renvoie la réponse nettoyée (lignes non vides, sans écho ni « SEARCHING… »). */
@@ -63,12 +66,14 @@ class Elm327(private val t: ObdTransport) {
     }
 
     /** [protocol] : protocole connu du modèle (ex. « 6 » = CAN 11 bits 500 kb/s), sinon recherche automatique. */
-    suspend fun init(protocol: String? = null) {
+    suspend fun init(protocol: String? = null, extra: List<String> = emptyList()) {
         val z = raw("ATZ", 6000)
         version = z.lines().lastOrNull { it.contains("ELM", true) || it.contains("v", true) }?.trim() ?: "ELM327"
         forcedProtocol = protocol
         // Requêtes OBD en adressage fonctionnel (7DF) : certains moteurs refusent le service 01 adressé directement.
         raw("ATE0"); raw("ATL0"); raw("ATS1"); raw("ATH0"); raw("ATAT1"); raw("ATST32"); raw("ATSP${protocol ?: "0"}")
+        extra.forEach { raw(it) }
+        sessions.clear()
     }
 
     /** Interroge le véhicule (0100). Renvoie true si au moins un calculateur répond (contact mis). */
@@ -117,6 +122,8 @@ class Elm327(private val t: ObdTransport) {
     suspend fun query(request: String, header: String? = null): IntArray? {
         if (header != null) raw("ATSH$header")
         try {
+            // Blocs constructeur KWP2000 : session par défaut (10 81) ouverte une fois par calculateur.
+            if (header != null && (request.startsWith("21") || request.startsWith("1A")) && sessions.add(header)) raw("1081")
             val single01 = header == null && request.length == 4 && request.startsWith("01")
             val r = raw(request + if (single01) quick(request.substring(2).toInt(16)) else "")
             if (isError(r)) return null
@@ -214,7 +221,7 @@ class Elm327(private val t: ObdTransport) {
     /** Numéro d'identification du véhicule (service 09, PID 02). */
     suspend fun vin(): String? {
         val r = raw("0902", 10000)
-        if (isError(r)) return null
+        if (isError(r)) return vinKwp()
         val tk = tokens(r)
         val out = StringBuilder()
         var i = 0
@@ -225,7 +232,15 @@ class Elm327(private val t: ObdTransport) {
             i++
         }
         val vin = out.toString().filter { it.isLetterOrDigit() }
-        return if (vin.length >= 17) vin.takeLast(17) else null
+        return if (vin.length >= 17) vin.takeLast(17) else vinKwp()
+    }
+
+    /** VIN par l'identification KWP2000 du moteur (1A 90), quand le service 09 ne le donne pas (Suzuki…). */
+    private suspend fun vinKwp(): String? {
+        if (!isCan) return null
+        val b = query("1A90", "7E0") ?: return null
+        val vin = b.filter { it in 0x30..0x5A }.map { it.toChar() }.joinToString("").filter { it.isLetterOrDigit() }
+        return if (vin.length >= 17) vin.take(17) else null
     }
 
     /** Lecture des codes défaut. [mode] = « 03 » (mémorisés), « 07 » (en attente) ou « 0A » (permanents). */

@@ -158,7 +158,14 @@ class TripService : Service() {
             recorder?.let { rec2 ->
                 if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
                 val sup = obd.supported.value.orEmpty()
-                val pids = (StdPids.forSupported(sup) + v.template.pids).filter { !it.slow || cycle % 6 == 0 }
+                // Priorité aux données qui changent vite (régime, vitesse, turbo, charge…) ; le reste un tour sur 4, les lentes un sur 6.
+                val pids = (StdPids.forSupported(sup) + v.template.pids).filter {
+                    when {
+                        it.slow -> cycle % 6 == 0
+                        it.id in StdPids.FAST -> true
+                        else -> cycle % 4 == 0
+                    }
+                }
                 val now = System.currentTimeMillis()
                 val values = obd.use { e -> e.readAll(pids) }
                 if (values != null) {

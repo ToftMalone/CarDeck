@@ -37,6 +37,9 @@ object StdPids {
     const val GPS = "GPS et accélérations"
     const val RAW = "Autres données (brutes)"
 
+    /** Données qui changent vite, relues à chaque tour pendant les trajets (l'ELM327 est limité à ~30 valeurs/s). */
+    val FAST = setOf("std0C", "std0D", "std0B", "std04", "std43", "std10", "std0E", "std11", "std45", "std47", "std49", "std4A", "std4C", "std23", "std06", "std5E")
+
     /** Ordre d'affichage des catégories. */
     val CATEGORIES = listOf(ENGINE, VEHICLE, TEMPS, INTAKE, FUEL, LAMBDA, EMISSIONS, ELEC, GPS, RAW)
 

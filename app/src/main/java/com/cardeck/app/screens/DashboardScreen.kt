@@ -53,7 +53,7 @@ fun DashboardScreen(vm: AppViewModel) {
     LaunchedEffect(connected, sport) {
         if (!connected) return@LaunchedEffect
         vm.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport && 0x42 !in it }) { sup ->
-            ids.mapNotNull { id -> StdPids.all.find { it.id == id } }.filter { StdPids.pidNumber(it) in sup }
+            DashGauges.defs(ids, sup, (vm.repo.active?.template?.pids).orEmpty())
         }
     }
 
@@ -81,7 +81,7 @@ fun DashboardScreen(vm: AppViewModel) {
                 }
                 sup == null -> EmptyNote(Icons.Rounded.HourglassEmpty, "Lecture des données disponibles…", "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.")
                 else -> {
-                    val gauges = DashGauges.gauges(sport, values, sup)
+                    val gauges = DashGauges.gauges(sport, values, sup, v.template.pids.map { it.id }.toSet())
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         gauges.chunked(2).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

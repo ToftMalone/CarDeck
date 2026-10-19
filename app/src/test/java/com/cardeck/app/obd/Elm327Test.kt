@@ -248,4 +248,16 @@ class Elm327Test {
         e.init("6")
         assertTrue(e.probe())
     }
+
+    @Test fun huileSwiftParBlocConstructeur() = runBlocking {
+        // Réponse 61 00 + données ; octet 10 de la réponse (écho compris) = 0x7D → 125 − 40 = 85 °C.
+        val bloc = "00C\r0: 61 00 01 02 03 04\r1: 05 06 07 08 7D 0A 0B"
+        val fake = FakeElm(base + mapOf("2100" to bloc, "1081" to "50 81"))
+        val e = Elm327(fake)
+        e.readOnly = true
+        val oil = com.cardeck.app.data.SWIFT_SPORT_ZC33S.pids.first { it.id == "std5C" }
+        val v = e.readAll(listOf(oil)).toMap()
+        assertEquals(85.0, v.getValue("std5C"), 0.01)
+        assertEquals(listOf("ATSH7E0", "1081", "2100", "ATSH7DF"), fake.sent)
+    }
 }

@@ -17,7 +17,13 @@ object DashGauges {
     val SPORT_IDS = listOf("std0F", "std0B", "std33", "std0E")
 
     /** Lus moins souvent (varient peu). */
-    val SLOW_IDS = setOf("std2F", "std33")
+    val SLOW_IDS = setOf("std2F", "std33", "std5C")
+
+    /** Données à lire pour un tableau de bord : PIDs standard supportés + données du modèle de même identifiant. */
+    fun defs(ids: List<String>, sup: Set<Int>, model: List<PidDef>): List<PidDef> =
+        ids.mapNotNull { id ->
+            StdPids.all.find { it.id == id }?.takeIf { StdPids.pidNumber(it) in sup } ?: model.find { it.id == id }
+        }
 
     const val MISSING = "Non fourni par le véhicule"
 
@@ -39,10 +45,11 @@ object DashGauges {
     /**
      * Jauges du tableau de bord à partir des dernières valeurs lues.
      * [sup] : PIDs déclarés par le véhicule (null = pas encore connus, aucune donnée n'est marquée absente).
+     * [provided] : données lues autrement par le modèle (bloc constructeur…), sous l'identifiant du PID standard.
      */
-    fun gauges(sport: Boolean, values: Map<String, Double>, sup: Set<Int>?): List<Gauge> {
+    fun gauges(sport: Boolean, values: Map<String, Double>, sup: Set<Int>?, provided: Set<String> = emptySet()): List<Gauge> {
         fun std(id: String) = StdPids.all.first { it.id == id }
-        fun has(id: String) = sup == null || StdPids.pidNumber(std(id)) in sup
+        fun has(id: String) = sup == null || id in provided || StdPids.pidNumber(std(id)) in sup
         fun gauge(id: String) = Gauge(std(id), values[id], if (has(id)) null else MISSING)
         val list = if (!sport) {
             // Consommation : débit de carburant (PID 5E) ou calcul à partir du débit d'air (MAF).
