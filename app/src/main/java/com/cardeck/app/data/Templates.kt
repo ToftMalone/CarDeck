@@ -81,6 +81,8 @@ data class VehicleTemplate(
     val readOnly: Boolean = false,
     /** Commandes AT propres au modèle, envoyées après l'initialisation (contrôle de flux…). */
     val elmInit: List<String> = emptyList(),
+    /** Raison pour laquelle le codage est impossible sur ce modèle (null = pas encore de fonctions, ou codage disponible). */
+    val codingImpossible: String? = null,
     /** Pas encore sélectionnable (affiché « Arrive bientôt »). */
     val comingSoon: Boolean = false,
     /** Données du modèle ajoutées au tableau de bord Sport. */
@@ -164,6 +166,9 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     elmProtocol = "6",
     // Rétro-ingénierie ZC33S : lecture seule (liste blanche des services de lecture).
     readOnly = true,
+    codingImpossible = "Le BCM (calculateur d'habitacle : vitres, verrouillage, clé) et le combiné d'instruments ne répondent à aucune demande " +
+        "de diagnostic, ni sur le CAN ni sur la ligne K (balayage complet du 19/10). Sans eux, impossible de lire ou modifier une option " +
+        "comme l'ouverture des vitres à la clé. Leurs informations restent lisibles de façon passive, sur le bus.",
     // Contrôle de flux vers le moteur, 5 ms entre trames : sans cela les longs blocs saturent le Bluetooth (BUFFER FULL).
     elmInit = listOf("ATFCSH7E0", "ATFCSD300005", "ATFCSM1"),
     pids = listOf(

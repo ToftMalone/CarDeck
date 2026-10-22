@@ -16,6 +16,9 @@ if (isReleaseBuild && releaseVersion == null) {
     )
 }
 
+// Signature de la release : fichier de clé et mots de passe fournis hors dépôt (-P… ou variables d'environnement).
+fun signingProp(name: String): String? = providers.gradleProperty(name).orNull ?: System.getenv(name)
+
 android {
     namespace = "com.cardeck.app"
     compileSdk = 35
@@ -28,9 +31,22 @@ android {
         versionName = "0.1"
     }
 
+    signingConfigs {
+        val file = signingProp("KEYSTORE_FILE")
+        if (file != null) {
+            create("release") {
+                storeFile = file(file)
+                storePassword = signingProp("KEYSTORE_PASSWORD")
+                keyAlias = signingProp("KEY_ALIAS")
+                keyPassword = signingProp("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

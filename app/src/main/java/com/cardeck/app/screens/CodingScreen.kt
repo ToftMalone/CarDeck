@@ -82,9 +82,10 @@ fun CodingScreen(vm: AppViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(Modifier.size(64.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Build, 30, c.onv) }
-                    T("Fonctions de codage à venir", 18, weight = 500, modifier = Modifier.padding(top = 16.dp))
+                    val why = tpl.codingImpossible
+                    T(if (why != null) "Le codage n'est pas possible" else "Fonctions de codage à venir", 18, weight = 500, modifier = Modifier.padding(top = 16.dp))
                     T(
-                        "Les fonctions de codage de la ${tpl.fullName} seront ajoutées avec les données du modèle (calculateurs, identifiants et valeurs).",
+                        why ?: "Les fonctions de codage de la ${tpl.fullName} seront ajoutées avec les données du modèle (calculateurs, identifiants et valeurs).",
                         14, c.onv, align = TextAlign.Center, lineHeight = 20, modifier = Modifier.padding(top = 6.dp),
                     )
                 }

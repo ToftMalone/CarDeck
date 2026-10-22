@@ -35,7 +35,8 @@ internal class CodingCarScreen(ctx: CarContext) : CarScreen(ctx) {
         if (tpl.codings.isEmpty()) {
             return message(
                 "Codage",
-                "Fonctions de codage à venir : les fonctions de codage de la ${tpl.fullName} seront ajoutées avec les données du modèle (calculateurs, identifiants et valeurs).",
+                tpl.codingImpossible?.let { "Le codage n'est pas possible. $it" }
+                    ?: "Fonctions de codage à venir : les fonctions de codage de la ${tpl.fullName} seront ajoutées avec les données du modèle (calculateurs, identifiants et valeurs).",
             )
         }
         val b = ListTemplate.Builder().setTitle("Codage").setHeaderAction(Action.BACK)
