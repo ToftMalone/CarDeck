@@ -71,9 +71,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     fun newGreeting() {
-        val i = com.cardeck.app.data.Greetings.pick(prefs.lastGreeting)
+        val all = com.cardeck.app.data.Greetings.all(ctx)
+        val i = com.cardeck.app.data.Greetings.pick(all.size, prefs.lastGreeting)
         prefs.lastGreeting = i
-        greeting = com.cardeck.app.data.Greetings.all[i]
+        greeting = all[i]
     }
 
     // ---- Apparence ----

@@ -1,0 +1,500 @@
+Prêt à faire chanter le turbo ?
+Le moteur est chaud, toi aussi ?
+Aucun voyant allumé… pour l'instant.
+On vérifie l'huile ou on fait confiance ?
+Rappel : le frein, c'est la pédale du milieu.
+La vitesse, c'est bien. Arriver, c'est mieux.
+Les PIDs sont prêts, et toi ?
+Le plein ou le prêt à rouler ?
+Ta voiture a des choses à te dire.
+Les clignotants, c'est gratuit.
+Moins de tours, plus de sous.
+Le turbo ne siffle pas tout seul.
+Un bon conducteur regarde la route, pas l'appli.
+Encore un trajet pour l'historique ?
+Le compte-tours n'est pas un défi.
+On roule, on mesure, on se la raconte.
+La consommation, c'est une question de point de vue.
+Diagnostic du jour : conducteur en pleine forme.
+Ton ELM327 t'attend depuis tout à l'heure.
+Bouclé ? Parfait, on peut parler chiffres.
+Le rétro, c'est pas que pour se recoiffer.
+Zone rouge : à regarder, pas à habiter.
+Ta voiture t'aime. Enfin, ton portefeuille un peu moins.
+Embrayage, première, et c'est parti pour l'aventure.
+Le GPS sait où tu vas. CarDeck sait comment.
+Une vidange par an éloigne le garagiste.
+Les pneus, c'est comme les chaussettes : on vérifie la pression.
+Aujourd'hui, on vise le 5 L/100. Ou pas.
+Tu as pensé à dire bonjour à ta voiture ?
+Le voyant moteur est timide aujourd'hui. Tant mieux.
+Pas de code défaut, pas de prise de tête.
+Le régime idéal ? Celui qui ne fait pas pleurer le moteur.
+Les radars aussi aiment les données.
+On ne dit pas « tuning », on dit « optimisation passionnée ».
+Le klaxon n'est pas un instrument de musique.
+Chaque kilomètre compte. Littéralement, on les compte.
+La boîte manuelle, c'est du sport.
+Le turbo dort. Réveille-le gentiment.
+Ta Swift a 140 chevaux, pas 140 problèmes.
+La route est à tout le monde, le plaisir est pour toi.
+Aujourd'hui, la consommation sera sage. On y croit.
+Ton moteur te remercie d'attendre qu'il chauffe.
+Huile froide, pied léger.
+Le bouchon, c'est l'occasion de regarder les jauges.
+Les données ne mentent pas. Le compteur, parfois un peu.
+Petit rappel : le carburant ne se recharge pas tout seul.
+Le boîtier OBD2 est ton meilleur copilote.
+Le copilote officiel n'a pas d'avis sur ta playlist.
+Accélération douce, sourire garanti.
+On a une batterie à surveiller. Et toi, ça va ?
+Le diagnostic, c'est comme le médecin : mieux vaut prévenir.
+Tu conduis, on note. Pas de jugement. Enfin, presque.
+L'avance à l'allumage te salue.
+Le capteur de température d'admission a chaud au cœur.
+Le papillon est ouvert à la discussion.
+Ta pédale d'accélérateur n'est pas un interrupteur.
+Il paraît que les voitures rêvent de routes de montagne.
+Encore une belle journée pour rouler.
+Pluie ? Les essuie-glaces sont prêts.
+Les feux de croisement, c'est pour être vu. Et pour voir.
+Pression turbo : prête à être admirée.
+Ta voiture parle le CAN couramment.
+On écoute le bus. Pas celui de la ligne 12.
+500 kbit/s de pure conversation automobile.
+Aujourd'hui, ta voiture est d'humeur bavarde.
+Les calculateurs se disent bonjour en hexadécimal.
+0x13F te transmet ses amitiés.
+Le régime moteur est en ligne. Et toi ?
+Le meilleur filtre à particules, c'est le pied léger.
+On t'a gardé une place dans l'historique.
+Ton trajet de demain dira beaucoup de toi.
+Le capteur d'huile est enfin bavard.
+Le réservoir n'est pas sans fond. Malheureusement.
+La jauge descend plus vite que prévu ? Classique.
+Le plein, c'est le moment le plus cher de la semaine.
+Faire le plein, c'est offrir des vacances à ta voiture.
+Rouler à 90 sur une nationale, c'est rebelle aujourd'hui.
+Ton rétroviseur intérieur sert aussi à voir derrière.
+Le siège arrière n'est pas un vide-poche. Enfin si.
+Le coffre est fermé. On vérifie ?
+La ceinture, c'est le meilleur accessoire de mode.
+Le soleil est bas, le pare-soleil aussi ?
+Ta clim est prête, le climat un peu moins.
+On ne roule pas à l'huile de friture. Pas encore.
+Le moteur K14C te salue bien bas.
+Petit moteur, grand cœur.
+La Swift est petite mais costaud.
+Un tour de clé et c'est parti.
+On démarre ? Le bouton, il est là.
+Les données sont fraîches, le café aussi ?
+Il fait beau pour un trajet sans bouchon. On rêve.
+Le péage n'accepte pas les PIDs.
+On a mesuré : tu es le meilleur conducteur de ce téléphone.
+L'appli ne juge pas. Elle enregistre.
+La conduite sportive, c'est sur circuit.
+Le circuit, c'est le simulateur. La route, c'est la vraie vie.
+Ton embrayage a des sentiments aussi.
+On ne descend pas en première à 50 km/h.
+Le point mort n'est pas une vitesse de croisière.
+Un rétrogradage propre, c'est de l'art.
+Le talon-pointe, tu maîtrises ?
+Le frein à main, c'est pour se garer. Pas pour Tokyo Drift.
+Le drift, c'est dans les jeux vidéo.
+Les ronds-points ne sont pas des circuits.
+La priorité à droite existe encore, paraît-il.
+Les clignotants ne s'usent pas à l'usage.
+Le stop, c'est trois secondes. Pas zéro.
+Le feu orange n'est pas un défi.
+Le limiteur n'est pas une option décorative.
+Les radars ont une très bonne mémoire.
+Rouler léger, c'est rouler malin.
+On a calculé : la meilleure vitesse, c'est la bonne.
+Le moteur chante, tu chantes, tout le monde chante.
+La musique à fond n'augmente pas la puissance.
+Ton pot d'échappement fait du bruit pour rien.
+Le son du turbo vaut toutes les playlists.
+Le pschitt de la soupape, ça n'a pas de prix.
+Ta voiture a plus de capteurs que ton frigo.
+Les calculateurs font des heures sup' pour toi.
+Ton ABS veille sur toi.
+L'ESP est ton ange gardien électronique.
+Les airbags préfèrent rester pliés.
+Les prétensionneurs sont au repos. Parfait.
+Rien à signaler, mon capitaine.
+Tableau de bord au vert, moral au beau fixe.
+Le diagnostic est clean. Comme ta conduite ?
+Ta voiture est en forme olympique.
+Les voyants font la sieste.
+Le contrôle technique tremble devant toi.
+Le garagiste s'ennuie de toi. Tant mieux.
+Une voiture entretenue est une voiture heureuse.
+Les bougies, c'est pas que pour les gâteaux.
+Le filtre à air respire la joie.
+La courroie de distribution remercie ta vigilance.
+Ton liquide de refroidissement est cool.
+Le thermostat a la bonne température.
+90 °C d'eau, c'est le spa du moteur.
+L'huile monte en température. Patience.
+Moteur froid, on évite les montées dans les tours.
+Le moteur se réchauffe, tes mains aussi ?
+Le dégivrage, c'est maintenant ou jamais.
+Le pare-brise est propre ? La route sera plus belle.
+Pneus gonflés, conscience tranquille.
+Une roue crevée, c'est toujours au mauvais moment.
+La roue de secours a peur du noir.
+Le cric est rangé ? On espère ne pas en avoir besoin.
+Le gilet jaune est dans la voiture ?
+Le triangle aussi, normalement.
+Ton permis a encore tous ses points ? Bravo.
+Les points du permis ne sont pas des points de fidélité.
+On roule pour le plaisir, pas pour le PV.
+Le meilleur trajet, c'est celui qu'on refait.
+Une route sinueuse ? Ta voiture adore.
+Les virages, ça se négocie avec douceur.
+Le volant n'a que deux mains de libre : les tiennes.
+L'angle du volant est enregistré. Pas de virage raté.
+Les 4 roues tournent. C'est déjà ça.
+La vitesse des roues est synchronisée. Ouf.
+Ta voiture sait si tu freines. Elle ne dira rien.
+La pédale de frein est enfoncée. Pas la porte ouverte.
+Ta porte est fermée. On le sait, on écoute.
+On sait si ta ceinture est bouclée. Big Brother automobile.
+Les feux sont allumés ? CarDeck le sait.
+Les essuie-glaces sont en grève. Le ciel aussi.
+Le kilométrage grimpe, l'expérience aussi.
+Chaque kilomètre est une histoire.
+70 000 km et toujours fringante.
+Ta voiture vieillit mieux que nous.
+L'âge d'une voiture, c'est dans la tête.
+Une voiture bien conduite ne vieillit pas.
+Le moteur te dit merci pour ta douceur.
+On a vérifié : ta voiture n'a pas de fièvre.
+Température extérieure : idéale pour rouler.
+Il fait froid ? Le moteur aussi au début.
+Il fait chaud ? Le moteur, encore plus.
+La clim consomme. Les fenêtres aussi, à haute vitesse.
+Fenêtre ouverte à 130, c'est la tempête.
+Le vent de face mange tes litres.
+Le vent dans le dos, c'est cadeau.
+Les montées coûtent, les descentes remboursent.
+Le frein moteur, c'est gratuit et efficace.
+Anticiper, c'est économiser.
+Le meilleur frein, c'est l'anticipation.
+Regarde loin, conduis bien.
+La distance de sécurité, c'est deux traits.
+Coller la voiture de devant, c'est mal vu.
+Le bouchon avance. Lentement. Très lentement.
+Les embouteillages sont parfaits pour lire les données.
+À l'arrêt, CarDeck s'ennuie un peu.
+Le ralenti, c'est le moteur qui médite.
+Un ralenti stable, c'est zen.
+Le moteur ronronne. Comme un chat de 140 chevaux.
+140 chevaux et pas un seul pour tirer une charrette.
+Les chevaux sont dans le moteur, pas dans le coffre.
+Le couple, c'est ce qui te colle au siège.
+La puissance, c'est bien. La maîtrise, c'est mieux.
+Il paraît que la Swift Sport est une petite bombe.
+Petite voiture, gros sourire.
+Ta voiture a du caractère. Comme toi.
+On démarre la journée en douceur ?
+Le café est pour toi, l'essence pour elle.
+La voiture est prête. Le conducteur ?
+Ton ELM327 a bu son café aussi.
+Bluetooth connecté, on peut discuter.
+Le boîtier clignote, c'est qu'il est content.
+Le Wi-Fi OBD, c'est pour les connaisseurs.
+Le simulateur roule sans consommer. Le rêve.
+Dans le simulateur, pas de radar. Profite.
+CarDeck mesure, toi tu profites.
+Les statistiques adorent ta conduite.
+On a fait des courbes. Elles sont belles.
+Ton trajet d'hier était parfait. Ou presque.
+Le replay de ton trajet n'a pas de ralenti sur tes erreurs.
+On exporte, on analyse, on se vante.
+Les données de ce trajet seront un jour légendaires.
+La légende raconte que tu as roulé à 5 L/100.
+Les mythes de la consommation sont tenaces.
+Le constructeur annonce 5 L/100. Ah ah.
+La consommation réelle, c'est ici qu'on la voit.
+Moins de gaz, plus de rire.
+Tu as le pied lourd aujourd'hui ? On regarde.
+Le pied léger est un super-pouvoir.
+L'éco-conduite, c'est la nouvelle conduite sportive.
+On ne gagne rien à arriver premier au feu rouge.
+Le feu rouge t'attend. Pas besoin de te presser.
+Le départ arrêté parfait, c'est sans patinage.
+Le patinage, c'est sur glace.
+Le verglas n'aime personne.
+La neige, c'est joli, mais pas sur la route.
+Brouillard ? Les antibrouillards sont là pour ça.
+Nuit noire ? Les pleins phares, mais pas en face.
+Les appels de phares, c'est pas un langage officiel.
+Tu as fait un appel de phares ? On l'a vu.
+Les warnings, c'est pour le danger, pas pour se garer.
+Se garer en double file, c'est mal.
+Créneau réussi : niveau expert débloqué.
+La marche arrière est enclenchée. On recule prudemment.
+La marche arrière, c'est la seule vitesse où on regarde derrière.
+Le stationnement, c'est un art martial.
+La place de parking parfaite existe. Elle est déjà prise.
+Ta voiture est garée, ton esprit est libre.
+Un parking souterrain, c'est un labyrinthe pour voitures.
+Les dos d'âne, c'est pour ralentir. Pas pour décoller.
+Les nids-de-poule sont tes ennemis.
+Ta suspension te dit merci de ralentir.
+Une route bien lisse, c'est le paradis.
+Les pavés, c'est pittoresque, mais ça secoue.
+La campagne, c'est joli à 80 km/h.
+L'autoroute, c'est long mais rapide.
+130 km/h, c'est la limite. Pas l'objectif.
+La voie de gauche, c'est pour doubler.
+Le régulateur de vitesse, c'est ton pied gauche en vacances.
+Le pied droit, lui, ne prend jamais de vacances.
+Les pauses toutes les deux heures, ça sauve des vies.
+Un café sur l'aire d'autoroute ? Bonne idée.
+La fatigue au volant ne pardonne pas.
+On roule reposé, on roule mieux.
+Les enfants à l'arrière demandent si c'est encore loin.
+« On est bientôt arrivés ? » Non.
+Le GPS recalcule. Toi, tu restes calme.
+Le GPS t'a encore fait faire un détour ?
+La route la plus courte n'est pas toujours la plus belle.
+Prendre le chemin des écoliers, ça a du charme.
+Un détour, c'est une découverte.
+Tu connais ce trajet par cœur, ta voiture aussi.
+Le trajet du travail, encore. Courage.
+Le week-end commence quand on démarre.
+Vendredi soir, le moteur est content.
+Lundi matin, le moteur aussi a du mal.
+Le dimanche, on roule pour le plaisir.
+Les vacances commencent au premier kilomètre.
+Le coffre est plein, le réservoir aussi ?
+Partir en vacances avec un réservoir vide, c'est osé.
+La station-service est ta meilleure amie.
+Le prix de l'essence fait plus peur que les radars.
+Remplir le réservoir, c'est un investissement émotionnel.
+Le gazole, c'est pas pour toi. Tu es essence.
+Le sans-plomb 98, c'est un cadeau pour le moteur.
+L'E10, c'est bon pour la planète. Un peu.
+Ton moteur boit, mais avec modération.
+Un moteur à injection directe, c'est de la haute couture.
+200 bars de pression d'injection. Respect.
+La pression du rail est sous contrôle.
+Le débit d'air passe crème.
+La charge moteur est raisonnable. Toi aussi ?
+La sonde lambda surveille tout. Même toi.
+Les corrections de carburant sont sages.
+La richesse est équilibrée, comme ta vie.
+Pas trop riche, pas trop pauvre : le mélange parfait.
+14,7 pour 1, la recette secrète du moteur.
+L'allumage est bien réglé. Comme une horloge suisse.
+Le moteur cliquette ? Non, tout va bien.
+Le capteur de cliquetis veille au grain.
+Les soupapes dansent la valse.
+Les pistons font leur jogging.
+Le vilebrequin tourne rond.
+L'arbre à cames a de bonnes idées.
+La distribution variable est variable. Logique.
+Le turbo tourne à des milliers de tours. Lui aussi s'amuse.
+La wastegate fait son travail en silence.
+L'intercooler rafraîchit l'ambiance.
+L'air frais, c'est des chevaux en plus.
+Un moteur qui respire bien, c'est un moteur heureux.
+L'échappement chante la mélodie du K14C.
+Le catalyseur nettoie derrière toi.
+Les particules n'ont qu'à bien se tenir.
+L'antipollution est au top.
+La norme Euro 6 te regarde.
+Ta voiture est plus propre que tu ne crois.
+Le carbone, on le garde pour les jantes.
+Les jantes brillent ? Elles roulent mieux. Non, en fait.
+Laver la voiture fait pleuvoir. C'est scientifique.
+Une voiture propre roule plus vite. Dans la tête.
+L'intérieur est rangé ? On ne demandera pas.
+Les miettes de biscuits sous le siège te saluent.
+Le désodorisant à la vanille a perdu le combat.
+L'odeur de voiture neuve, ça ne dure pas.
+Ta voiture a une odeur unique. Ne change rien.
+Les lunettes de soleil sont dans la boîte à gants ?
+La boîte à gants ne contient jamais de gants.
+Le chargeur de téléphone est là ? Ton téléphone aussi.
+CarDeck consomme moins que ta voiture.
+La batterie du téléphone est importante aussi.
+Le téléphone en main au volant, c'est non.
+Les yeux sur la route, CarDeck s'occupe du reste.
+On ne fait pas de selfie au volant.
+L'appli peut attendre, la route non.
+Android Auto, c'est mieux que de tenir le téléphone.
+La musique adoucit les embouteillages.
+Un podcast, une route, un moteur. Le bonheur.
+Ta playlist voiture est légendaire, on suppose.
+Chanter au volant est autorisé. Danser, moins.
+Le bouton du volume est souvent trop à droite.
+L'autoradio a vu des choses.
+Ta voiture a entendu toutes tes chansons.
+Le passager a toujours un avis sur ta conduite.
+Le passager freine avec le pied droit dans le vide.
+Le copilote s'occupe de la musique, c'est la règle.
+Celui qui conduit choisit la musique. C'est la loi.
+Ta voiture garde tous tes secrets.
+Les meilleures discussions ont lieu en voiture.
+La voiture, c'est un salon qui roule.
+Ton salon a 140 chevaux.
+Une voiture, c'est la liberté sur quatre roues.
+La liberté, c'est un plein et une route libre.
+On part où aujourd'hui ?
+La destination compte moins que le voyage.
+Le voyage commence maintenant.
+Une nouvelle route, de nouvelles données.
+Ton historique de trajets va bientôt avoir besoin d'une bibliothèque.
+Les données s'accumulent. Ta légende aussi.
+Un jour, ces données seront dans un musée.
+On a mesuré ta patience aux feux rouges. Elle est infinie.
+Ton record de vitesse reste entre nous.
+Ce qui se passe sur la route reste dans l'historique.
+L'historique n'oublie rien. Ça te va ?
+On efface les défauts, pas les souvenirs.
+Le voyant moteur s'allume ? CarDeck a la réponse.
+Code P0420 ? Pas aujourd'hui, merci.
+Code P0300 ? On espère ne jamais te le montrer.
+Aucun code défaut ne passera par ici.
+Les codes défaut ont peur de toi.
+Si un code défaut apparaît, on le traduit en français.
+Le français, c'est mieux que l'hexadécimal.
+Ta voiture parle hexadécimal, on traduit.
+0x7E8 a répondu présent.
+Le calculateur moteur est d'humeur coopérative.
+7DF demande, 7E8 répond. Une belle histoire.
+Le calculateur d'airbag se porte bien.
+On ne parle jamais à 7F1. Jamais.
+7F1 est le voisin qu'on évite.
+La liste blanche veille sur ta voiture.
+Lecture seule : on regarde, on ne touche pas.
+CarDeck est poli : il demande avant de lire.
+On n'écrit rien dans ta voiture. Promis.
+Ta voiture est en sécurité avec CarDeck.
+Aucun calculateur n'a été maltraité pendant ce trajet.
+Le bus CAN est animé ce matin.
+56 identifiants sur le bus, et pas un pour dire merci.
+Le bus CAN publie plus vite que tes réseaux sociaux.
+Le régime est publié 50 fois par seconde. Influenceur.
+Les vitesses de roues sont publiées 100 fois par seconde. Bavardes.
+Le kilométrage est publié une fois par seconde. Discret.
+La jauge à essence est lissée. Comme ton style.
+Le flotteur de la jauge fait du surf.
+Le niveau d'essence fait le yoyo dans les virages.
+Les premiers litres après le plein sont invisibles. Mystère.
+Ta Swift cache bien son jeu.
+Rétro-ingénierie réussie, voiture comprise.
+On a décodé ta voiture. Elle n'a plus de secrets.
+Enfin presque : le BCM reste muet.
+Le BCM fait la tête. Il ne répond à personne.
+Le combiné d'instruments est timide.
+Le tableau de bord ne dit pas tout. CarDeck, si.
+Plus d'infos qu'un tableau de bord de luxe.
+Ta voiture a un tableau de bord dans ta poche.
+Le tableau de bord Sport est prêt à frimer.
+Mode Sport activé ? Les chiffres sont plus fun.
+Mode Standard : pour les jours sages.
+Le mode éco, c'est ton pied droit.
+Pression turbo à 1,3 bar ? Ça décoiffe.
+Le MAP grimpe, le sourire aussi.
+La suralimentation, c'est l'air sous pression.
+L'avance à l'allumage avance. Normal.
+La température d'admission est cool.
+L'air frais, c'est des chevaux gratuits.
+Le froid, c'est bon pour le turbo.
+Le chaud, c'est bon pour les glaces.
+Un moteur bien chaud, c'est un moteur prêt.
+Attends 90 °C d'huile avant de t'amuser.
+Ton moteur n'aime pas les réveils brutaux.
+Démarrage à froid : la douceur est de mise.
+Les premiers kilomètres, c'est l'échauffement.
+Le moteur s'étire avant le sport.
+Ta voiture fait son yoga matinal.
+Respire, démarre, roule.
+Le meilleur moment de la journée : le premier tour de roue.
+La route t'appelle.
+Ton volant t'attendait.
+Tes mains à 9 h 15, c'est la bonne position.
+Le volant ne se tient pas d'une main. Sauf en rêve.
+On garde les deux mains sur le volant, merci.
+Le rétroviseur, ça se règle avant de partir.
+Le siège bien réglé, c'est la moitié du plaisir.
+Les rétros sont réglés ? On peut partir.
+La check-list est faite ? Ceinture, rétros, musique.
+Prêt au décollage. Enfin, au démarrage.
+Moteur paré. Conducteur paré. Go.
+3, 2, 1… contact.
+Le contact est mis, la magie commence.
+Ta voiture se réveille. Dis-lui bonjour.
+Bonjour, c'était trop banal.
+On avait dit pas de « Bonjour ». Alors : salut le pilote !
+Salut, pilote du dimanche (même si on est lundi).
+Hey, champion de l'éco-conduite !
+Coucou, as du créneau !
+Bienvenue à bord, commandant.
+Le commandant de bord vous souhaite un bon trajet.
+Attachez vos ceintures, on décolle. Pas trop vite.
+Les consignes de sécurité sont dans la boîte à gants.
+Ce trajet est garanti sans turbulences. Sauf les dos d'âne.
+Merci d'avoir choisi CarDeck pour ce voyage.
+CarDeck, l'appli qui parle couramment le moteur.
+CarDeck, ton copilote numérique.
+CarDeck ne conduit pas à ta place. Désolé.
+CarDeck ne fait pas le plein non plus.
+CarDeck ne lave pas la voiture. Personne n'est parfait.
+CarDeck ne trouve pas de place de parking. Encore.
+CarDeck connaît ta voiture mieux que ton garagiste.
+CarDeck a plus de données que ton carnet d'entretien.
+Ton carnet d'entretien est à jour ?
+La prochaine vidange approche ? On surveille.
+15 000 km entre deux vidanges, c'est le rythme.
+Les plaquettes de frein ne sont pas éternelles.
+Les disques de frein non plus.
+Les pneus non plus. Rien n'est éternel.
+Sauf ton amour pour ta voiture.
+Ta voiture et toi, c'est une belle histoire.
+Il y a des histoires d'amour qui roulent.
+Ta voiture est ta meilleure amie, on le sait.
+Elle ne te juge pas. Enfin, son calculateur, un peu.
+Le calculateur note tout. Même les accélérations vives.
+Accélération vive détectée ? On n'a rien vu.
+Freinage brusque ? Le chien qui traversait, on comprend.
+Virage serré ? C'était pour le fun.
+Les g latéraux sont sous contrôle.
+Ta conduite est fluide comme une rivière.
+Une conduite fluide, c'est une conduite élégante.
+L'élégance, c'est de ne jamais forcer.
+Ta voiture apprécie ta délicatesse.
+Les passagers aussi apprécient ta délicatesse.
+Le café du passager ne s'est pas renversé. Bravo.
+Un trajet sans café renversé, c'est une réussite.
+Ta voiture est un laboratoire roulant.
+Science, essence et bon sens.
+On mesure pour mieux rouler.
+Comprendre sa voiture, c'est mieux la conduire.
+La curiosité est un bon carburant.
+Le savoir, c'est des chevaux en plus.
+On n'arrête pas le progrès. Ni le moteur.
+Ta voiture et CarDeck, une équipe de choc.
+Il n'y a pas de mauvaise route, juste de bons trajets.
+Allez, on y va ?
+Aujourd'hui sera une belle route.
+Le turbo, c'est un sèche-cheveux sous stéroïdes.
+Les bonnes routes font les bons conducteurs.
+Ton moteur a la pêche, toi aussi ?
+Une voiture qui démarre du premier coup, c'est un bon jour.
+La batterie est chargée, le conducteur aussi.
+Le ciel est gris ? Ta conduite sera lumineuse.
+Une goutte d'essence économisée est une goutte gagnée.
+Le compteur kilométrique ne revient jamais en arrière.
+Personne n'a jamais regretté une vidange.
+Ta voiture compte sur toi. Et sur CarDeck.
+Rouler, c'est un peu voler, mais sans les ailes.
+La route est longue, mais les données sont belles.
+Les chevaux sont sellés, on peut partir.
+Aujourd'hui, pas de bouchon. Ou alors un petit.
+Le moteur ronronne, l'appli frétille.
+Bonne route, et que la force du couple soit avec toi.
