@@ -1,37 +1,61 @@
 # CarDeck 🚗
 
-Application Android de diagnostic OBD2 et de suivi de conduite (Kotlin · Jetpack Compose · Material 3).
+**CarDeck est l'application Android qui lit ce que ta voiture a à dire.**
+Branche un petit boîtier OBD2 sur la prise diagnostic, ouvre l'appli, et retrouve en direct le régime, la vitesse, les températures,
+la pression du turbo, le niveau de carburant… ainsi que l'historique de tous tes trajets.
 
-## Fonctionnement
+## Ce que fait CarDeck
 
-- **Profils de véhicule** : chaque voiture du garage est un profil créé à partir d'un *modèle* (pour l'instant :
-  Suzuki Swift Sport ZC33S · K14C 1.4 BoosterJet · 140 ch ; Kia Picanto 1.0 TA · G3LA · 69 ch). Trajets, diagnostics et boîtier OBD2 sont rattachés au profil.
-  Le véhicule sélectionné dans le garage est utilisé partout.
-- **Boîtier OBD2 (ELM327)** : Bluetooth classique, Bluetooth LE ou Wi-Fi.
-- **Trajets automatiques** : un service de premier plan se connecte au boîtier du véhicule actif ; dès que le moteur tourne,
-  le trajet est enregistré (tracé GPS, distance, vitesses, freinages / accélérations / virages), puis clôturé à l'arrêt du moteur.
-  Affichage sur une carte OpenStreetMap.
-- **Diagnostic** : lecture des codes défaut (mémorisés, en attente, permanents), données figées, effacement,
-  base française des codes génériques.
-- **Codage** (à la Bimmercode) : réglages définis par modèle (`codings` dans `data/Templates.kt` : calculateur, DID, octet, masque, options),
-  lus et écrits en UDS (0x22 / 0x2E, session étendue, SecurityAccess si nécessaire), avec sauvegarde automatique du codage d'origine,
-  vérification par relecture et restauration.
-- **Tableau de bord** : état de la liaison + lecture de tous les PIDs standard OBD2 (service 01) que le véhicule déclare supporter (régime, vitesse, températures, charge, MAP/MAF, corrections carburant, etc.). Les PIDs propres au modèle s'ajoutent dans `data/Templates.kt`.
+### 📊 Tableau de bord
+Deux tableaux de bord en direct, que tu bascules d'un geste :
+- **Standard** : vitesse, régime, température du liquide et de l'huile, niveau de carburant, consommation, tension de la batterie.
+- **Sport** : température d'admission, pression du collecteur et de suralimentation (en bar), avance à l'allumage, angle du volant.
 
-## Voiture de simulation
+### 📟 Données OBD2
+Toutes les valeurs que ton véhicule fournit, rangées par catégories, avec l'état de la liaison, l'identification des calculateurs
+(VIN, références, logiciels) et l'état de sécurité des airbags.
 
-Le modèle « CarDeck Simulateur » utilise un boîtier ELM327 virtuel (`sim/`) : l'appli dialogue avec lui exactement
-comme avec un vrai boîtier (OBD2, codes défaut, données figées, VIN, UDS / codage). Depuis le tableau de bord :
-démarrer / couper le moteur (un trajet est enregistré sur un circuit GPS virtuel) et injecter des défauts.
+### 🩺 Diagnostic
+Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français** :
+description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.
 
-## Compiler
+### 🗺️ Trajets
+Chaque trajet est enregistré **automatiquement** dès que le moteur tourne : tracé GPS sur une carte OpenStreetMap, distance, durées,
+vitesses, freinages, accélérations et virages, ainsi que **toutes les données du moteur** relevées pendant le parcours.
+Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
 
-Prérequis : JDK 17+ et Android SDK (platform 35).
+### 🔧 Codage
+Les réglages du véhicule modifiables par diagnostic (à la manière de Bimmercode), avec sauvegarde automatique du codage d'origine,
+vérification par relecture et restauration en un geste. Disponible selon les modèles : certaines voitures ne s'y prêtent pas, et l'appli
+te dit pourquoi.
 
-```bash
-./gradlew assembleDebug         # APK debug -> app/build/outputs/apk/debug/app-debug.apk (version 0.1)
-./gradlew testDebugUnitTest     # tests du protocole ELM327
-```
+### 🚘 Android Auto
+Le même écran d'accueil et les mêmes fonctions sur l'écran de ta voiture. Dès que le véhicule roule, tout se grise sauf le tableau de bord.
 
-- Les APK **debug** portent toujours la version **0.1**.
-- Une **release** est volontairement bloquée : elle exige une version explicite (`-PappVersion=X.Y`) et l'accord du propriétaire du projet.
+### 🏠 Un garage pour plusieurs voitures
+Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Tu choisis un modèle, l'appli y apporte ses fonctions dédiées.
+Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lancement t'accueille avec un message différent.
+
+## Véhicules pris en charge
+
+| Modèle | État |
+|---|---|
+| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Disponible : lecture seule, données moteur et châssis, huile, carburant, identification |
+| Kia Picanto 1.0 TA (G3LA, 69 ch) | ⏳ Arrive bientôt |
+
+D'autres modèles sont prévus.
+
+## Boîtier OBD2
+
+CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Bluetooth LE** ou **Wi-Fi**. Branche-le sur la prise diagnostic
+(sous le volant), mets le contact, puis associe-le à ton véhicule depuis l'appli.
+
+## Respect de ta voiture et de tes données
+
+- 🔒 Sur la Swift Sport, CarDeck est en **lecture seule** : il regarde, il n'écrit rien dans la voiture.
+- 📍 Les trajets et les diagnostics restent **sur ton téléphone**.
+- 🔄 Les mises à jour sont proposées au lancement et installables depuis **Paramètres → Application**, où tu retrouves aussi le journal des nouveautés.
+
+## Installer
+
+Télécharge l'APK de la dernière version dans les [releases](https://github.com/ToftMalone/CarDeck/releases) et installe-le sur ton téléphone Android (8.0 ou plus récent).
