@@ -141,7 +141,6 @@ class TripService : Service() {
             obd.ecuOnline.value = rpm != null
             obd.publish(listOfNotNull(rpm?.let { "std0C" to it }, speed?.let { "std0D" to it.toDouble() }, volt?.let { "elm_volt" to it }))
             val engineOn = rpm != null && rpm > 300
-            val isSim = adapter.transport == com.cardeck.app.data.Transport.Sim
             if (engineOn) {
                 engineOffSince = 0L
                 if (recorder == null) startTrip(v.id)
@@ -182,14 +181,13 @@ class TripService : Service() {
                     else -> "${v.nickname} · boîtier connecté, véhicule à l'arrêt"
                 },
             )
-            delay(if (recorder != null) 300 else if (isSim) 1_000 else 10_000)
+            delay(if (recorder != null) 300 else 10_000)
         }
     }
 
     private fun startTrip(vehicleId: Long) {
         if (!withLocation && Perms.locationOk(this)) goForeground("Trajet en cours")
-        val sim = cardeck.repo.active?.adapter?.transport == com.cardeck.app.data.Transport.Sim
-        recorder = TripRecorder(this, cardeck.repo, vehicleId, sim).also { it.begin() }
+        recorder = TripRecorder(this, cardeck.repo, vehicleId).also { it.begin() }
     }
 
     private fun endTrip() {

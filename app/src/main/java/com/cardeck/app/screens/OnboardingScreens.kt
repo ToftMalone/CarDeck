@@ -59,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -133,7 +134,7 @@ private fun StepBar(step: Int, onBack: () -> Unit, showSteps: Boolean) {
 @Composable
 fun AddVehicleScreen(vm: AppViewModel) {
     val c = Cd.c
-    var tpl by remember { mutableStateOf(TEMPLATES.first()) }
+    var tpl by remember { mutableStateOf(TEMPLATES.first { !it.comingSoon }) }
     fun defaultName(t: VehicleTemplate): String = vm.defaultName(t)
     var nickname by remember { mutableStateOf(defaultName(tpl)) }
     var nameEdited by remember { mutableStateOf(false) }
@@ -149,9 +150,9 @@ fun AddVehicleScreen(vm: AppViewModel) {
                 TEMPLATES.forEach { t ->
                     val sel = t.id == tpl.id
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (sel) c.sc else c.sf1)
+                        Modifier.fillMaxWidth().alpha(if (t.comingSoon) .5f else 1f).clip(RoundedCornerShape(20.dp)).background(if (sel) c.sc else c.sf1)
                             .border(2.dp, if (sel) c.p else Color.Transparent, RoundedCornerShape(20.dp))
-                            .clickable { tpl = t; if (!nameEdited) nickname = defaultName(t) }.padding(16.dp),
+                            .clickable(enabled = !t.comingSoon) { tpl = t; if (!nameEdited) nickname = defaultName(t) }.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Box(Modifier.size(48.dp).clip(CircleShape).background(if (sel) c.p else c.sf4), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 26, if (sel) c.op else c.onv) }
@@ -160,6 +161,9 @@ fun AddVehicleScreen(vm: AppViewModel) {
                             T(t.specs, 13, if (sel) c.osc else c.onv)
                         }
                         if (sel) Ico(Icons.Rounded.CheckCircle, 24, c.p)
+                        if (t.comingSoon) Box(Modifier.clip(RoundedCornerShape(10.dp)).background(c.sf3).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                            T("Arrive bientôt", 11, c.onv, 600)
+                        }
                     }
                 }
             }

@@ -5,23 +5,17 @@ import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import com.cardeck.app.data.PidDef
 import com.cardeck.app.data.StdPids
-import com.cardeck.app.data.Transport
 import com.cardeck.app.data.fr
 import com.cardeck.app.obd.ObdState
-import com.cardeck.app.screens.lastKnownLocation
-import com.cardeck.app.service.TripService
-import com.cardeck.app.sim.SimCar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-/** Données OBD2 : liaison avec le boîtier, voiture virtuelle, puis toutes les valeurs du véhicule par catégorie. */
+/** Données OBD2 : liaison avec le boîtier, identification, état sécurité, puis toutes les valeurs du véhicule par catégorie. */
 internal class ObdCarScreen(ctx: CarContext) : CarScreen(ctx) {
     override suspend fun whileVisible() {
         // Liste des données fournies par le véhicule, nécessaire pour composer les catégories.
@@ -33,7 +27,7 @@ internal class ObdCarScreen(ctx: CarContext) : CarScreen(ctx) {
         }
     }
 
-    override suspend fun snapshot(): Any? = listOf(active, connLabel(), app.obd.supported.value, SimCar.engineOn)
+    override suspend fun snapshot(): Any? = listOf(active, connLabel(), app.obd.supported.value)
 
     override fun onGetTemplate(): Template {
         val v = active ?: return message("Données OBD2", "Aucun véhicule.")
@@ -43,12 +37,6 @@ internal class ObdCarScreen(ctx: CarContext) : CarScreen(ctx) {
             Row.Builder().setTitle("Liaison OBD2").addText(a?.let { "${connLabel(v)} · ${it.name} (${it.transport.label})" } ?: "Aucun boîtier associé")
                 .setBrowsable(true).setOnClickListener { push(ObdLinkCarScreen(carContext)) }.build(),
         )
-        if (a?.transport == Transport.Sim) {
-            items.addItem(
-                Row.Builder().setTitle("Voiture virtuelle").addText(if (SimCar.engineOn) "Moteur en marche" else "Moteur arrêté")
-                    .setBrowsable(true).setOnClickListener { push(SimCarScreen(carContext)) }.build(),
-            )
-        }
         if (v.template.idents.isNotEmpty()) {
             items.addItem(
                 Row.Builder().setTitle("Identification").addText("VIN, kilométrage, références des calculateurs")
@@ -136,46 +124,6 @@ internal class ObdValuesCarScreen(ctx: CarContext, private val title: String, pr
             )
         }
         return ListTemplate.Builder().setTitle(title).setHeaderAction(Action.BACK).setSingleList(items.build()).build()
-    }
-}
-
-/** Commandes de la voiture virtuelle (profil « Simulateur »). */
-internal class SimCarScreen(ctx: CarContext) : CarScreen(ctx) {
-    override suspend fun snapshot(): Any? = listOf(SimCar.engineOn, SimCar.dtcs.size, TripService.live.value, TripService.lastNote.value)
-
-    override fun onGetTemplate(): Template {
-        val on = SimCar.engineOn
-        val faults = SimCar.dtcs.size
-        val pane = Pane.Builder()
-            .addRow(
-                Row.Builder().setTitle(if (on) "Moteur en marche" else "Moteur arrêté")
-                    .addText(if (on) "La voiture roule sur un circuit, le trajet est enregistré automatiquement." else "Démarrez le moteur pour simuler un trajet. Coupez-le pour terminer le trajet.")
-                    .build(),
-            )
-            .addRow(Row.Builder().setTitle("Défauts en mémoire").addText(if (faults > 0) "$faults (visible${if (faults > 1) "s" else ""} dans Diagnostic)" else "Aucun").build())
-            .addRow(
-                Row.Builder().setTitle("Suivi des trajets").addText(TripService.live.value ?: "arrêté")
-                    .apply { TripService.lastNote.value?.let { addText(it) } }.build(),
-            )
-            .addAction(
-                action(if (on) "Couper le moteur" else "Démarrer le moteur", primary = true) {
-                    if (SimCar.engineOn) SimCar.stopEngine() else {
-                        // Le circuit est placé autour de la dernière position connue du téléphone.
-                        lastKnownLocation(carContext)?.let { SimCar.setCenter(it.latitude, it.longitude) }
-                        SimCar.startEngine()
-                    }
-                    vm.connectNow()
-                    invalidate()
-                },
-            )
-            .addAction(
-                action("Simuler un défaut") {
-                    toast("Défaut ${SimCar.injectFault()} ajouté à la voiture virtuelle")
-                    invalidate()
-                },
-            )
-            .build()
-        return PaneTemplate.Builder(pane).setTitle("Voiture virtuelle").setHeaderAction(Action.BACK).build()
     }
 }
 

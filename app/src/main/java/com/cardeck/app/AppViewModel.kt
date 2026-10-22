@@ -38,6 +38,8 @@ sealed interface Screen {
     data object Settings : Screen
     data object Coding : Screen
     data object ObdData : Screen
+    data object Changelog : Screen
+    data object About : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -77,6 +79,51 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         greeting = all[i]
     }
 
+    // ---- Mises à jour (releases GitHub) ----
+    /** Releases publiées (null = pas encore vérifié). */
+    var releases by mutableStateOf<List<com.cardeck.app.data.Release>?>(null)
+        private set
+    var updateChecking by mutableStateOf(false)
+        private set
+    var updateError by mutableStateOf<String?>(null)
+        private set
+    /** Avancement du téléchargement (null = aucun en cours). */
+    var updateProgress by mutableStateOf<Float?>(null)
+        private set
+    /** Proposition affichée au lancement (masquée par « Plus tard » jusqu'au prochain lancement). */
+    var updatePrompt by mutableStateOf(false)
+
+    /** Version plus récente que celle installée, avec un APK à télécharger. */
+    val update: com.cardeck.app.data.Release?
+        get() = releases?.firstOrNull { it.apkUrl != null && com.cardeck.app.data.Updater.compare(it.version, BuildConfig.VERSION_NAME) > 0 }
+
+    fun checkUpdate(prompt: Boolean = false) {
+        if (updateChecking) return
+        updateChecking = true
+        updateError = null
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { com.cardeck.app.data.Updater.releases() } }
+            r.onSuccess { releases = it }.onFailure { updateError = it.message ?: "Vérification impossible" }
+            updateChecking = false
+            if (prompt && update != null) updatePrompt = true
+        }
+    }
+
+    fun installUpdate() {
+        val u = update ?: return
+        if (updateProgress != null) return
+        updatePrompt = false
+        updateProgress = 0f
+        viewModelScope.launch {
+            val f = withContext(Dispatchers.IO) {
+                runCatching { com.cardeck.app.data.Updater.download(ctx, u) { p -> viewModelScope.launch { updateProgress = p } } }
+            }
+            updateProgress = null
+            f.onSuccess { runCatching { com.cardeck.app.data.Updater.install(ctx, it) }.onFailure { e -> showSnack("Installation impossible : ${e.message}") } }
+                .onFailure { showSnack(it.message ?: "Téléchargement impossible") }
+        }
+    }
+
     // ---- Apparence ----
     var themeMode by mutableStateOf(prefs.themeMode)
         private set
@@ -105,10 +152,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val id = repo.addVehicle(templateId, nickname, plate, year)
         repo.select(id)
         pairVehicleId = id
-        if (templateId == com.cardeck.app.data.SIMULATOR.id) {
-            finishPairing(AdapterConfig(com.cardeck.app.data.Transport.Sim, "sim", "Boîtier OBD2 simulé"), "CARDECKSIM0000001")
-            return
-        }
         // Hors onboarding, le retour depuis l'appairage ne doit pas recréer le profil.
         if (onboarded) stack.remove(Screen.AddVehicle)
         go(Screen.Pair)
@@ -125,9 +168,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val t = com.cardeck.app.data.templateById(templateId)
         val id = repo.addVehicle(templateId, defaultName(t), "", "")
         repo.select(id)
-        if (templateId == com.cardeck.app.data.SIMULATOR.id) {
-            repo.setAdapter(id, AdapterConfig(com.cardeck.app.data.Transport.Sim, "sim", "Boîtier OBD2 simulé"), "CARDECKSIM0000001")
-        }
         if (!onboarded) {
             prefs.onboarded = true
             onboarded = true

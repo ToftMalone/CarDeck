@@ -63,6 +63,11 @@ class Repo(ctx: Context) {
     private val db = DbHelper(ctx).writableDatabase
     private val prefs = Prefs(ctx)
 
+    init {
+        // Ancienne voiture virtuelle (simulateur supprimé) : profil et données effacés.
+        db.delete("vehicles", "template=?", arrayOf("cardeck-simulateur"))
+    }
+
     private val _vehicles = MutableStateFlow(loadVehicles())
     val vehicles: StateFlow<List<VehicleProfile>> = _vehicles
 
@@ -83,7 +88,8 @@ class Repo(ctx: Context) {
         buildList {
             while (c.moveToNext()) {
                 val tr = c.str("adapter_transport")
-                val adapter = if (tr != null) AdapterConfig(Transport.valueOf(tr), c.str("adapter_address") ?: "", c.str("adapter_name") ?: "") else null
+                // Type de boîtier inconnu (ancien boîtier simulé…) : aucun boîtier associé.
+                val adapter = tr?.let { runCatching { Transport.valueOf(it) }.getOrNull() }?.let { t -> AdapterConfig(t, c.str("adapter_address") ?: "", c.str("adapter_name") ?: "") }
                 add(VehicleProfile(c.long("id"), c.str("template")!!, c.str("nickname")!!, c.str("plate")!!, c.str("year")!!, c.str("vin"), adapter))
             }
         }

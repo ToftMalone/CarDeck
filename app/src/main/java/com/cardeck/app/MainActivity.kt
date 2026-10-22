@@ -36,7 +36,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.cardeck.app.screens.AboutScreen
 import com.cardeck.app.screens.AddVehicleScreen
+import com.cardeck.app.screens.ChangelogScreen
+import com.cardeck.app.screens.UpdateDialog
 import com.cardeck.app.screens.CodingScreen
 import com.cardeck.app.screens.ObdDataScreen
 import com.cardeck.app.screens.DashboardScreen
@@ -61,6 +64,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Nouveau message d'accueil à chaque lancement (pas à la rotation de l'écran).
         if (savedInstanceState == null || vm.greeting.isEmpty()) vm.newGreeting()
+        // Recherche d'une mise à jour sur GitHub à chaque lancement : proposée si une version plus récente existe.
+        if (savedInstanceState == null) vm.checkUpdate(prompt = true)
         setContent {
             val dark = when (vm.themeMode) {
                 ThemeMode.Light -> false
@@ -106,9 +111,12 @@ private fun CarDeckRoot(vm: AppViewModel) {
                 Screen.Settings -> SettingsScreen(vm)
                 Screen.Coding -> CodingScreen(vm)
                 Screen.ObdData -> ObdDataScreen(vm)
+                Screen.Changelog -> ChangelogScreen(vm)
+                Screen.About -> AboutScreen(vm)
             }
         }
         Snack(vm.snack, Modifier.align(Alignment.BottomCenter))
+        UpdateDialog(vm)
     }
 }
 

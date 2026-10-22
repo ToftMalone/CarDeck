@@ -34,7 +34,6 @@ import androidx.lifecycle.lifecycleScope
 import com.cardeck.app.BuildConfig
 import com.cardeck.app.Perms
 import com.cardeck.app.data.AdapterConfig
-import com.cardeck.app.data.SIMULATOR
 import com.cardeck.app.data.TEMPLATES
 import com.cardeck.app.data.Transport
 import com.cardeck.app.data.fr
@@ -185,17 +184,18 @@ internal class AddVehicleCarScreen(ctx: CarContext) : CarScreen(ctx) {
     override fun onGetTemplate(): Template {
         val items = ItemList.Builder()
         TEMPLATES.forEach { t ->
+            if (t.comingSoon) {
+                items.addItem(Row.Builder().setTitle(t.fullName).addText("Arrive bientôt").build())
+                return@forEach
+            }
             items.addItem(
                 Row.Builder().setTitle(t.fullName).addText(t.specs)
-                    .apply { if (t.id == SIMULATOR.id) addText("Voiture virtuelle avec boîtier simulé, prête immédiatement") }
                     .setBrowsable(true)
                     .setOnClickListener {
                         val id = vm.createVehicleQuick(t.id)
                         toast("« ${app.repo.vehicles.value.find { it.id == id }?.nickname ?: t.model} » ajouté")
-                        if (t.id == SIMULATOR.id) screenManager.popToRoot() else {
-                            screenManager.pop()
-                            push(PairCarScreen(carContext, id))
-                        }
+                        screenManager.pop()
+                        push(PairCarScreen(carContext, id))
                     }.build(),
             )
         }

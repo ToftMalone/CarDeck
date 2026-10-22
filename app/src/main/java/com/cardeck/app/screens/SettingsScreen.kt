@@ -127,7 +127,7 @@ fun SettingsScreen(vm: AppViewModel) {
                     }
                 }
             }
-            T("CarDeck ${BuildConfig.VERSION_NAME}", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 24.dp))
+            AppSection(vm)
         }
     }
 

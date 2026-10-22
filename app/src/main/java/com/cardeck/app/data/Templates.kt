@@ -81,6 +81,8 @@ data class VehicleTemplate(
     val readOnly: Boolean = false,
     /** Commandes AT propres au modèle, envoyées après l'initialisation (contrôle de flux…). */
     val elmInit: List<String> = emptyList(),
+    /** Pas encore sélectionnable (affiché « Arrive bientôt »). */
+    val comingSoon: Boolean = false,
     /** Données du modèle ajoutées au tableau de bord Sport. */
     val dashSport: List<String> = emptyList(),
     /** Calculateurs à interroger pour l'identification. */
@@ -192,6 +194,7 @@ val KIA_PICANTO_TA = VehicleTemplate(
     brand = "Kia",
     model = "Picanto 1.0",
     code = "TA",
+    comingSoon = true,
     engine = "G3LA 1.0 Kappa MPI",
     power = "69 ch",
     fuel = "Essence",
@@ -203,42 +206,7 @@ val KIA_PICANTO_TA = VehicleTemplate(
     codings = emptyList(),
 )
 
-/** Voiture virtuelle : boîtier ELM327 simulé, pour essayer toute l'appli sans véhicule. */
-val SIMULATOR = VehicleTemplate(
-    id = "cardeck-simulateur",
-    brand = "CarDeck",
-    model = "Simulateur",
-    code = "",
-    engine = "Moteur virtuel 1.4 turbo",
-    power = "140 ch",
-    fuel = "Essence",
-    protocol = "ISO 15765-4 CAN 11 bits 500 kb/s (simulé)",
-    pids = listOf(
-        PidDef(
-            id = "sim_boost", label = "Pression de suralimentation", unit = "bar", icon = Icons.Rounded.Speed,
-            request = "221940", header = "7E0", decimals = 2, min = 0.0, max = 2.2, size = 2, category = "Moteur",
-        ) { (it[0] * 256 + it[1]) / 1000.0 },
-    ),
-    codings = listOf(
-        CodingDef(
-            "sim_windows", "Confort", "Ouverture des vitres par appui long", "Maintenir « déverrouiller » sur la clé ouvre toutes les vitres.",
-            "Boîtier de servitude (BCM)", "750", "758", 0x0101, 0, 0x01,
-            listOf(CodingOption("Désactivé", 0x00), CodingOption("Activé", 0x01)),
-        ),
-        CodingDef(
-            "sim_blink", "Éclairage", "Clignotants impulsionnels", "Nombre de clignotements après une impulsion sur la commande.",
-            "Boîtier de servitude (BCM)", "750", "758", 0x0101, 1, 0x07,
-            listOf(CodingOption("1", 0x01), CodingOption("3", 0x03), CodingOption("5", 0x05), CodingOption("7", 0x07)),
-        ),
-        CodingDef(
-            "sim_beep", "Confort", "Bip de verrouillage", "Signal sonore lors du verrouillage à distance.",
-            "Boîtier de servitude (BCM)", "750", "758", 0x0101, 0, 0x02,
-            listOf(CodingOption("Désactivé", 0x00), CodingOption("Activé", 0x02)),
-        ),
-    ),
-)
-
-val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA, SIMULATOR)
+val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA)
 
 /** Retrouve une donnée moteur (standard ou propre à un modèle) par son identifiant. */
 fun pidById(id: String): PidDef? = TEMPLATES.flatMap { it.pids }.find { it.id == id } ?: StdPids.byId(id)
