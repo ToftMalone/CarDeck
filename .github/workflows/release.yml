@@ -6,6 +6,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Déclenchement manuel (onglet Actions → Release → Run workflow) : crée le tag v<version> sur la branche choisie.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Numéro de version, sans le « v » (ex. 0.1)"
+        required: true
 
 permissions:
   contents: write
@@ -25,7 +31,11 @@ jobs:
 
       - name: Version
         id: v
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then V="$INPUT_VERSION"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "version=${V#v}" >> "$GITHUB_OUTPUT"
 
       - name: Clé de signature
         env:
@@ -59,4 +69,5 @@ jobs:
           V=${{ steps.v.outputs.version }}
           NOTES="release-notes/$V.md"
           [ -f "$NOTES" ] || { echo "Version $V" > "$NOTES"; }
-          gh release create "$GITHUB_REF_NAME" "CarDeck-$V.apk" --title "CarDeck $V" --notes-file "$NOTES" --verify-tag
+          # Tag poussé : la release s'y rattache. Déclenchement manuel : le tag v<version> est créé sur ce commit.
+          gh release create "v$V" "CarDeck-$V.apk" --title "CarDeck $V" --notes-file "$NOTES" --target "$GITHUB_SHA"
