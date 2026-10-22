@@ -35,6 +35,11 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("carSpeedAsked", false)
         set(v) = sp.edit().putBoolean("carSpeedAsked", v).apply()
 
+    /** Index du dernier message d'accueil affiché (pour ne pas répéter le même). */
+    var lastGreeting: Int
+        get() = sp.getInt("lastGreeting", -1)
+        set(v) = sp.edit().putInt("lastGreeting", v).apply()
+
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)
         set(v) = sp.edit().putLong("activeVehicle", v).apply()

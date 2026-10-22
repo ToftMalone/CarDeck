@@ -59,6 +59,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Nouveau message d'accueil à chaque lancement (pas à la rotation de l'écran).
+        if (savedInstanceState == null || vm.greeting.isEmpty()) vm.newGreeting()
         setContent {
             val dark = when (vm.themeMode) {
                 ThemeMode.Light -> false

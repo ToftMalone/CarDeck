@@ -65,6 +65,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return false
     }
 
+    // ---- Accueil ----
+    /** Message d'accueil (un nouveau à chaque lancement). */
+    var greeting by mutableStateOf("")
+        private set
+
+    fun newGreeting() {
+        val i = com.cardeck.app.data.Greetings.pick(prefs.lastGreeting)
+        prefs.lastGreeting = i
+        greeting = com.cardeck.app.data.Greetings.all[i]
+    }
+
     // ---- Apparence ----
     var themeMode by mutableStateOf(prefs.themeMode)
         private set

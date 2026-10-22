@@ -106,7 +106,7 @@ fun HomeScreen(vm: AppViewModel) {
                 T("CarDeck", 20, weight = 600, modifier = Modifier.weight(1f))
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
-                T("Bonjour", 28, lineHeight = 36, modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 16.dp))
+                T(vm.greeting, 24, lineHeight = 32, modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 16.dp))
                 if (v != null) {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.pc).padding(16.dp),
