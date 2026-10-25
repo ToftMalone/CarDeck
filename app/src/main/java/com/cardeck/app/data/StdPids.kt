@@ -34,14 +34,13 @@ object StdPids {
     const val LAMBDA = "Sondes lambda"
     const val EMISSIONS = "Antipollution"
     const val ELEC = "Électrique"
-    const val GPS = "GPS et accélérations"
     const val RAW = "Autres données (brutes)"
 
     /** Données qui changent vite, relues à chaque tour pendant les trajets (l'ELM327 est limité à ~30 valeurs/s). */
     val FAST = setOf("std0C", "std0D", "std0B", "std04", "std43", "std10", "std0E", "std11", "std45", "std47", "std49", "std4A", "std4C", "std23", "std06", "std5E")
 
     /** Ordre d'affichage des catégories. */
-    val CATEGORIES = listOf(ENGINE, VEHICLE, TEMPS, INTAKE, FUEL, LAMBDA, EMISSIONS, ELEC, GPS, RAW)
+    val CATEGORIES = listOf(ENGINE, VEHICLE, TEMPS, INTAKE, FUEL, LAMBDA, EMISSIONS, ELEC, RAW)
 
     private fun u16(d: IntArray, i: Int = 0) = (d[i] * 256 + d[i + 1]).toDouble()
     private fun s16(d: IntArray, i: Int = 0) = (d[i] * 256 + d[i + 1]).let { if (it >= 0x8000) it - 0x10000 else it }.toDouble()
@@ -165,12 +164,6 @@ object StdPids {
     /** Données enregistrées hors OBD2 (téléphone, boîtier) : jamais interrogées via une requête. */
     val extras: List<PidDef> = listOf(
         PidDef("elm_volt", "Tension batterie (prise OBD)", "V", Icons.Rounded.BatteryChargingFull, "ATRV", decimals = 1, min = 11.0, max = 15.0, category = ELEC) { 0.0 },
-        PidDef("gps_speed", "Vitesse GPS", "km/h", Icons.Rounded.Speed, "", min = 0.0, max = 220.0, category = GPS) { 0.0 },
-        PidDef("gps_alt", "Altitude", "m", Icons.Rounded.LocationOn, "", min = 0.0, max = 2000.0, category = GPS) { 0.0 },
-        PidDef("gps_heading", "Cap", "°", Icons.Rounded.LocationOn, "", min = 0.0, max = 360.0, category = GPS) { 0.0 },
-        PidDef("gps_acc", "Précision GPS", "m", Icons.Rounded.LocationOn, "", min = 0.0, max = 50.0, category = GPS) { 0.0 },
-        PidDef("acc_long", "Accélération longitudinale", "g", Icons.Rounded.Speed, "", decimals = 2, min = -1.0, max = 1.0, category = GPS) { 0.0 },
-        PidDef("acc_lat", "Accélération latérale", "g", Icons.Rounded.Sync, "", decimals = 2, min = 0.0, max = 1.0, category = GPS) { 0.0 },
     )
 
     fun pidNumber(p: PidDef): Int = p.request.substring(2, 4).toInt(16)
@@ -181,15 +174,24 @@ object StdPids {
         request = "01%02X".format(pid), min = 0.0, max = 255.0, slow = true, category = RAW,
     ) { d -> d.take(4).fold(0L) { acc, b -> acc * 256 + b }.toDouble() }
 
+    /**
+     * Données retirées de l'application (ni affichées, ni enregistrées) : antipollution (sauf la purge canister commandée 0x2E),
+     * tension du calculateur (0x42, la tension vient de la prise OBD), et les PIDs d'état 0x03 (état de la boucle carburant),
+     * 0x13 (sondes O2 présentes) et 0x1C (norme OBD du véhicule).
+     */
+    val HIDDEN: Set<Int> = setOf(
+        0x01, 0x03, 0x13, 0x1C, 0x2C, 0x2D, 0x32, 0x3C, 0x3D, 0x3E, 0x3F, 0x42, 0x4D, 0x4E, 0x53, 0x54,
+    )
+
     /** Définitions de toutes les données à lire pour un ensemble de PIDs supportés. */
     fun forSupported(sup: Set<Int>): List<PidDef> =
-        sup.filter { it % 0x20 != 0 && it != 0x02 }.sorted().flatMap { n -> byPid[n] ?: listOf(raw(n)) }
+        sup.filter { it % 0x20 != 0 && it != 0x02 && it !in HIDDEN }.sorted().flatMap { n -> byPid[n] ?: listOf(raw(n)) }
 
     /** Retrouve une définition par identifiant (y compris valeurs brutes et données téléphone). */
     fun byId(id: String): PidDef? {
-        all.find { it.id == id }?.let { return it }
+        all.find { it.id == id }?.let { return if (pidNumber(it) in HIDDEN) null else it }
         extras.find { it.id == id }?.let { return it }
         val m = Regex("^std([0-9A-F]{2})$").find(id) ?: return null
-        return raw(m.groupValues[1].toInt(16))
+        return m.groupValues[1].toInt(16).takeIf { it !in HIDDEN }?.let { raw(it) }
     }
 }

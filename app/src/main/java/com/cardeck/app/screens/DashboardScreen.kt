@@ -52,7 +52,7 @@ fun DashboardScreen(vm: AppViewModel) {
     // Lecture en continu des seules données du tableau de bord affiché (rafraîchissement rapide).
     LaunchedEffect(connected, sport) {
         if (!connected) return@LaunchedEffect
-        vm.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport && 0x42 !in it }) { sup ->
+        vm.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport }) { sup ->
             val tpl = vm.repo.active?.template
             DashGauges.defs(ids + if (sport) tpl?.dashSport.orEmpty() else emptyList(), sup, tpl?.pids.orEmpty())
         }

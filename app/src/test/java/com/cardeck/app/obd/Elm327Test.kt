@@ -160,26 +160,28 @@ class Elm327Test {
 
     @Test fun catalogueComplet() {
         val S = com.cardeck.app.data.StdPids
-        val defs = S.forSupported(setOf(0x01, 0x0C, 0x14, 0x20, 0x3C, 0x99))
+        val defs = S.forSupported(setOf(0x01, 0x0C, 0x14, 0x20, 0x3C, 0x99, 0x03, 0x13, 0x1C, 0x42))
         val ids = defs.map { it.id }
-        assertTrue("std0C" in ids && "std01" in ids && "std01b" in ids && "std14" in ids && "std14b" in ids && "std3C" in ids)
+        assertTrue("std0C" in ids && "std14" in ids && "std14b" in ids)
+        // Antipollution retirée (sauf la purge canister 0x2E), ainsi que 0x03, 0x13, 0x1C et 0x42.
+        assertTrue(ids.none { it in setOf("std01", "std01b", "std3C", "std03", "std13", "std1C", "std42") })
+        assertTrue("std2E" in S.forSupported(setOf(0x2E)).map { it.id })
+        assertEquals(null, com.cardeck.app.data.pidById("std42"))
         assertTrue("std20" !in ids)
         val raw = defs.first { it.id == "std99" }
         assertEquals(S.RAW, raw.category)
         assertEquals("std99", com.cardeck.app.data.pidById("std99")!!.id)
-        assertEquals("gps_alt", com.cardeck.app.data.pidById("gps_alt")!!.id)
+        assertEquals("elm_volt", com.cardeck.app.data.pidById("elm_volt")!!.id)
     }
 
     @Test fun lectureGroupee() = runBlocking {
-        val fake = FakeElm(base + mapOf("0101" to "41 01 83 07 65 00", "0114" to "41 14 5A FF"))
+        val fake = FakeElm(base + mapOf("0114" to "41 14 5A FF"))
         val e = Elm327(fake)
         val S = com.cardeck.app.data.StdPids
-        val out = e.readAll(S.forSupported(setOf(0x01, 0x14))).toMap()
-        assertEquals(1.0, out.getValue("std01"), 0.0)
-        assertEquals(3.0, out.getValue("std01b"), 0.0)
+        val out = e.readAll(S.forSupported(setOf(0x14))).toMap()
         assertEquals(0.45, out.getValue("std14"), 0.001)
         assertTrue("std14b" !in out) // correction non utilisée (0xFF)
-        assertEquals(1, fake.sent.count { it == "0101" })
+        assertEquals(1, fake.sent.count { it == "0114" })
     }
 
     @Test fun effacement() = runBlocking {
@@ -267,14 +269,14 @@ class Elm327Test {
         assertEquals(listOf(listOf(0x1AC, 0x1B8), listOf(0x3B9)), Elm327.busGroups(listOf(0x3B9, 0x1B8, 0x1AC)))
     }
 
-    @Test fun carburantEtClimParEcouteDuBus() = runBlocking {
-        val fake = FakeElm(base + mapOf("ATMA" to "3B9 00 00 00 00 F0 C0\r3D0 80 10 29 00 40 00 00 00"))
+    @Test fun carburantEtFreinParEcouteDuBus() = runBlocking {
+        val fake = FakeElm(base + mapOf("ATMA" to "3B9 00 00 00 00 F0 C0\r318 05 10 00 00 00 00 00 00"))
         val e = Elm327(fake)
         e.init(); e.probe()
         val swift = com.cardeck.app.data.SWIFT_SPORT_ZC33S.pids
-        val v = e.readAll(swift.filter { it.id in setOf("std2F", "swift_ac") }).toMap()
+        val v = e.readAll(swift.filter { it.id in setOf("std2F", "swift_brake") }).toMap()
         assertEquals(80.0, v.getValue("std2F"), 0.01)
-        assertEquals(1.0, v.getValue("swift_ac"), 0.01)
+        assertEquals(1.0, v.getValue("swift_brake"), 0.01)
         assertTrue("ATH0" == fake.sent.last())
     }
 

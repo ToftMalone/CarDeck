@@ -1,13 +1,10 @@
 package com.cardeck.app.data
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AcUnit
-import androidx.compose.material.icons.rounded.AirlineSeatReclineNormal
 import androidx.compose.material.icons.rounded.DeviceThermostat
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Thermostat
-import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -105,9 +102,7 @@ private fun bus(
 )
 
 private const val PEDALS = "Pédales et boîte"
-private const val CABIN = "Habitacle"
 private const val COUNTERS = "Compteurs"
-private val ONOFF = listOf("Éteinte", "Allumée")
 
 /**
  * Données diffusées sur le bus CAN de la Swift ZC33S (rétro-ingénierie, uniquement les mesures confirmées).
@@ -123,12 +118,6 @@ private val SWIFT_BUS = listOf(
     bus("swift_clutch", "Embrayage", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Relâché", "Enfoncé")) { if (it[5] and 0xC0 == 0xC0) 1.0 else 0.0 },
     bus("swift_handbrake", "Frein à main", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Desserré", "Serré")) { bit(it, 5, 0x10) },
     bus("swift_reverse", "Marche arrière", "", Icons.Rounded.Speed, 0x3A1, PEDALS, 2, 200, states = listOf("Non", "Engagée")) { bit(it, 1, 0x40) },
-    bus("swift_door_d", "Porte conducteur", "", Icons.Rounded.DirectionsCar, 0x3D5, CABIN, 4, 200, states = listOf("Fermée", "Ouverte")) { bit(it, 3, 0x80) },
-    bus("swift_door_p", "Porte passager", "", Icons.Rounded.DirectionsCar, 0x3D5, CABIN, 4, 200, states = listOf("Fermée", "Ouverte")) { bit(it, 3, 0x40) },
-    bus("swift_trunk", "Coffre", "", Icons.Rounded.DirectionsCar, 0x3D5, CABIN, 4, 200, states = listOf("Fermé", "Ouvert")) { bit(it, 3, 0x04) },
-    bus("swift_belt", "Ceinture conducteur", "", Icons.Rounded.AirlineSeatReclineNormal, 0x3D1, CABIN, 6, 200, states = listOf("Débouclée", "Bouclée")) { bit(it, 5, 0x80) },
-    bus("swift_ac", "Climatisation", "", Icons.Rounded.AcUnit, 0x3D0, CABIN, 2, 200, states = ONOFF) { bit(it, 1, 0x10) },
-    bus("swift_wipers", "Essuie-glaces", "", Icons.Rounded.WaterDrop, 0x3D4, CABIN, 4, 200, states = listOf("Arrêt", "Marche")) { bit(it, 3, 0x20) },
 )
 
 /** Identifiants KWP 1A essayés sur les calculateurs Suzuki (références, versions). */

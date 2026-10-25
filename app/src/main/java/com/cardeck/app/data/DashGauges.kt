@@ -13,7 +13,7 @@ data class Gauge(val def: PidDef, val value: Double?, val note: String?)
 /** Tableaux de bord Standard et Sport : données lues et valeurs calculées. */
 object DashGauges {
     /** Données lues pour chaque tableau de bord (identifiants des PIDs standard). */
-    val STANDARD_IDS = listOf("std0D", "std0C", "std05", "std5C", "std2F", "std42", "std10", "std5E")
+    val STANDARD_IDS = listOf("std0D", "std0C", "std05", "std5C", "std2F", "std10", "std5E")
     val SPORT_IDS = listOf("std0F", "std0B", "std33", "std0E")
 
     /** Lus moins souvent (varient peu). */
@@ -60,7 +60,7 @@ object DashGauges {
                 speed != null && speed >= 5 -> Gauge(CONSO_100, lph / speed * 100, null)
                 else -> Gauge(CONSO_H, lph, "À l'arrêt")
             }
-            val volt = if (sup != null && 0x42 in sup) Gauge(VOLT, values["std42"], "Calculateur") else Gauge(VOLT, values["elm_volt"], "Prise OBD")
+            val volt = Gauge(VOLT, values["elm_volt"], "Prise OBD")
             STANDARD_IDS.take(5).map { gauge(it) } + listOf(conso, volt)
         } else {
             val map = values["std0B"]

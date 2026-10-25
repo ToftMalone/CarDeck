@@ -16,14 +16,14 @@ class TripExportTest {
     private val samples = mapOf(
         "std0C" to listOf(Sample(t0, 800.0), Sample(t0 + 2000, 2140.5)),
         "std05" to listOf(Sample(t0, 88.0)),
-        "gps_speed" to listOf(Sample(t0 + 1000, 36.0)),
+        "std0D" to listOf(Sample(t0 + 1000, 36.0)),
     )
 
     @Test fun csv() {
         val csv = TripExport.dataCsv(trip, samples)
         val lines = csv.removePrefix("﻿").trim().split("\r\n")
         assertEquals(4, lines.size) // en-tête + 3 instants
-        assertTrue(lines[0].contains("Régime (tr/min)") && lines[0].contains("Temp. liquide (°C)") && lines[0].contains("Vitesse GPS (km/h)"))
+        assertTrue(lines[0].contains("Régime (tr/min)") && lines[0].contains("Temp. liquide (°C)") && lines[0].contains("Vitesse (km/h)"))
         assertTrue(lines[3].contains("2140,5"))
     }
 

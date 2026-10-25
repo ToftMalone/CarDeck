@@ -48,6 +48,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
+/** Données relues le plus souvent sur l'écran Données OBD2. */
+private val HOT_IDS = setOf("std0C", "std0D", "std0B", "std04")
+
 /** Liaison OBD2 + toutes les valeurs envoyées par le véhicule. */
 @Composable
 fun ObdDataScreen(vm: AppViewModel) {
@@ -91,11 +94,20 @@ fun ObdDataScreen(vm: AppViewModel) {
                     else -> true
                 }
             }
-            // Par petits paquets pour rafraîchir l'écran au fil de la lecture.
-            for (chunk in list.groupBy { it.request to it.header }.values.chunked(4)) {
-                val got = withContext(Dispatchers.IO) { vm.obd.use { it.readAll(chunk.flatten()) } } ?: continue
+            // Voie rapide : régime, vitesse, MAP et charge sont relus entre chaque paquet, pour rester fluides
+            // même quand la liste complète des données met une ou deux secondes à être parcourue.
+            val hot = list.filter { it.id in HOT_IDS }
+            val rest = list.filter { it.id !in HOT_IDS }
+            suspend fun read(defs: List<PidDef>) {
+                if (defs.isEmpty()) return
+                val got = withContext(Dispatchers.IO) { vm.obd.use { it.readAll(defs) } } ?: return
                 vm.obd.publish(got)
                 got.forEach { (id, v) -> values[id] = v }
+            }
+            read(hot)
+            for (chunk in rest.groupBy { it.request to it.header }.values.chunked(4)) {
+                read(chunk.flatten())
+                read(hot)
             }
             cycle++
             delay(50)

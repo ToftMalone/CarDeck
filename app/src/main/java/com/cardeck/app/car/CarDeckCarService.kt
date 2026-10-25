@@ -168,7 +168,7 @@ internal class DashCarScreen(ctx: CarContext, private val sport: Boolean, privat
 
     override suspend fun whileVisible() {
         val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
-        app.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport && 0x42 !in it }) { sup ->
+        app.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport }) { sup ->
             val tpl = vm.repo.active?.template
             DashGauges.defs(ids + if (sport) tpl?.dashSport.orEmpty() else emptyList(), sup, tpl?.pids.orEmpty())
         }
