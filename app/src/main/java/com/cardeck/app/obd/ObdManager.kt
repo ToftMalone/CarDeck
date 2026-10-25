@@ -41,8 +41,23 @@ class ObdManager(private val ctx: Context) {
     /** Dernières valeurs lues (id de donnée → valeur), partagées avec l'écran Android Auto. */
     val live = MutableStateFlow<Map<String, Double>>(emptyMap())
 
+    /** Instant (ms) de la dernière mesure de chaque donnée de [live]. */
+    private val liveAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    /** Nombre d'écrans qui lisent déjà les données en continu (le suivi des trajets s'appuie alors sur leurs mesures). */
+    val watchers = java.util.concurrent.atomic.AtomicInteger(0)
+
     fun publish(values: List<Pair<String, Double>>) {
-        if (values.isNotEmpty()) live.value = live.value + values
+        if (values.isEmpty()) return
+        val now = System.currentTimeMillis()
+        values.forEach { liveAt[it.first] = now }
+        live.value = live.value + values
+    }
+
+    /** Mesures de moins de [maxAgeMs] ms, prêtes à être enregistrées. */
+    fun recent(maxAgeMs: Long): List<Pair<String, Double>> {
+        val now = System.currentTimeMillis()
+        return live.value.entries.filter { (liveAt[it.key] ?: 0L) >= now - maxAgeMs }.map { it.key to it.value }
     }
 
     /**
@@ -55,7 +70,8 @@ class ObdManager(private val ctx: Context) {
         defs: (Set<Int>) -> List<PidDef>,
     ) {
         var cycle = 0
-        while (true) {
+        watchers.incrementAndGet()
+        try { while (true) {
             if (_state.value !is ObdState.Connected) { delay(1000); continue }
             var sup = supported.value
             if (sup == null) {
@@ -71,7 +87,7 @@ class ObdManager(private val ctx: Context) {
             if (out != null) publish(out)
             cycle++
             delay(80)
-        }
+        } } finally { watchers.decrementAndGet() }
     }
 
     /** Pendant l'appairage, le service de trajets laisse la main à l'écran d'appairage. */
@@ -141,5 +157,6 @@ class ObdManager(private val ctx: Context) {
         voltage.value = null
         supported.value = null
         live.value = emptyMap()
+        liveAt.clear()
     }
 }

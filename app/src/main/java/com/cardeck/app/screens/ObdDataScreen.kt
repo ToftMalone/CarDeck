@@ -74,21 +74,32 @@ fun ObdDataScreen(vm: AppViewModel) {
     LaunchedEffect(connected, tpl.id) {
         if (!connected) return@LaunchedEffect
         var cycle = 0
-        while (true) {
+        vm.obd.watchers.incrementAndGet()
+        try { while (true) {
             var sup = vm.obd.supported.value
             if (sup == null) {
                 sup = withContext(Dispatchers.IO) { vm.obd.use { it.supportedPids() } }
                 if (sup.isNullOrEmpty()) { delay(5000); continue }
                 vm.obd.supported.value = sup
             }
-            val list = (StdPids.forSupported(sup) + tpl.pids).filter { !it.slow || cycle % 6 == 0 }
+            // Priorité aux données qui changent vite : lues à chaque tour. Les lectures longues (écoute du bus, bloc constructeur)
+            // ne passent qu'un tour sur 4, les données lentes un tour sur 6 : elles ne bloquent plus le rafraîchissement du reste.
+            val list = (StdPids.forSupported(sup) + tpl.pids).filter {
+                when {
+                    it.slow -> cycle % 6 == 0
+                    it.can != null || it.header != null -> cycle % 4 == 0
+                    else -> true
+                }
+            }
             // Par petits paquets pour rafraîchir l'écran au fil de la lecture.
             for (chunk in list.groupBy { it.request to it.header }.values.chunked(4)) {
-                withContext(Dispatchers.IO) { vm.obd.use { it.readAll(chunk.flatten()) } }?.forEach { (id, v) -> values[id] = v }
+                val got = withContext(Dispatchers.IO) { vm.obd.use { it.readAll(chunk.flatten()) } } ?: continue
+                vm.obd.publish(got)
+                got.forEach { (id, v) -> values[id] = v }
             }
             cycle++
-            delay(100)
-        }
+            delay(50)
+        } } finally { vm.obd.watchers.decrementAndGet() }
     }
 
     Column(Modifier.fillMaxSize()) {

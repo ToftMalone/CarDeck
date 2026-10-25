@@ -5,12 +5,8 @@ import androidx.compose.material.icons.rounded.AcUnit
 import androidx.compose.material.icons.rounded.AirlineSeatReclineNormal
 import androidx.compose.material.icons.rounded.DeviceThermostat
 import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.Highlight
 import androidx.compose.material.icons.rounded.LocalGasStation
-import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Thermostat
-import androidx.compose.material.icons.rounded.TireRepair
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -108,10 +104,8 @@ private fun bus(
     category = category, can = can, window = window, states = states, peak = peak, decode = decode,
 )
 
-private const val CHASSIS = "Châssis"
 private const val PEDALS = "Pédales et boîte"
 private const val CABIN = "Habitacle"
-private const val LIGHTS = "Éclairage"
 private const val COUNTERS = "Compteurs"
 private val ONOFF = listOf("Éteinte", "Allumée")
 
@@ -125,13 +119,6 @@ private val SWIFT_BUS = listOf(
     bus("swift_fuel_l", "Carburant (litres, estimé)", "L", Icons.Rounded.LocalGasStation, 0x3B9, "Carburant", 6, 200, max = 37.0, decimals = 1, slow = true) { it[5] / 6.5 },
     bus("std46", "Temp. extérieure", "°C", Icons.Rounded.Thermostat, 0x3BA, "Températures", 1, 200, min = -20.0, max = 50.0, slow = true) { it[0] / 2.0 - 40 },
     bus("swift_odo", "Kilométrage", "km", Icons.Rounded.Speed, 0x460, COUNTERS, 3, 1200, max = 300_000.0, slow = true) { it[0] * 65536.0 + it[1] * 256 + it[2] },
-    // Vitesses des roues : valeurs confirmées, ordre des roues probable (à confirmer par un virage serré).
-    bus("swift_wheel1", "Roue 1 (av. droite, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 0) * 0.028 },
-    bus("swift_wheel2", "Roue 2 (av. gauche, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 2) * 0.028 },
-    bus("swift_wheel3", "Roue 3 (ar. droite, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 4) * 0.028 },
-    bus("swift_wheel4", "Roue 4 (ar. gauche, estimé)", "km/h", Icons.Rounded.TireRepair, 0x1B8, CHASSIS, 8, 40, max = 220.0, decimals = 1) { u16(it, 6) * 0.028 },
-    bus("swift_steer", "Angle volant", "°", Icons.Rounded.Explore, 0x119, CHASSIS, 4, 60, min = -490.0, max = 490.0) { (u16(it, 2) - 32768) / 10 },
-    bus("swift_effort", "Effort au volant", "", Icons.Rounded.Explore, 0x1AC, CHASSIS, 4, 40, min = -400.0, max = 400.0) { ((it[2] and 0x0F) * 256 + it[3]) - 1024.0 },
     bus("swift_brake", "Pédale de frein", "", Icons.Rounded.Speed, 0x318, PEDALS, 1, 200, states = listOf("Relâchée", "Enfoncée")) { bit(it, 0, 0x04) },
     bus("swift_clutch", "Embrayage", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Relâché", "Enfoncé")) { if (it[5] and 0xC0 == 0xC0) 1.0 else 0.0 },
     bus("swift_handbrake", "Frein à main", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Desserré", "Serré")) { bit(it, 5, 0x10) },
@@ -142,13 +129,6 @@ private val SWIFT_BUS = listOf(
     bus("swift_belt", "Ceinture conducteur", "", Icons.Rounded.AirlineSeatReclineNormal, 0x3D1, CABIN, 6, 200, states = listOf("Débouclée", "Bouclée")) { bit(it, 5, 0x80) },
     bus("swift_ac", "Climatisation", "", Icons.Rounded.AcUnit, 0x3D0, CABIN, 2, 200, states = ONOFF) { bit(it, 1, 0x10) },
     bus("swift_wipers", "Essuie-glaces", "", Icons.Rounded.WaterDrop, 0x3D4, CABIN, 4, 200, states = listOf("Arrêt", "Marche")) { bit(it, 3, 0x20) },
-    bus("swift_lights", "Feux", "", Icons.Rounded.Highlight, 0x3D0, LIGHTS, 3, 200, max = 3.0, states = listOf("Éteints", "Veilleuses", "Codes", "Pleins phares")) {
-        when { it[2] and 0x10 != 0 -> 3.0; it[2] and 0x20 != 0 -> 2.0; it[2] and 0x08 != 0 -> 1.0; else -> 0.0 }
-    },
-    // Les clignotants clignotent : écoute d'au moins 1 s, « actif » si le bit a été vu à 1.
-    bus("swift_blink", "Clignotants", "", Icons.Rounded.SwapHoriz, 0x3D0, LIGHTS, 5, 1100, max = 3.0, slow = true, peak = true, states = listOf("Aucun", "Gauche", "Droit", "Warnings")) {
-        (if (it[4] and 0x40 != 0) 1.0 else 0.0) + (if (it[4] and 0x80 != 0) 2.0 else 0.0)
-    },
 )
 
 /** Identifiants KWP 1A essayés sur les calculateurs Suzuki (références, versions). */
@@ -179,7 +159,6 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
             min = 20.0, max = 150.0, slow = true, size = 9, category = "Températures",
         ) { it[8] - 40.0 },
     ) + SWIFT_BUS,
-    dashSport = listOf("swift_steer"),
     // Identification : le calculateur 7F1 (neutralisation des airbags, ISO 26021) n'est jamais interrogé.
     airbag = EcuIdent("Airbags", "793", "7A3", true, listOf("221000", "221F00")),
     idents = listOf(

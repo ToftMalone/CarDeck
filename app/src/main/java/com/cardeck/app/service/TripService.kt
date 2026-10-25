@@ -166,7 +166,9 @@ class TripService : Service() {
                     }
                 }
                 val now = System.currentTimeMillis()
-                val values = obd.use { e -> e.readAll(pids) }
+                // Un écran lit déjà les données en continu : on enregistre ses mesures récentes au lieu de monopoliser le boîtier
+                // (sinon l'affichage ralentit pendant les trajets).
+                val values = if (obd.watchers.get() > 0) obd.recent(2_000) else obd.use { e -> e.readAll(pids) }
                 if (values != null) {
                     rec2.addSamples(now, values + listOfNotNull(volt?.let { "elm_volt" to it }))
                     obd.publish(values)
