@@ -54,11 +54,9 @@ class ObdManager(private val ctx: Context) {
         live.value = live.value + values
     }
 
-    /** Mesures de moins de [maxAgeMs] ms, prêtes à être enregistrées. */
-    fun recent(maxAgeMs: Long): List<Pair<String, Double>> {
-        val now = System.currentTimeMillis()
-        return live.value.entries.filter { (liveAt[it.key] ?: 0L) >= now - maxAgeMs }.map { it.key to it.value }
-    }
+    /** Mesures prises après l'instant [since] (ms) : chaque mesure n'est enregistrée qu'une fois. */
+    fun measuredSince(since: Long): List<Pair<String, Double>> =
+        live.value.entries.filter { (liveAt[it.key] ?: 0L) > since }.map { it.key to it.value }
 
     /**
      * Lit en continu les données renvoyées par [defs] (selon les PIDs déclarés par le véhicule) et les publie dans [live],

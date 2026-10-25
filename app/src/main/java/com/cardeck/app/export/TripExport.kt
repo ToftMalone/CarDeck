@@ -51,7 +51,7 @@ object TripExport {
         append("  </trkseg></trk>\n</gpx>\n")
     }
 
-    /** Toutes les données du trajet : une ligne par instant de mesure, une colonne par donnée. */
+    /** Toutes les données du trajet : une ligne par instant de mesure (à la milliseconde), une colonne par donnée. */
     fun dataCsv(trip: Trip, samples: Map<String, List<Sample>>): String = buildString {
         val order = StdPids.CATEGORIES
         val cols = samples.keys.sortedWith(
@@ -59,12 +59,12 @@ object TripExport {
         )
         val byTime = sortedMapOf<Long, MutableMap<String, Double>>()
         samples.forEach { (id, list) -> list.forEach { s -> byTime.getOrPut(s.t) { mutableMapOf() }[id] = s.v } }
-        val fmt = local("yyyy-MM-dd HH:mm:ss")
+        val fmt = local("yyyy-MM-dd HH:mm:ss.SSS")
         append(BOM) // BOM : accents corrects dans Excel
         append((listOf("Horodatage", "Temps écoulé (s)") + cols.map { id -> pidById(id)?.let { p -> if (p.unit.isBlank()) p.label else "${p.label} (${p.unit})" } ?: id }).joinToString(";") { csvCell(it) })
         append("\r\n")
         byTime.forEach { (t, row) ->
-            append(fmt.format(Date(t))).append(';').append(num((t - trip.start) / 1000.0, 1))
+            append(fmt.format(Date(t))).append(';').append(num((t - trip.start) / 1000.0, 3))
             cols.forEach { id -> append(';').append(row[id]?.let { num(it) } ?: "") }
             append("\r\n")
         }
