@@ -8,17 +8,15 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Looper
 import com.cardeck.app.Perms
-import com.cardeck.app.data.EventType
 import com.cardeck.app.data.Repo
-import com.cardeck.app.data.TripEvent
 import com.cardeck.app.data.TripPoint
 import java.util.Locale
 import java.util.concurrent.Executors
 import kotlin.math.abs
 
 /**
- * Enregistre un trajet : points GPS, distance, vitesses et événements de conduite
- * (freinages / accélérations / virages détectés à partir de la vitesse et du cap GPS).
+ * Enregistre un trajet : points GPS, distance, vitesses et données du moteur
+ * (les accélérations en g sont enregistrées comme des données, sans détection d'événements).
  */
 class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: Long) {
     private val io = Executors.newSingleThreadExecutor()
@@ -34,8 +32,6 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
     private var last: Location? = null
     private var firstFix: Location? = null
     private val pending = mutableListOf<TripPoint>()
-    private val events = mutableListOf<TripEvent>()
-    private val lastEventAt = HashMap<EventType, Long>()
 
     val distanceKm: Double get() = if (gpsKm > 0.05) gpsKm else obdKm
 
@@ -79,7 +75,6 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
         if (prev != null) {
             val d = prev.distanceTo(loc)
             if (d > 2f) gpsKm += d / 1000.0
-            detectEvents(prev, loc)
         }
         last = loc
         addSamples(loc.time, buildList {
@@ -105,32 +100,6 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
             lat = loc.speed * Math.toRadians(db) / dt / 9.81
         }
         return lon to lat
-    }
-
-    private fun detectEvents(prev: Location, loc: Location) {
-        val dt = (loc.time - prev.time) / 1000.0
-        if (dt !in 0.5..3.0 || !prev.hasSpeed() || !loc.hasSpeed()) return
-        val v0 = prev.speed.toDouble()
-        val v1 = loc.speed.toDouble()
-        val a = (v1 - v0) / dt
-        val g = 9.81
-        if (a <= -0.35 * g && v0 > 4.2) emit(EventType.Brake, loc, a / g)
-        else if (a >= 0.30 * g && v1 > 2.0) emit(EventType.Accel, loc, a / g)
-        if (prev.hasBearing() && loc.hasBearing() && v1 > 5.5) {
-            var db = abs(loc.bearing - prev.bearing).toDouble()
-            if (db > 180) db = 360 - db
-            val lateral = v1 * Math.toRadians(db) / dt
-            if (lateral >= 0.40 * g) emit(EventType.Turn, loc, lateral / g)
-        }
-    }
-
-    private fun emit(type: EventType, loc: Location, g: Double) {
-        val last = lastEventAt[type] ?: 0L
-        if (loc.time - last < 5000) return
-        lastEventAt[type] = loc.time
-        val e = TripEvent(loc.time, type, loc.latitude, loc.longitude, g)
-        events += e
-        io.execute { repo.addEvent(tripId, e) }
     }
 
     @Synchronized

@@ -13,10 +13,6 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import com.cardeck.app.ui.Spinner
 import com.cardeck.app.export.TripExport
@@ -31,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,7 +44,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.Route
-import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -75,13 +71,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.cardeck.app.AppViewModel
 import com.cardeck.app.Screen
-import com.cardeck.app.data.EventType
 import com.cardeck.app.data.Sample
 import com.cardeck.app.data.StdPids
 import com.cardeck.app.data.PidDef
 import com.cardeck.app.data.pidById
 import com.cardeck.app.data.Trip
-import com.cardeck.app.data.TripEvent
 import com.cardeck.app.data.TripPoint
 import com.cardeck.app.data.dayLabel
 import com.cardeck.app.data.durationLabel
@@ -90,7 +84,6 @@ import com.cardeck.app.data.timeHm
 import com.cardeck.app.ui.BackBar
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.CdChip
-import com.cardeck.app.ui.CdColors
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.ScreenTitle
@@ -106,7 +99,6 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.TilesOverlay
-import kotlin.math.abs
 
 internal val TRIP_FILTERS = listOf("all" to "Tous", "today" to "Aujourd'hui", "7" to "7 jours", "30" to "30 jours")
 
@@ -116,12 +108,6 @@ internal fun tripInPeriod(t: Trip, filter: String, now: Long): Boolean = when (f
     "7" -> t.start >= now - 7 * 86_400_000L
     "30" -> t.start >= now - 30 * 86_400_000L
     else -> true
-}
-
-private fun evColors(t: EventType, c: CdColors): Triple<Color, Color, Color> = when (t) {
-    EventType.Brake -> Triple(c.ec, c.oec, c.e)
-    EventType.Accel -> Triple(c.wc, c.owc, c.w)
-    EventType.Turn -> Triple(c.tc, c.otc, c.t)
 }
 
 @Composable
@@ -189,15 +175,6 @@ private fun TripCard(t: Trip, onClick: () -> Unit) {
                 "Vit. moy." to "${fr(t.avgKmh)} km/h", "Vit. max" to "${fr(t.maxKmh)} km/h",
             ).forEach { (l, v) -> Column(Modifier.weight(1f)) { T(l, 11, c.onv); T(v, 14, weight = 500) } }
         }
-        if (t.events.isNotEmpty()) {
-            Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                t.events.take(8).forEach { e ->
-                    val (bg, fg, _) = evColors(e.type, c)
-                    Box(Modifier.size(22.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { Ico(e.type.icon, 14, fg) }
-                }
-                T(t.events.size.toString() + if (t.events.size > 1) " événements" else " événement", 12, c.onv)
-            }
-        }
     }
 }
 
@@ -212,7 +189,6 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
     var samples by remember(id) { mutableStateOf<Map<String, List<Sample>>>(emptyMap()) }
     LaunchedEffect(id) { samples = withContext(Dispatchers.IO) { vm.repo.samples(id) } }
     var sheetUp by remember { mutableStateOf(false) }
-    var evSel by remember { mutableStateOf<Int?>(null) }
     // Replay : instant affiché (null = pas de replay), lecture en cours, vitesse de lecture.
     var replayT by remember(id) { mutableStateOf<Long?>(null) }
     var playing by remember(id) { mutableStateOf(false) }
@@ -240,7 +216,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
         Box(Modifier.fillMaxWidth().height(mapH).background(c.sf2)) {
             val pts = points
             if (pts != null && pts.size >= 2 && t != null) {
-                TripMap(t.id, pts, t.events, evSel, { evSel = if (evSel == it) null else it }, Modifier.fillMaxSize(), replayT?.let { positionAt(pts, it) }, playing)
+                TripMap(t.id, pts, Modifier.fillMaxSize(), replayT?.let { positionAt(pts, it) }, playing)
             } else if (pts != null) {
                 Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Ico(Icons.Rounded.LocationOff, 36, c.onv)
@@ -289,36 +265,15 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                     )
                     val stats = listOf(
                         "Durée" to durationLabel(t.end - t.start), "Distance" to "${fr(t.distanceKm, 1)} km", "Vit. moyenne" to "${fr(t.avgKmh)} km/h",
-                        "Vit. max" to "${fr(t.maxKmh)} km/h", "Événements" to t.events.size.toString(),
+                        "Vit. max" to "${fr(t.maxKmh)} km/h",
                     )
                     Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        stats.chunked(3).forEach { row ->
+                        stats.chunked(2).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { (l, v) ->
                                     Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).padding(12.dp)) { T(l, 12, c.onv); T(v, 18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24) }
                                 }
-                                repeat(3 - row.size) { Box(Modifier.weight(1f)) }
-                            }
-                        }
-                    }
-                    T("Événements signalés · ${t.events.size}", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        t.events.forEachIndexed { i, e ->
-                            val (bg, fg, _) = evColors(e.type, c)
-                            Row(
-                                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (evSel == i) c.sf3 else Color.Transparent)
-                                    .clickable { evSel = if (evSel == i) null else i }.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            ) {
-                                Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(bg), contentAlignment = Alignment.Center) { Ico(e.type.icon, 20, fg) }
-                                Column(Modifier.weight(1f)) { T(e.type.label, 14, weight = 500); T(timeHm(e.t), 12, c.onv) }
-                                val sign = when (e.type) { EventType.Brake -> "−"; EventType.Accel -> "+"; EventType.Turn -> "" }
-                                T(sign + fr(abs(e.g), 2) + " g", 13, c.onv, 500)
-                            }
-                        }
-                        if (t.events.isEmpty()) {
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.gc).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Ico(Icons.Rounded.ThumbUp, 22, c.ogc); T("Aucun événement signalé sur ce trajet", 14, c.ogc)
+                                repeat(2 - row.size) { Box(Modifier.weight(1f)) }
                             }
                         }
                     }
@@ -333,7 +288,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
             onDismissRequest = { confirmDelete = false },
             containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
             title = { T("Supprimer ce trajet ?", 22, lineHeight = 28) },
-            text = { T("Le tracé et les événements de ce trajet seront définitivement supprimés.", 14, c.onv, lineHeight = 20) },
+            text = { T("Le tracé et les données de ce trajet seront définitivement supprimés.", 14, c.onv, lineHeight = 20) },
             confirmButton = { TextButton({ confirmDelete = false; vm.repo.deleteTrip(id); vm.back() }) { T("Supprimer", 14, c.e, 600) } },
             dismissButton = { TextButton({ confirmDelete = false }) { T("Annuler", 14, c.p, 500) } },
         )
@@ -353,10 +308,10 @@ private fun dot(ctx: Context, sizeDp: Int, fill: Int, border: Int): BitmapDrawab
     return BitmapDrawable(ctx.resources, bmp)
 }
 
-/** Carte OpenStreetMap avec le tracé GPS réel, le départ, l'arrivée et les événements. */
+/** Carte OpenStreetMap avec le tracé GPS réel, le départ et l'arrivée. */
 @Composable
 private fun TripMap(
-    tripId: Long, points: List<TripPoint>, events: List<TripEvent>, selected: Int?, onEvent: (Int) -> Unit, modifier: Modifier,
+    tripId: Long, points: List<TripPoint>, modifier: Modifier,
     cursor: GeoPoint? = null, follow: Boolean = false,
 ) {
     val c = Cd.c
@@ -393,14 +348,9 @@ private fun TripMap(
     val staticSig = remember { arrayOf("") }
     val cursorMarker = remember { Marker(map).apply { setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER); infoWindow = null } }
 
-    LaunchedEffect(selected) {
-        val e = selected?.let { events.getOrNull(it) } ?: return@LaunchedEffect
-        map.controller.animateTo(GeoPoint(e.lat, e.lon), 16.5, 600L)
-    }
-
     AndroidView(factory = { map }, modifier = modifier, update = { m ->
         val density = ctx.resources.displayMetrics.density
-        val sig = "$tripId|$selected|${c.dark}|${c.p.toArgb()}"
+        val sig = "$tripId|${c.dark}|${c.p.toArgb()}"
         if (sig != staticSig[0]) {
         staticSig[0] = sig
         m.overlayManager.tilesOverlay.setColorFilter(if (c.dark) TilesOverlay.INVERT_COLORS else null)
@@ -424,10 +374,6 @@ private fun TripMap(
         }
         m.overlays.add(marker(geo.first(), dot(ctx, 18, c.g.toArgb(), white)))
         m.overlays.add(marker(geo.last(), dot(ctx, 22, c.p.toArgb(), white)))
-        events.forEachIndexed { i, e ->
-            val (_, _, mk) = evColors(e.type, c)
-            m.overlays.add(marker(GeoPoint(e.lat, e.lon), dot(ctx, if (selected == i) 30 else 22, mk.toArgb(), white)) { onEvent(i) })
-        }
         }
         // Marqueur du replay
         if (cursor != null) {
@@ -507,11 +453,19 @@ private fun ReplayBar(t: Trip, replayT: Long?, playing: Boolean, speedX: Int, on
     }
 }
 
-/** Historique des données moteur du trajet, par catégorie, avec curseur du replay. */
+/**
+ * Données du moment : les valeurs relevées à l'instant du replay (au départ du trajet tant que le replay n'est pas lancé),
+ * par catégorie. Chaque valeur est la dernière mesure connue à cet instant.
+ */
 @Composable
 private fun EngineHistory(t: Trip, samples: Map<String, List<Sample>>, cursor: Long?) {
     val c = Cd.c
-    T("Données moteur", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
+    val at = cursor ?: t.start
+    T("Données du moment", 16, weight = 500, modifier = Modifier.padding(top = 20.dp))
+    T(
+        if (cursor == null) "Au départ du trajet. Lance le replay pour voir les données évoluer." else "${timeHm(at)} · ${clock(at - t.start)} depuis le départ",
+        12, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+    )
     val series = samples.mapNotNull { (id, list) -> pidById(id)?.let { it to list } }.filter { it.second.isNotEmpty() }
     if (series.isEmpty()) {
         T("Aucune donnée moteur enregistrée pour ce trajet.", 13, c.onv, lineHeight = 18)
@@ -521,55 +475,28 @@ private fun EngineHistory(t: Trip, samples: Map<String, List<Sample>>, cursor: L
     series.groupBy { it.first.category }.toList().sortedBy { (cat, _) -> order.indexOf(cat).let { if (it < 0) order.size else it } }.forEach { (cat, list) ->
         T(cat, 14, c.p, 500, Modifier.padding(start = 4.dp, top = 14.dp, bottom = 8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            list.forEach { (p, s) -> PidHistoryCard(p, s, t.start, t.end, cursor) }
-        }
-    }
-}
-
-@Composable
-private fun PidHistoryCard(p: PidDef, s: List<Sample>, start: Long, end: Long, cursor: Long?) {
-    val c = Cd.c
-    val min = s.minOf { it.v }
-    val max = s.maxOf { it.v }
-    val avg = s.sumOf { it.v } / s.size
-    val now = cursor?.let { valueAt(s, it) }
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Ico(p.icon, 18, c.p)
-            T(p.label, 13, c.onv, modifier = Modifier.weight(1f), maxLines = 1)
-            T((if (cursor != null) now else avg)?.let { p.text(it) } ?: "—", 18, weight = 500)
-            T(p.unit, 12, c.onv)
-        }
-        Box(Modifier.fillMaxWidth().padding(top = 8.dp).height(44.dp)) {
-            Sparkline(s, start, end, min, max, c.p, c.olv)
-            if (cursor != null) {
-                val cur = c.t
-                Canvas(Modifier.fillMaxSize()) {
-                    val x = (cursor - start) / (end - start).coerceAtLeast(1).toFloat() * size.width
-                    drawLine(cur, Offset(x, 0f), Offset(x, size.height), 2.dp.toPx())
+            list.chunked(2).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { (p, s) -> MomentCard(p, valueAt(s, at), Modifier.weight(1f)) }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            T("min ${fr(min, p.decimals)}", 11, c.onv)
-            T("moy. ${fr(avg, p.decimals)}", 11, c.onv)
-            T("max ${fr(max, p.decimals)}", 11, c.onv)
-        }
     }
 }
 
-/** Courbe d'une donnée sur la durée du trajet (redessinée seulement si la série change). */
 @Composable
-private fun Sparkline(s: List<Sample>, start: Long, end: Long, min: Double, max: Double, line: Color, track: Color) {
-    Canvas(Modifier.fillMaxSize()) {
-        val span = (end - start).coerceAtLeast(1).toFloat()
-        val range = (max - min).takeIf { it > 1e-9 } ?: 1.0
-        fun x(tt: Long) = (tt - start) / span * size.width
-        fun y(v: Double) = (size.height - ((v - min) / range * size.height)).toFloat()
-        drawLine(track, Offset(0f, size.height), Offset(size.width, size.height), 1f)
-        val path = androidx.compose.ui.graphics.Path()
-        s.forEachIndexed { i, smp -> if (i == 0) path.moveTo(x(smp.t), y(smp.v)) else path.lineTo(x(smp.t), y(smp.v)) }
-        drawPath(path, line, style = Stroke(2.dp.toPx(), join = StrokeJoin.Round, cap = StrokeCap.Round))
+private fun MomentCard(p: PidDef, value: Double?, modifier: Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Ico(p.icon, 16, c.p)
+            T(p.label, 12, c.onv, lineHeight = 16, modifier = Modifier.weight(1f))
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            T(value?.let { p.text(it) } ?: "—", 20, weight = 500, lineHeight = 26)
+            if (p.states == null) T(p.unit, 12, c.onv, modifier = Modifier.padding(bottom = 3.dp))
+        }
     }
 }
 

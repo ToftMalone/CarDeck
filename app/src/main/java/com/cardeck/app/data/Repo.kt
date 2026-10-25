@@ -30,7 +30,6 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         )
         db.execSQL("CREATE TABLE trip_points(trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE, t INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL)")
         db.execSQL("CREATE INDEX trip_points_trip ON trip_points(trip_id)")
-        db.execSQL("CREATE TABLE trip_events(trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE, t INTEGER NOT NULL, type TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, g REAL NOT NULL)")
         db.execSQL(
             """CREATE TABLE scans(id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
                t INTEGER NOT NULL, ecus INTEGER NOT NULL, ff_code TEXT, ff_values TEXT)""",
@@ -169,10 +168,6 @@ class Repo(ctx: Context) {
             out
         }
 
-    fun addEvent(tripId: Long, e: TripEvent) {
-        db.insert("trip_events", null, ContentValues().apply { put("trip_id", tripId); put("t", e.t); put("type", e.type.name); put("lat", e.lat); put("lon", e.lon); put("g", e.g) })
-    }
-
     fun finishTrip(id: Long, end: Long, distanceKm: Double, avgKmh: Double, maxKmh: Double, from: String, to: String) {
         db.update("trips", ContentValues().apply {
             put("end_t", end); put("distance_km", distanceKm); put("avg_kmh", avgKmh); put("max_kmh", maxKmh); put("from_label", from); put("to_label", to)
@@ -185,17 +180,13 @@ class Repo(ctx: Context) {
         bump()
     }
 
-    fun events(tripId: Long): List<TripEvent> = db.rawQuery("SELECT * FROM trip_events WHERE trip_id=? ORDER BY t", arrayOf(tripId.toString())).use { c ->
-        buildList { while (c.moveToNext()) add(TripEvent(c.long("t"), EventType.valueOf(c.str("type")!!), c.dbl("lat"), c.dbl("lon"), c.dbl("g"))) }
-    }
-
     fun points(tripId: Long): List<TripPoint> = db.rawQuery("SELECT * FROM trip_points WHERE trip_id=? ORDER BY t", arrayOf(tripId.toString())).use { c ->
         buildList { while (c.moveToNext()) add(TripPoint(c.long("t"), c.dbl("lat"), c.dbl("lon"), c.dbl("speed"))) }
     }
 
     private fun tripFrom(c: Cursor) = Trip(
         c.long("id"), c.long("vehicle_id"), c.long("start"), c.long("end_t"), c.dbl("distance_km"), c.dbl("avg_kmh"), c.dbl("max_kmh"),
-        c.str("from_label") ?: "", c.str("to_label") ?: "", events(c.long("id")),
+        c.str("from_label") ?: "", c.str("to_label") ?: "",
     )
 
     /** Trajets terminés du véhicule, du plus récent au plus ancien. */

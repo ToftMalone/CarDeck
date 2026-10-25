@@ -17,7 +17,7 @@ import java.util.TimeZone
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/** Export complet d'un trajet : tracé GPX, données (CSV), événements (CSV) et résumé (JSON), dans un ZIP. */
+/** Export complet d'un trajet : tracé GPX, données (CSV) et résumé (JSON), dans un ZIP. */
 object TripExport {
     /** Marque d'ordre des octets UTF-8 : accents corrects à l'ouverture dans Excel. */
     private const val BOM = 0xFEFF.toChar()
@@ -70,16 +70,6 @@ object TripExport {
         }
     }
 
-    fun eventsCsv(trip: Trip): String = buildString {
-        val fmt = local("yyyy-MM-dd HH:mm:ss")
-        append(BOM)
-        append("Horodatage;Événement;Intensité (g);Latitude;Longitude\r\n")
-        trip.events.forEach { e ->
-            append(fmt.format(Date(e.t))).append(';').append(csvCell(e.type.label)).append(';').append(num(e.g, 3))
-                .append(';').append(num(e.lat, 6)).append(';').append(num(e.lon, 6)).append("\r\n")
-        }
-    }
-
     fun summaryJson(trip: Trip, vehicle: VehicleProfile?, points: Int, samples: Map<String, List<Sample>>): String {
         val fmt = local("yyyy-MM-dd'T'HH:mm:ssXXX")
         val tpl = vehicle?.template
@@ -91,9 +81,6 @@ object TripExport {
     "annee": ${json(vehicle.year)},
     "vin": ${vehicle.vin?.let { json(it) } ?: "null"}
   }"""
-        val events = trip.events.joinToString(",\n    ") { e ->
-            """{"horodatage": ${json(fmt.format(Date(e.t)))}, "type": ${json(e.type.label)}, "g": ${e.g}, "lat": ${e.lat}, "lon": ${e.lon}}"""
-        }
         val data = samples.entries.joinToString(",\n    ") { (id, list) ->
             val p = pidById(id)
             """{"id": ${json(id)}, "libelle": ${json(p?.label ?: id)}, "unite": ${json(p?.unit ?: "")}, "categorie": ${json(p?.category ?: "")}, "mesures": ${list.size}, "min": ${list.minOf { it.v }}, "max": ${list.maxOf { it.v }}, "moyenne": ${list.sumOf { it.v } / list.size}}"""
@@ -112,9 +99,6 @@ object TripExport {
     "vitesse_max_kmh": ${trip.maxKmh},
     "points_gps": $points
   },
-  "evenements": [
-    $events
-  ],
   "donnees": [
     $data
   ]
@@ -137,7 +121,6 @@ object TripExport {
             put("resume.json", summaryJson(trip, vehicle, points.size, samples))
             put("trace.gpx", gpx(trip, points, name))
             put("donnees.csv", dataCsv(trip, samples))
-            put("evenements.csv", eventsCsv(trip))
         }
         return out
     }

@@ -21,7 +21,7 @@ description, causes possibles et recommandations. Recherche d'un code, effacemen
 
 ### 🗺️ Trajets
 Chaque trajet est enregistré **automatiquement** dès que le moteur tourne : tracé GPS sur une carte OpenStreetMap, distance, durées,
-vitesses, freinages, accélérations et virages, ainsi que **toutes les données du moteur** relevées pendant le parcours.
+vitesses, ainsi que **toutes les données du moteur** relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
 
 ### 🔧 Codage

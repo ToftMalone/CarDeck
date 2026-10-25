@@ -9,7 +9,6 @@ import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
-import com.cardeck.app.data.EventType
 import com.cardeck.app.data.Trip
 import com.cardeck.app.data.dayLabel
 import com.cardeck.app.data.durationLabel
@@ -85,17 +84,12 @@ internal class TripCarScreen(ctx: CarContext, private val id: Long) : CarScreen(
     override fun onGetTemplate(): Template {
         if (!loaded) return PaneTemplate.Builder(Pane.Builder().setLoading(true).build()).setTitle("Trajet").setHeaderAction(Action.BACK).build()
         val t = trip ?: return message("Trajet", "Ce trajet n'existe plus.")
-        fun count(type: EventType) = t.events.count { it.type == type }
         val pane = Pane.Builder()
             .addRow(Row.Builder().setTitle("Départ · ${timeHm(t.start)}").addText(t.from).build())
             .addRow(Row.Builder().setTitle("Arrivée · ${timeHm(t.end)}").addText(t.to).build())
             .addRow(
                 Row.Builder().setTitle("${fr(t.distanceKm, 1)} km · ${durationLabel(t.end - t.start)}")
                     .addText("Vitesse moyenne ${fr(t.avgKmh)} km/h · max ${fr(t.maxKmh)} km/h").build(),
-            )
-            .addRow(
-                Row.Builder().setTitle(if (t.events.isEmpty()) "Aucun événement" else "${t.events.size} événement${if (t.events.size > 1) "s" else ""}")
-                    .addText(EventType.entries.joinToString(" · ") { "${it.label} : ${count(it)}" }).build(),
             )
             .addAction(
                 action("Supprimer") {

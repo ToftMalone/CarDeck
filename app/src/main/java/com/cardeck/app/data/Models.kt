@@ -1,10 +1,5 @@
 package com.cardeck.app.data
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.TrendingDown
-import androidx.compose.material.icons.rounded.TrendingUp
-import androidx.compose.material.icons.rounded.TurnSharpRight
-import androidx.compose.ui.graphics.vector.ImageVector
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -37,14 +32,6 @@ data class VehicleProfile(
     val template: VehicleTemplate get() = templateById(templateId)
 }
 
-enum class EventType(val label: String, val icon: ImageVector) {
-    Brake("Freinage brusque", Icons.Rounded.TrendingDown),
-    Accel("Accélération vive", Icons.Rounded.TrendingUp),
-    Turn("Virage serré", Icons.Rounded.TurnSharpRight),
-}
-
-data class TripEvent(val t: Long, val type: EventType, val lat: Double, val lon: Double, val g: Double)
-
 /** Valeur d'une donnée moteur à un instant du trajet. */
 data class Sample(val t: Long, val v: Double)
 
@@ -60,7 +47,6 @@ data class Trip(
     val maxKmh: Double,
     val from: String,
     val to: String,
-    val events: List<TripEvent>,
 )
 
 enum class DtcStatus(val label: String) { Stored("Mémorisé"), Pending("En attente"), Permanent("Permanent") }
