@@ -352,8 +352,10 @@ class Elm327(private val t: ObdTransport) {
     suspend fun readDtcs(mode: String): Pair<List<FoundCode>, Set<String>> {
         val status = when (mode) { "07" -> DtcStatus.Pending; "0A" -> DtcStatus.Permanent; else -> DtcStatus.Stored }
         val resp = mode.toInt(16) + 0x40
-        raw("ATH1")
-        val r = try { raw(mode, 12000) } finally { raw("ATH0") }
+        // Requête diffusée à tous les calculateurs (7DF, sans filtre de réception), avec une attente fixe et longue :
+        // le temps adaptatif coupe l'écoute après le premier répondant et manque les calculateurs plus lents.
+        raw("ATSH7DF"); raw("ATCRA"); raw("ATAT0"); raw("ATST96"); raw("ATH1")
+        val r = try { raw(mode, 12000) } finally { raw("ATH0"); raw("ATST32"); raw("ATAT1") }
         if (isError(r)) return emptyList<FoundCode>() to emptySet()
         val messages = if (isCan) canMessages(r) else legacyMessages(r)
         val codes = mutableListOf<FoundCode>()
