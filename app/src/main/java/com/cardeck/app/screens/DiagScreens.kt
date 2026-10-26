@@ -129,6 +129,7 @@ fun DiagScreen(vm: AppViewModel) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(horizontal = 24.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Radar(184.dp, true, label = "${vm.scanStep * 100 / vm.scanSteps.size} %")
                     T(vm.scanSteps[vm.scanStep], 16, weight = 500, modifier = Modifier.padding(top = 16.dp))
+                    vm.scanDetail?.let { T(it, 13, c.onv) }
                     Box(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 20.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.sf4)) {
                         Box(Modifier.fillMaxWidth(vm.scanStep / vm.scanSteps.size.toFloat()).fillMaxSize().background(c.p))
                     }

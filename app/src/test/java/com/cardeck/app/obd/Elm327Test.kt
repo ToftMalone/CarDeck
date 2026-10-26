@@ -22,6 +22,22 @@ private class FakeElm(private val answers: Map<String, String>) : ObdTransport {
     override fun close() {}
 }
 
+/** Boîtier factice dont les réponses dépendent de l'en-tête courant (ATSH) : un calculateur par adresse. */
+private class BusFake(private val ecus: Map<String, Map<String, String>>) : ObdTransport {
+    override val incoming = Channel<ByteArray>(Channel.UNLIMITED)
+    override suspend fun open() {}
+    val sent = mutableListOf<String>()
+    private var header = "7DF"
+    override suspend fun send(data: ByteArray) {
+        val cmd = String(data).trim()
+        sent += cmd
+        if (cmd.startsWith("ATSH")) header = cmd.removePrefix("ATSH")
+        val r = if (cmd.startsWith("AT")) "OK" else ecus[header]?.get(cmd) ?: "NO DATA"
+        incoming.trySend("$r\r\r>".toByteArray())
+    }
+    override fun close() {}
+}
+
 class Elm327Test {
     private val base = mapOf("ATZ" to "\r\rELM327 v1.5", "0100" to "SEARCHING...\r41 00 BE 3F A8 13", "ATDPN" to "A6", "ATDP" to "AUTO, ISO 15765-4 (CAN 11/500)")
 
@@ -296,5 +312,35 @@ class Elm327Test {
         assertEquals(listOf(2.1, 2.7, 2.4), r.circuits)
         assertEquals(300, r.secondsOn)
         assertEquals(13.36, r.voltage!!, 0.01)
+    }
+
+    @Test fun balayageDesCalculateurs() = runBlocking {
+        val bus = BusFake(mapOf(
+            "7E0" to mapOf("3E00" to "7E8 03 7F 3E 12"),
+            "793" to mapOf("3E00" to "7A3 02 7E 00"),
+            "7A3" to mapOf("3E00" to "7B3 02 7E 00"),
+            "798" to mapOf("1001" to "7A8 06 50 01 00 32 01 F4"),
+        ))
+        val e = Elm327(bus)
+        e.init(); e.probe()
+        assertEquals(listOf(0x793 to 0x7A3, 0x798 to 0x7A8, 0x7E0 to 0x7E8), e.findEcus())
+        // Jamais l'interface de neutralisation des airbags, ni une adresse de réponse déjà trouvée.
+        assertTrue(bus.sent.none { it == "ATSH7F1" || it == "ATSH7F9" || it == "ATSH7A3" || it == "ATSH7E8" })
+    }
+
+    @Test fun codesDunCalculateurUds() = runBlocking {
+        val r = "00F\r0: 59 02 FF 90 01 23 09\r1: C1 23 00 08 81 11 22\r2: 40 00 00"
+        val e = Elm327(BusFake(mapOf("793" to mapOf("1902FF" to r))))
+        val codes = e.ecuDtcs(0x793, 0x7A3, "Airbags")!!
+        assertEquals(listOf("B1001", "U0123"), codes.map { it.code })
+        assertTrue(codes.all { it.ecu == "Airbags" && it.status == DtcStatus.Stored })
+    }
+
+    @Test fun codesDunCalculateurKwp() = runBlocking {
+        val e = Elm327(BusFake(mapOf("7E0" to mapOf("1802FF00" to "06 58 02 05 15 E0 0A 5A 20".split(" ").drop(1).joinToString(" ")))))
+        val codes = e.ecuDtcs(0x7E0, 0x7E8, "Moteur")!!
+        assertEquals(listOf("P0515", "P0A5A"), codes.map { it.code })
+        assertEquals(listOf(DtcStatus.Stored, DtcStatus.Pending), codes.map { it.status })
+        assertNull(Elm327(BusFake(emptyMap())).ecuDtcs(0x776, 0x786, "Radar"))
     }
 }

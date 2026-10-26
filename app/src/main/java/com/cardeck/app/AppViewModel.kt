@@ -232,7 +232,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var filter by mutableStateOf("all")
     var query by mutableStateOf("")
 
-    val scanSteps = listOf("Communication avec le véhicule", "Codes mémorisés", "Codes en attente", "Codes permanents", "Données figées")
+    val scanSteps = listOf(
+        "Communication avec le véhicule", "Codes mémorisés", "Codes en attente", "Codes permanents", "Données figées",
+        "Recherche des calculateurs", "Codes de chaque calculateur",
+    )
+
+    /** Détail de l'étape en cours (adresse balayée, calculateur interrogé). */
+    var scanDetail by mutableStateOf<String?>(null)
+        private set
 
     private class ScanOut(val ecus: Int, val codes: List<FoundCode>, val ff: Pair<String, List<String>>?)
 
@@ -254,7 +261,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val (permanent, _) = e.readDtcs("0A")
                     scanStep = 4
                     val ff = runCatching { e.freezeFrame() }.getOrNull()
-                    ScanOut(ecus.size, (stored + pending + permanent).distinctBy { it.code }, ff)
+                    // Tous les calculateurs, un par un (environ 1 à 2 minutes) : y compris ceux hors OBD2 (airbags, ABS…).
+                    scanStep = 5
+                    val found = e.findEcus { scanDetail = "Adresse %03X".format(it) }
+                    scanStep = 6
+                    val names = v.template.idents.associate { it.tx.toInt(16) to it.name }
+                    var answered = 0
+                    val more = found.flatMap { (tx, rx) ->
+                        val name = names[tx] ?: if (tx == 0x7E0) "Moteur" else "Calculateur %03X".format(tx)
+                        scanDetail = name
+                        e.ecuDtcs(tx, rx, name)?.also { answered++ }.orEmpty()
+                    }
+                    scanDetail = null
+                    val all = stored + pending + permanent + more
+                    ScanOut(maxOf(ecus.size, found.size, answered), all.distinctBy { it.code to it.ecu }, ff)
                 }
             }
             if (out == null) {
@@ -263,6 +283,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 withContext(Dispatchers.IO) { repo.saveScan(v.id, System.currentTimeMillis(), out.ecus, out.codes, out.ff?.first, out.ff?.second) }
                 filter = "all"
             }
+            scanDetail = null
             scanning = false
         }
     }

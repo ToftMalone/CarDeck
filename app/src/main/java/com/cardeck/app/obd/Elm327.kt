@@ -369,6 +369,74 @@ class Elm327(private val t: ObdTransport) {
         return codes.distinctBy { it.code } to messages.map { it.first }.toSet()
     }
 
+    /**
+     * Balayage de toutes les adresses de diagnostic CAN 11 bits (700 à 7F7) : un calculateur est présent s'il répond,
+     * même par un refus, à « 3E 00 » (présence testeur) ou à « 10 01 » (session par défaut). Lecture seule.
+     * Jamais 7F1 / 7F9 (neutralisation des airbags), ni 7DF (diffusion), ni une adresse de réponse déjà trouvée.
+     * Renvoie les couples (émission, réception) ; [progress] reçoit l'adresse en cours.
+     */
+    suspend fun findEcus(progress: (Int) -> Unit = {}): List<Pair<Int, Int>> {
+        if (!isCan) return emptyList()
+        val found = mutableListOf<Pair<Int, Int>>()
+        val skip = (setOf(0x7DF, 0x7F1, 0x7F9) + (0x7E8..0x7EF)).toMutableSet()
+        raw("ATH1"); raw("ATCAF1"); raw("ATAT0"); raw("ATST19"); raw("ATCF700"); raw("ATCM700")
+        try {
+            for (tx in 0x700..0x7F7) {
+                if (tx in skip) continue
+                progress(tx)
+                if (raw("ATSH%03X".format(tx)) == BLOCKED) continue
+                val rx = answerFrom(raw("3E00", 3000)) ?: answerFrom(raw("1001", 3000)) ?: continue
+                if (rx == tx) continue
+                found += tx to rx
+                skip += rx
+            }
+        } finally {
+            raw("ATCRA"); raw("ATH0"); raw("ATST32"); raw("ATAT1"); raw("ATSH7DF")
+            extraInit.forEach { raw(it) }
+        }
+        return found
+    }
+
+    /** Identifiant du calculateur ayant répondu (trame simple 7E… ou 7F…, en-têtes affichés), ou null. */
+    private fun answerFrom(r: String): Int? {
+        if (isError(r)) return null
+        for (line in r.lines()) {
+            val parts = line.trim().split(Regex("\\s+"))
+            if (parts.size < 3 || parts[0].length != 3) continue
+            val id = parts[0].toIntOrNull(16) ?: continue
+            val b = parts.drop(1).mapNotNull { it.toIntOrNull(16) }
+            if (b.size >= 2 && b[0] in 1..7 && (b[1] == 0x7E || b[1] == 0x50 || b[1] == 0x7F)) return id
+        }
+        return null
+    }
+
+    /**
+     * Codes défaut d'un calculateur précis : UDS 19 02 FF, sinon KWP2000 18 02 FF 00. Null si aucun des deux ne répond.
+     * UDS : code SAE (le type de panne est ignoré) ; seuls les codes en défaut, en attente ou confirmés sont gardés.
+     */
+    suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String): List<FoundCode>? {
+        raw("ATH0"); raw("ATCAF1"); raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx)); raw("ATFCSH%03X".format(tx)); raw("ATST96")
+        fun final(r: String, service: Int): IntArray? = if (isError(r)) null
+            else udsMessages(r).lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }?.takeIf { it.isNotEmpty() && it[0] == service + 0x40 }
+        try {
+            final(raw("1902FF", 10000), 0x19)?.let { m ->
+                return m.drop(3).chunked(4).filter { it.size == 4 && (it[3] and 0x8F) != 0 }.map { (a, b, _, st) ->
+                    FoundCode(decodeDtc(a, b), if (st and 0x08 == 0 && st and 0x04 != 0) DtcStatus.Pending else DtcStatus.Stored, ecu)
+                }
+            }
+            final(raw("1802FF00", 10000), 0x18)?.let { m ->
+                return m.drop(2).chunked(3).filter { it.size == 3 && (it[0] != 0 || it[1] != 0) }.map { (a, b, st) ->
+                    // KWP2000 : bits 6-5 = état de mémorisation (01 = en attente).
+                    FoundCode(decodeDtc(a, b), if (st and 0x60 == 0x20) DtcStatus.Pending else DtcStatus.Stored, ecu)
+                }
+            }
+            return null
+        } finally {
+            raw("ATCRA"); raw("ATSH7DF"); raw("ATST32")
+            extraInit.forEach { raw(it) }
+        }
+    }
+
     /** Réassemblage ISO-TP des réponses CAN (en-têtes affichés via ATH1), regroupées par calculateur. */
     private fun canMessages(r: String): List<Pair<String, List<Int>>> {
         val single = LinkedHashMap<String, List<Int>>()
