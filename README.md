@@ -15,9 +15,17 @@ Deux tableaux de bord en direct, que tu bascules d'un geste :
 Toutes les valeurs que ton véhicule fournit, rangées par catégories, avec l'état de la liaison, l'identification des calculateurs
 (VIN, références, logiciels) et l'état de sécurité des airbags.
 
+**Lecture en continu** : tant que le contact est mis, CarDeck lit les données en permanence, écran ouvert ou non.
+Le régime, la vitesse, la charge moteur, l'avance à l'allumage, la pression du collecteur, le débit d'air, le papillon et la pression
+atmosphérique sont relus **à chaque tour**. Les autres données sont réparties sur 3 tours, et les données lentes (huile, carburant,
+kilométrage…) sur 6 tours.
+
 ### 🩺 Diagnostic
 Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français** :
 description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.
+
+**Diagnostic complet** : après les codes OBD2, CarDeck recherche tous les calculateurs du réseau CAN (moteur, airbags, ABS…)
+et lit les codes défaut de chacun. Le scan prend plus de temps, mais ne laisse rien de côté.
 
 ### 🗺️ Trajets
 Chaque trajet est enregistré **automatiquement** dès que le moteur tourne : tracé GPS sur une carte OpenStreetMap, distance, durées,
