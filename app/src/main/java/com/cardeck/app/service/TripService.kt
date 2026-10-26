@@ -174,19 +174,21 @@ class TripService : Service() {
     }
 
     /**
-     * Lecture permanente de toutes les données (contact mis, écran ouvert ou non), publiées pour les écrans et
-     * enregistrées pendant un trajet. Voie rapide : régime, vitesse, MAP, charge et les données affichées à l'écran
-     * sont relus entre chaque paquet de 4 requêtes. Les données lentes (compteurs, kilométrage, huile, carburant…)
-     * ne sont relues qu'un tour sur 6 : elles ne bougent presque pas et certaines coûtent jusqu'à 1,2 s.
+     * Lecture permanente (contact mis, écran ouvert ou non), publiée pour les écrans et enregistrée pendant un trajet.
+     * Les données moteur de [HOT_IDS] sont relues à chaque tour, et entre chaque paquet de 4 requêtes.
+     * Les autres sont réparties sur 3 tours (chacune est lue un tour sur 3) ; les données lentes (compteurs,
+     * kilométrage, huile, carburant…) sur 6 tours : elles ne bougent presque pas et certaines coûtent jusqu'à 1,2 s.
      */
     private suspend fun readEverything(v: com.cardeck.app.data.VehicleProfile, cycle: Int) {
         val obd = cardeck.obd
         if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
         val sup = obd.supported.value.orEmpty()
-        val all = (StdPids.forSupported(sup) + v.template.pids).filter { !it.slow || cycle % 6 == 0 }
-        val hotIds = HOT_IDS + obd.focusIds
-        val hot = all.filter { it.id in hotIds && !it.slow && it.can == null && it.header == null }
-        val rest = all.filter { it !in hot }
+        val all = StdPids.forSupported(sup) + v.template.pids
+        val hot = all.filter { it.id in HOT_IDS && it.can == null && it.header == null }
+        val (slow, normal) = all.filter { it !in hot }.partition { it.slow }
+        fun share(defs: List<com.cardeck.app.data.PidDef>, turns: Int) =
+            defs.groupBy { it.request to it.header }.values.chunked(4).filterIndexed { i, _ -> i % turns == cycle % turns }
+        val chunks = share(normal, 3) + share(slow, 6)
 
         // Lit un paquet, le publie et l'enregistre ; false si la liaison est perdue (le tour s'arrête).
         suspend fun read(defs: List<com.cardeck.app.data.PidDef>, volt: Boolean = false): Boolean {
@@ -203,7 +205,7 @@ class TripService : Service() {
         }
 
         if (!read(hot, volt = true)) return
-        for (chunk in rest.groupBy { it.request to it.header }.values.chunked(4)) {
+        for (chunk in chunks) {
             if (!read(chunk.flatten())) return
             if (!read(hot)) return
         }
@@ -228,8 +230,8 @@ class TripService : Service() {
         /** Délai sans réponse du moteur avant de clore le trajet. */
         private const val NO_ANSWER_MS = 3_000L
 
-        /** Relues entre chaque paquet de données : ce qui change le plus vite. */
-        private val HOT_IDS = setOf("std0C", "std0D", "std0B", "std04")
+        /** Lues à chaque tour : régime, vitesse, charge, avance, MAP, débit d'air, papillon, pression atmosphérique. */
+        private val HOT_IDS = setOf("std0C", "std0D", "std04", "std0E", "std0B", "std10", "std11", "std33")
 
         /** État du suivi pour l'interface (null = service arrêté). */
         val live = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)

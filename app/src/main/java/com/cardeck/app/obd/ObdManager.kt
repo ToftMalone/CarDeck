@@ -42,20 +42,10 @@ class ObdManager(private val ctx: Context) {
         if (values.isNotEmpty()) live.value = live.value + values
     }
 
-    /** Données affichées par les écrans ouverts (par écran) : le service les relit en priorité. */
-    private val focusSets = java.util.concurrent.ConcurrentHashMap<Any, Set<String>>()
-
-    val focusIds: Set<String> get() = focusSets.values.flatten().toSet()
-
-    /**
-     * Tant que l'appelant est actif (écran affiché), demande au service de relire [ids] en priorité.
-     * Toutes les données sont de toute façon lues en permanence par le service, écran ouvert ou non.
-     */
-    suspend fun focus(ids: Set<String>) {
-        val key = Any()
-        focusSets[key] = ids
+    /** Tant que l'appelant est actif (écran affiché), s'assure que le service lit les données en permanence. */
+    suspend fun keepReading() {
         if (com.cardeck.app.service.TripService.live.value == null) com.cardeck.app.service.TripService.start(ctx)
-        try { awaitCancellation() } finally { focusSets.remove(key) }
+        awaitCancellation()
     }
 
     /** Pendant l'appairage, le service de trajets laisse la main à l'écran d'appairage. */

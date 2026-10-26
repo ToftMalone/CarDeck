@@ -46,10 +46,9 @@ fun DashboardScreen(vm: AppViewModel) {
     val supported by vm.obd.supported.collectAsState()
     val values by vm.obd.live.collectAsState()
     val sport = vm.dashSport
-    val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
 
-    // Toutes les données sont lues en permanence par le service ; celles du tableau de bord affiché passent en priorité.
-    LaunchedEffect(sport) { vm.obd.focus((ids + if (sport) v.template.dashSport else emptyList()).toSet()) }
+    // Toutes les données sont lues en permanence par le service : l'écran affiche les dernières valeurs.
+    LaunchedEffect(Unit) { vm.obd.keepReading() }
 
     Column(Modifier.fillMaxSize()) {
         Row(

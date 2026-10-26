@@ -165,9 +165,8 @@ internal class DashCarScreen(ctx: CarContext, private val sport: Boolean, privat
     }
 
     override suspend fun whileVisible() {
-        val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
-        // Toutes les données sont lues en permanence par le service ; celles du tableau affiché passent en priorité.
-        app.obd.focus((ids + if (sport) active?.template?.dashSport.orEmpty() else emptyList()).toSet())
+        // Toutes les données sont lues en permanence par le service : l'écran affiche les dernières valeurs.
+        app.obd.keepReading()
     }
 
     override suspend fun snapshot(): Any? = tiles().map { it.title to it.text }
