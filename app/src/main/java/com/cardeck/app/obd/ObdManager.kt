@@ -3,15 +3,12 @@ package com.cardeck.app.obd
 import android.content.Context
 import com.cardeck.app.cardeck
 import com.cardeck.app.data.AdapterConfig
-import com.cardeck.app.data.PidDef
 import com.cardeck.app.data.Transport
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
 sealed interface ObdState {
@@ -41,51 +38,24 @@ class ObdManager(private val ctx: Context) {
     /** Dernières valeurs lues (id de donnée → valeur), partagées avec l'écran Android Auto. */
     val live = MutableStateFlow<Map<String, Double>>(emptyMap())
 
-    /** Instant (ms) de la dernière mesure de chaque donnée de [live]. */
-    private val liveAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
-
-    /** Nombre d'écrans qui lisent déjà les données en continu (le suivi des trajets s'appuie alors sur leurs mesures). */
-    val watchers = java.util.concurrent.atomic.AtomicInteger(0)
-
     fun publish(values: List<Pair<String, Double>>) {
-        if (values.isEmpty()) return
-        val now = System.currentTimeMillis()
-        values.forEach { liveAt[it.first] = now }
-        live.value = live.value + values
+        if (values.isNotEmpty()) live.value = live.value + values
     }
 
-    /** Mesures prises après l'instant [since] (ms) : chaque mesure n'est enregistrée qu'une fois. */
-    fun measuredSince(since: Long): List<Pair<String, Double>> =
-        live.value.entries.filter { (liveAt[it.key] ?: 0L) > since }.map { it.key to it.value }
+    /** Données affichées par les écrans ouverts (par écran) : le service les relit en priorité. */
+    private val focusSets = java.util.concurrent.ConcurrentHashMap<Any, Set<String>>()
+
+    val focusIds: Set<String> get() = focusSets.values.flatten().toSet()
 
     /**
-     * Lit en continu les données renvoyées par [defs] (selon les PIDs déclarés par le véhicule) et les publie dans [live],
-     * tant que l'appelant est actif (écran affiché). Les données lentes ne sont relues qu'un cycle sur 15.
+     * Tant que l'appelant est actif (écran affiché), demande au service de relire [ids] en priorité.
+     * Toutes les données sont de toute façon lues en permanence par le service, écran ouvert ou non.
      */
-    suspend fun watch(
-        slow: (PidDef) -> Boolean = { it.slow },
-        withVolt: (Set<Int>) -> Boolean = { false },
-        defs: (Set<Int>) -> List<PidDef>,
-    ) {
-        var cycle = 0
-        watchers.incrementAndGet()
-        try { while (true) {
-            if (_state.value !is ObdState.Connected) { delay(1000); continue }
-            var sup = supported.value
-            if (sup == null) {
-                sup = withContext(Dispatchers.IO) { use { it.supportedPids() } }
-                if (sup.isNullOrEmpty()) { delay(5000); continue }
-                supported.value = sup
-            }
-            val list = defs(sup).filter { !slow(it) || cycle % 15 == 0 }
-            val readVolt = withVolt(sup) && cycle % 10 == 0
-            val out = withContext(Dispatchers.IO) {
-                use { e -> e.readAll(list) + listOfNotNull(if (readVolt) e.voltage()?.let { "elm_volt" to it } else null) }
-            }
-            if (out != null) publish(out)
-            cycle++
-            delay(80)
-        } } finally { watchers.decrementAndGet() }
+    suspend fun focus(ids: Set<String>) {
+        val key = Any()
+        focusSets[key] = ids
+        if (com.cardeck.app.service.TripService.live.value == null) com.cardeck.app.service.TripService.start(ctx)
+        try { awaitCancellation() } finally { focusSets.remove(key) }
     }
 
     /** Pendant l'appairage, le service de trajets laisse la main à l'écran d'appairage. */
@@ -155,6 +125,5 @@ class ObdManager(private val ctx: Context) {
         voltage.value = null
         supported.value = null
         live.value = emptyMap()
-        liveAt.clear()
     }
 }

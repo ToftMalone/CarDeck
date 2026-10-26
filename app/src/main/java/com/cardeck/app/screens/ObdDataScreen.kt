@@ -24,11 +24,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,12 +41,6 @@ import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.TextBtn
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-
-/** Données relues le plus souvent sur l'écran Données OBD2. */
-private val HOT_IDS = setOf("std0C", "std0D", "std0B", "std04")
 
 /** Liaison OBD2 + toutes les valeurs envoyées par le véhicule. */
 @Composable
@@ -63,56 +54,9 @@ fun ObdDataScreen(vm: AppViewModel) {
     val volt by vm.obd.voltage.collectAsState()
     val protocol by vm.obd.protocol.collectAsState()
     val connected = connKind == ConnKind.Ok
-    val values = remember { mutableStateMapOf<String, Double>() }
-
-    // Tension batterie lue sur le boîtier tant que l'écran est affiché.
-    LaunchedEffect(connected) {
-        while (connected) {
-            withContext(Dispatchers.IO) { vm.obd.use { it.voltage() } }?.let { vm.obd.voltage.value = it }
-            delay(5000)
-        }
-    }
+    // Toutes les données sont lues en permanence par le service de suivi : l'écran affiche ses dernières mesures.
+    val values by vm.obd.live.collectAsState()
     val supported by vm.obd.supported.collectAsState()
-    // Lecture en continu : PIDs standard déclarés par le véhicule + PIDs propres au modèle.
-    LaunchedEffect(connected, tpl.id) {
-        if (!connected) return@LaunchedEffect
-        var cycle = 0
-        vm.obd.watchers.incrementAndGet()
-        try { while (true) {
-            var sup = vm.obd.supported.value
-            if (sup == null) {
-                sup = withContext(Dispatchers.IO) { vm.obd.use { it.supportedPids() } }
-                if (sup.isNullOrEmpty()) { delay(5000); continue }
-                vm.obd.supported.value = sup
-            }
-            // Priorité aux données qui changent vite : lues à chaque tour. Les lectures longues (écoute du bus, bloc constructeur)
-            // ne passent qu'un tour sur 4, les données lentes un tour sur 6 : elles ne bloquent plus le rafraîchissement du reste.
-            val list = (StdPids.forSupported(sup) + tpl.pids).filter {
-                when {
-                    it.slow -> cycle % 6 == 0
-                    it.can != null || it.header != null -> cycle % 4 == 0
-                    else -> true
-                }
-            }
-            // Voie rapide : régime, vitesse, MAP et charge sont relus entre chaque paquet, pour rester fluides
-            // même quand la liste complète des données met une ou deux secondes à être parcourue.
-            val hot = list.filter { it.id in HOT_IDS }
-            val rest = list.filter { it.id !in HOT_IDS }
-            suspend fun read(defs: List<PidDef>) {
-                if (defs.isEmpty()) return
-                val got = withContext(Dispatchers.IO) { vm.obd.use { it.readAll(defs) } } ?: return
-                vm.obd.publish(got)
-                got.forEach { (id, v) -> values[id] = v }
-            }
-            read(hot)
-            for (chunk in rest.groupBy { it.request to it.header }.values.chunked(4)) {
-                read(chunk.flatten())
-                read(hot)
-            }
-            cycle++
-            delay(50)
-        } } finally { vm.obd.watchers.decrementAndGet() }
-    }
 
     Column(Modifier.fillMaxSize()) {
         Row(

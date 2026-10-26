@@ -19,12 +19,6 @@ object DashGauges {
     /** Lus moins souvent (varient peu). */
     val SLOW_IDS = setOf("std2F", "std33", "std5C")
 
-    /** Données à lire pour un tableau de bord : PIDs standard supportés + données du modèle de même identifiant. */
-    fun defs(ids: List<String>, sup: Set<Int>, model: List<PidDef>): List<PidDef> =
-        ids.mapNotNull { id ->
-            StdPids.all.find { it.id == id }?.takeIf { StdPids.pidNumber(it) in sup } ?: model.find { it.id == id }
-        }
-
     const val MISSING = "Non fourni par le véhicule"
 
     private const val BARO_DEFAULT_KPA = 101.3

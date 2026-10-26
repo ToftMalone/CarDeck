@@ -98,10 +98,8 @@ class TripService : Service() {
         val repo = app.repo
         val obd = app.obd
         repo.recoverUnfinished()
-        var engineOffSince = 0L
         var lostSince = 0L
         var cycle = 0
-        var lastRecordAt = 0L
         while (scope.isActive) {
             val v = repo.active
             val adapter = v?.adapter
@@ -126,7 +124,7 @@ class TripService : Service() {
                     continue
                 }
             }
-            val snap = obd.use { e -> Triple(e.rpm(), e.speed(), e.voltage()) }
+            val snap = obd.use { e -> e.rpm() to e.speed() }
             if (snap == null) {
                 // Plus de réponse du boîtier : on ne trace pas sans données moteur.
                 if (recorder != null) {
@@ -137,55 +135,77 @@ class TripService : Service() {
                 continue
             }
             lostSince = 0L
-            val (rpm, speed, volt) = snap
-            obd.voltage.value = volt
+            val (rpm, speed) = snap
             obd.ecuOnline.value = rpm != null
-            obd.publish(listOfNotNull(rpm?.let { "std0C" to it }, speed?.let { "std0D" to it.toDouble() }, volt?.let { "elm_volt" to it }))
-            val engineOn = rpm != null && rpm > 300
-            if (engineOn) {
-                engineOffSince = 0L
-                if (recorder == null) startTrip(v.id)
-                recorder?.onObdSpeed(speed)
-            } else if (recorder != null) {
-                // Régime à 0 : fin immédiate du trajet. Calculateur muet : courte tolérance (lecture ratée).
-                if (rpm != null) endTrip()
-                else {
-                    if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
-                    if (System.currentTimeMillis() - engineOffSince > NO_ANSWER_MS) endTrip()
-                }
+            obd.publish(listOfNotNull(rpm?.let { "std0C" to it }, speed?.let { "std0D" to it.toDouble() }))
+            onEngine(v.id, rpm, speed)
+            if (rpm == null) {
+                // Pas de réponse du moteur : lecture ratée pendant un trajet (on réessaie vite), ou contact coupé.
+                if (recorder != null) { delay(300); continue }
+                status("${v.nickname} · boîtier connecté, contact coupé")
+                delay(5_000)
+                continue
             }
-            // Historique : toutes les données déclarées par le véhicule + PIDs du modèle + tension du boîtier.
-            recorder?.let { rec2 ->
-                if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
-                val sup = obd.supported.value.orEmpty()
-                // Priorité aux données qui changent vite (régime, vitesse, turbo, charge…) ; le reste un tour sur 4, les lentes un sur 6.
-                val pids = (StdPids.forSupported(sup) + v.template.pids).filter {
-                    when {
-                        it.slow -> cycle % 6 == 0
-                        it.id in StdPids.FAST -> true
-                        else -> cycle % 4 == 0
-                    }
-                }
-                val now = System.currentTimeMillis()
-                // Un écran lit déjà les données en continu : on enregistre ses mesures récentes au lieu de monopoliser le boîtier
-                // (sinon l'affichage ralentit pendant les trajets).
-                val values = if (obd.watchers.get() > 0) obd.measuredSince(lastRecordAt) else obd.use { e -> e.readAll(pids) }
-                lastRecordAt = now
-                if (values != null) {
-                    rec2.addSamples(now, values + listOfNotNull(volt?.let { "elm_volt" to it }))
-                    obd.publish(values)
-                }
-                cycle++
-            }
+            readEverything(v, cycle++)
             val r = recorder
-            status(
-                when {
-                    r != null -> "Trajet en cours · ${fr(r.distanceKm, 1)} km"
-                    rpm != null -> "${v.nickname} · contact mis, moteur arrêté"
-                    else -> "${v.nickname} · boîtier connecté, véhicule à l'arrêt"
-                },
-            )
-            delay(if (recorder != null) 300 else 10_000)
+            status(if (r != null) "Trajet en cours · ${fr(r.distanceKm, 1)} km" else "${v.nickname} · contact mis, moteur arrêté")
+            delay(30)
+        }
+    }
+
+    private var engineOffSince = 0L
+
+    /** Démarrage / fin automatique du trajet selon le régime. Renvoie true si le moteur tourne. */
+    private fun onEngine(vehicleId: Long, rpm: Double?, speed: Int?): Boolean {
+        val engineOn = rpm != null && rpm > 300
+        if (engineOn) {
+            engineOffSince = 0L
+            if (recorder == null) startTrip(vehicleId)
+            recorder?.onObdSpeed(speed)
+        } else if (recorder != null) {
+            // Régime à 0 : fin immédiate du trajet. Calculateur muet : courte tolérance (lecture ratée).
+            if (rpm != null) endTrip()
+            else {
+                if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
+                if (System.currentTimeMillis() - engineOffSince > NO_ANSWER_MS) endTrip()
+            }
+        }
+        return engineOn
+    }
+
+    /**
+     * Lecture permanente de toutes les données (contact mis, écran ouvert ou non), publiées pour les écrans et
+     * enregistrées pendant un trajet. Voie rapide : régime, vitesse, MAP, charge et les données affichées à l'écran
+     * sont relus entre chaque paquet de 4 requêtes. Les données lentes (compteurs, kilométrage, huile, carburant…)
+     * ne sont relues qu'un tour sur 6 : elles ne bougent presque pas et certaines coûtent jusqu'à 1,2 s.
+     */
+    private suspend fun readEverything(v: com.cardeck.app.data.VehicleProfile, cycle: Int) {
+        val obd = cardeck.obd
+        if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
+        val sup = obd.supported.value.orEmpty()
+        val all = (StdPids.forSupported(sup) + v.template.pids).filter { !it.slow || cycle % 6 == 0 }
+        val hotIds = HOT_IDS + obd.focusIds
+        val hot = all.filter { it.id in hotIds && !it.slow && it.can == null && it.header == null }
+        val rest = all.filter { it !in hot }
+
+        // Lit un paquet, le publie et l'enregistre ; false si la liaison est perdue (le tour s'arrête).
+        suspend fun read(defs: List<com.cardeck.app.data.PidDef>, volt: Boolean = false): Boolean {
+            if (defs.isEmpty() && !volt) return true
+            val now = System.currentTimeMillis()
+            val values = obd.use { e -> e.readAll(defs) + listOfNotNull(if (volt) e.voltage()?.let { "elm_volt" to it } else null) } ?: return false
+            values.firstOrNull { it.first == "elm_volt" }?.let { obd.voltage.value = it.second }
+            obd.publish(values)
+            recorder?.addSamples(now, values)
+            // Régime relu dans la voie rapide : le trajet s'arrête dès que le moteur est coupé, sans attendre la fin du tour.
+            val rpm = values.firstOrNull { it.first == "std0C" }?.second
+            if (rpm != null) onEngine(v.id, rpm, values.firstOrNull { it.first == "std0D" }?.second?.toInt())
+            return true
+        }
+
+        if (!read(hot, volt = true)) return
+        for (chunk in rest.groupBy { it.request to it.header }.values.chunked(4)) {
+            if (!read(chunk.flatten())) return
+            if (!read(hot)) return
         }
     }
 
@@ -207,6 +227,9 @@ class TripService : Service() {
 
         /** Délai sans réponse du moteur avant de clore le trajet. */
         private const val NO_ANSWER_MS = 3_000L
+
+        /** Relues entre chaque paquet de données : ce qui change le plus vite. */
+        private val HOT_IDS = setOf("std0C", "std0D", "std0B", "std04")
 
         /** État du suivi pour l'interface (null = service arrêté). */
         val live = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)

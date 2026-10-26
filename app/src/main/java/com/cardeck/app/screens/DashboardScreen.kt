@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.cardeck.app.AppViewModel
 import com.cardeck.app.data.DashGauges
-import com.cardeck.app.data.StdPids
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
@@ -49,14 +48,8 @@ fun DashboardScreen(vm: AppViewModel) {
     val sport = vm.dashSport
     val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
 
-    // Lecture en continu des seules données du tableau de bord affiché (rafraîchissement rapide).
-    LaunchedEffect(connected, sport) {
-        if (!connected) return@LaunchedEffect
-        vm.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport }) { sup ->
-            val tpl = vm.repo.active?.template
-            DashGauges.defs(ids + if (sport) tpl?.dashSport.orEmpty() else emptyList(), sup, tpl?.pids.orEmpty())
-        }
-    }
+    // Toutes les données sont lues en permanence par le service ; celles du tableau de bord affiché passent en priorité.
+    LaunchedEffect(sport) { vm.obd.focus((ids + if (sport) v.template.dashSport else emptyList()).toSet()) }
 
     Column(Modifier.fillMaxSize()) {
         Row(

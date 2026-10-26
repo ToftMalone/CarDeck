@@ -28,8 +28,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.cardeck.app.data.DashGauges
-import com.cardeck.app.data.StdPids
-import com.cardeck.app.data.fr
 import com.cardeck.app.service.TripService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -168,10 +166,8 @@ internal class DashCarScreen(ctx: CarContext, private val sport: Boolean, privat
 
     override suspend fun whileVisible() {
         val ids = if (sport) DashGauges.SPORT_IDS else DashGauges.STANDARD_IDS
-        app.obd.watch(slow = { it.id in DashGauges.SLOW_IDS }, withVolt = { !sport }) { sup ->
-            val tpl = vm.repo.active?.template
-            DashGauges.defs(ids + if (sport) tpl?.dashSport.orEmpty() else emptyList(), sup, tpl?.pids.orEmpty())
-        }
+        // Toutes les données sont lues en permanence par le service ; celles du tableau affiché passent en priorité.
+        app.obd.focus((ids + if (sport) active?.template?.dashSport.orEmpty() else emptyList()).toSet())
     }
 
     override suspend fun snapshot(): Any? = tiles().map { it.title to it.text }

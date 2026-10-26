@@ -109,7 +109,7 @@ internal class ObdLinkCarScreen(ctx: CarContext) : CarScreen(ctx) {
 
 /** Valeurs d'une catégorie, lues en continu tant que l'écran est affiché. */
 internal class ObdValuesCarScreen(ctx: CarContext, private val title: String, private val defs: List<PidDef>) : CarScreen(ctx) {
-    override suspend fun whileVisible() = app.obd.watch { defs }
+    override suspend fun whileVisible() = app.obd.focus(defs.map { it.id }.toSet())
 
     override suspend fun snapshot(): Any? = defs.map { app.obd.live.value[it.id] }
 
