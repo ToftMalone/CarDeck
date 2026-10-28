@@ -53,6 +53,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
         run: ./gradlew :app:assembleRelease -PappVersion=${{ steps.v.outputs.version }} --console=plain
 
       - name: Contrôle de l'APK

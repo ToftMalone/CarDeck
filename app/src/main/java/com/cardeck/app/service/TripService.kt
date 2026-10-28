@@ -57,6 +57,7 @@ class TripService : Service() {
         live.value = null
         recorder?.finish()
         recorder = null
+        recording = false
         scope.cancel()
         super.onDestroy()
     }
@@ -214,6 +215,7 @@ class TripService : Service() {
     private fun startTrip(vehicleId: Long) {
         if (!withLocation && Perms.locationOk(this)) goForeground("Trajet en cours")
         recorder = TripRecorder(this, cardeck.repo, vehicleId).also { it.begin() }
+        recording = true
     }
 
     private fun endTrip() {
@@ -221,6 +223,7 @@ class TripService : Service() {
             lastNote.value = if (saved) "Dernier trajet enregistré · ${fr(km, 1)} km" else "Dernier trajet trop court (moins de 200 m) : non enregistré"
         }
         recorder = null
+        recording = false
     }
 
     companion object {
@@ -235,6 +238,10 @@ class TripService : Service() {
 
         /** État du suivi pour l'interface (null = service arrêté). */
         val live = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
+        /** Un trajet est en cours d'enregistrement. */
+        @Volatile var recording = false
+            private set
 
         /** Issue du dernier trajet (enregistré ou trop court). */
         val lastNote = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)

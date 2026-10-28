@@ -1,5 +1,7 @@
 package com.cardeck.app.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +26,8 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -127,6 +131,7 @@ fun SettingsScreen(vm: AppViewModel) {
                     }
                 }
             }
+            BackupSection(vm)
             AppSection(vm)
         }
     }
@@ -153,6 +158,53 @@ fun SettingsScreen(vm: AppViewModel) {
             confirmButton = { TextButton({ toDelete = null; vm.deleteVehicle(v.id) }) { T("Supprimer", 14, c.e, 600) } },
             dismissButton = { TextButton({ toDelete = null }) { T("Annuler", 14, c.p, 500) } },
         )
+    }
+}
+
+/** Sauvegarde chiffrée de toutes les données, et restauration (remplace les données actuelles). */
+@Composable
+private fun BackupSection(vm: AppViewModel) {
+    val c = Cd.c
+    var toRestore by remember { mutableStateOf<android.net.Uri?>(null) }
+    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri -> uri?.let { vm.backupTo(it) } }
+    val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> toRestore = uri }
+    val busy = vm.backupBusy
+    SectionLabel("Sauvegarde")
+    Group {
+        BackupRow(Icons.Rounded.Lock, "Sauvegarder les données", "Véhicules, trajets, diagnostics, codages d'origine et réglages, dans un fichier chiffré", busy == null) {
+            save.launch(vm.backupName())
+        }
+        BackupRow(Icons.Rounded.Restore, "Restaurer une sauvegarde", "Remplace toutes les données actuelles", busy == null) {
+            open.launch(arrayOf("*/*"))
+        }
+    }
+    T(
+        busy ?: ("Le fichier est chiffré (AES-256) : seule CarDeck peut le relire." +
+            if (com.cardeck.app.data.Backup.official) "" else " Version de développement : clé de test, réservée aux essais."),
+        12, if (busy != null) c.p else c.onv, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), lineHeight = 16,
+    )
+
+    toRestore?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { toRestore = null },
+            containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+            title = { T("Restaurer cette sauvegarde ?", 22, lineHeight = 28) },
+            text = { T("Toutes les données actuelles (véhicules, trajets, diagnostics, réglages) seront remplacées par celles de la sauvegarde.", 14, c.onv, lineHeight = 20) },
+            confirmButton = { TextButton({ toRestore = null; vm.restoreFrom(uri) }) { T("Restaurer", 14, c.e, 600) } },
+            dismissButton = { TextButton({ toRestore = null }) { T("Annuler", 14, c.p, 500) } },
+        )
+    }
+}
+
+@Composable
+private fun BackupRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, enabled: Boolean, onClick: () -> Unit) {
+    val c = Cd.c
+    Row(
+        Modifier.fillMaxWidth().background(c.sf1).clickable(enabled = enabled, onClick = onClick).heightIn(min = 64.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Ico(icon, 22, if (enabled) c.p else c.onv)
+        Column(Modifier.weight(1f)) { T(title, 16, if (enabled) c.on else c.onv); T(sub, 13, c.onv, lineHeight = 18) }
     }
 }
 

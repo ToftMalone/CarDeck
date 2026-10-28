@@ -8,6 +8,9 @@ import com.cardeck.app.ui.ThemeMode
 class Prefs(ctx: Context) {
     private val sp = ctx.getSharedPreferences("cardeck", Context.MODE_PRIVATE)
 
+    /** Toutes les préférences, pour la sauvegarde et la restauration. */
+    internal val raw get() = sp
+
     var onboarded: Boolean
         get() = sp.getBoolean("onboarded", false)
         set(v) = sp.edit().putBoolean("onboarded", v).apply()

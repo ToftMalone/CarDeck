@@ -1,3 +1,5 @@
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,6 +21,17 @@ if (isReleaseBuild && releaseVersion == null) {
 // Signature de la release : fichier de clé et mots de passe fournis hors dépôt (-P… ou variables d'environnement).
 fun signingProp(name: String): String? = providers.gradleProperty(name).orNull ?: System.getenv(name)
 
+// Clé des sauvegardes chiffrées : dérivée d'un secret fourni hors dépôt (BACKUP_KEY), seule sa dérivée est intégrée à l'APK.
+// Sans ce secret (versions de développement), les sauvegardes utilisent une clé de test ; une release l'exige.
+val backupSecret = signingProp("BACKUP_KEY")?.takeIf { it.isNotBlank() }
+if (isReleaseBuild && backupSecret == null) {
+    throw GradleException("Build release refusé : secret BACKUP_KEY manquant (clé des sauvegardes chiffrées).")
+}
+val backupKeyHex = backupSecret?.let { secret ->
+    MessageDigest.getInstance("SHA-256").digest("CarDeck sauvegarde v1\u0000$secret".toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+} ?: ""
+
 android {
     namespace = "com.cardeck.app"
     compileSdk = 35
@@ -29,6 +42,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1"
+        buildConfigField("String", "BACKUP_KEY", "\"$backupKeyHex\"")
     }
 
     signingConfigs {

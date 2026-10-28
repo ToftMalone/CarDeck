@@ -517,6 +517,68 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- Trajets ----
     var tripFilter by mutableStateOf("all")
 
+    // ---- Sauvegarde ----
+    /** Opération en cours (« Sauvegarde… », « Restauration… »), null sinon. */
+    var backupBusy by mutableStateOf<String?>(null)
+        private set
+
+    /** Nom proposé pour le fichier de sauvegarde. */
+    fun backupName(): String = "CarDeck-" + java.text.SimpleDateFormat("yyyy-MM-dd-HHmm", java.util.Locale.FRANCE).format(java.util.Date()) + ".cdbak"
+
+    fun backupTo(uri: android.net.Uri) {
+        if (backupBusy != null) return
+        backupBusy = "Sauvegarde en cours…"
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val out = ctx.contentResolver.openOutputStream(uri, "wt") ?: error("Fichier inaccessible")
+                    com.cardeck.app.data.Backup.write(ctx, repo, out)
+                }
+            }
+            backupBusy = null
+            r.onSuccess { showSnack("Sauvegarde chiffrée enregistrée · ${it.vehicles} véhicule${if (it.vehicles > 1) "s" else ""}, ${it.trips} trajet${if (it.trips > 1) "s" else ""}") }
+                .onFailure {
+                    runCatching { android.provider.DocumentsContract.deleteDocument(ctx.contentResolver, uri) }
+                    showSnack("Sauvegarde impossible : ${it.message}")
+                }
+        }
+    }
+
+    fun restoreFrom(uri: android.net.Uri) {
+        if (backupBusy != null) return
+        if (com.cardeck.app.service.TripService.recording) { showSnack("Trajet en cours : restaurez une fois le moteur arrêté"); return }
+        backupBusy = "Restauration en cours…"
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val inp = ctx.contentResolver.openInputStream(uri) ?: error("Fichier inaccessible")
+                    com.cardeck.app.data.Backup.read(ctx, repo, inp)
+                }
+            }
+            backupBusy = null
+            r.onSuccess { s ->
+                themeMode = prefs.themeMode
+                palette = prefs.palette
+                homeOrder = prefs.homeOrder
+                dashSport = prefs.dashMode == "sport"
+                obd.supported.value = null
+                if (repo.vehicles.value.isNotEmpty()) {
+                    prefs.onboarded = true
+                    onboarded = true
+                    repo.active?.let { repo.select(it.id) }
+                    stack.clear(); stack.add(Screen.Home); stack.add(Screen.Settings)
+                } else {
+                    prefs.onboarded = false
+                    onboarded = false
+                    stack.clear(); stack.add(Screen.Welcome)
+                }
+                showSnack("Sauvegarde restaurée · ${s.vehicles} véhicule${if (s.vehicles > 1) "s" else ""}, ${s.trips} trajet${if (s.trips > 1) "s" else ""}")
+            }.onFailure {
+                showSnack(if (it is com.cardeck.app.data.BackupCrypto.BadBackup) it.message ?: "Sauvegarde illisible" else "Restauration impossible : ${it.message}")
+            }
+        }
+    }
+
     // ---- Snackbar ----
     var snack by mutableStateOf<String?>(null)
         private set

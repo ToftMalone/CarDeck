@@ -13,7 +13,10 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, 3) {
+/** Version du schéma de la base (sauvegardes comprises). */
+const val DB_VERSION = 3
+
+private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, DB_VERSION) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -80,6 +83,16 @@ class Repo(ctx: Context) {
         get() = _vehicles.value.find { it.id == _activeId.value } ?: _vehicles.value.firstOrNull()
 
     private fun bump() { changes.value = changes.value + 1 }
+
+    /** Accès direct à la base, pour la sauvegarde et la restauration. */
+    internal val sql: SQLiteDatabase get() = db
+
+    /** Après une restauration : profils, véhicule actif et écrans rechargés. */
+    fun afterRestore() {
+        reloadVehicles()
+        _activeId.value = prefs.activeVehicleId
+        bump()
+    }
 
     // ---- Véhicules ----
 
