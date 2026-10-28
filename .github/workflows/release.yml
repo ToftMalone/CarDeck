@@ -1,7 +1,8 @@
 name: Release
 
 # Publie une release signée à chaque tag de version (v0.1, v0.2…).
-# Secrets requis : KEYSTORE_BASE64, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD.
+# Secrets requis (Settings → Secrets and variables → Actions → onglet Secrets → Repository secrets) :
+# KEYSTORE_BASE64, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD, BACKUP_KEY.
 # Les notes de la version sont lues dans release-notes/<version>.md (journal des nouveautés de l'application).
 on:
   push:
@@ -40,8 +41,10 @@ jobs:
       - name: Clé de signature
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
         run: |
           test -n "$KEYSTORE_BASE64" || { echo "Secret KEYSTORE_BASE64 manquant"; exit 1; }
+          test -n "$BACKUP_KEY" || { echo "::error::Secret BACKUP_KEY vide ou introuvable : il doit être un « Repository secret » (pas une variable, ni un secret d'environnement, Codespaces ou Dependabot)"; exit 1; }
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: Tests
