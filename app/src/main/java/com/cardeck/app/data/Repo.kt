@@ -14,7 +14,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** Version du schéma de la base (sauvegardes comprises). */
-const val DB_VERSION = 3
+const val DB_VERSION = 4
 
 private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, DB_VERSION) {
     override fun onConfigure(db: SQLiteDatabase) {
@@ -39,12 +39,21 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         )
         createCodingTables(db)
         createSampleTables(db)
+        addFuelColumns(db)
         db.execSQL("CREATE TABLE scan_codes(scan_id INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE, code TEXT NOT NULL, status TEXT NOT NULL, ecu TEXT NOT NULL)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) createCodingTables(db)
         if (oldVersion < 3) createSampleTables(db)
+        if (oldVersion < 4) addFuelColumns(db)
+    }
+
+    /** Carburant et prix au litre retenus pour le coût du trajet. */
+    private fun addFuelColumns(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE trips ADD COLUMN fuel_type TEXT")
+        db.execSQL("ALTER TABLE trips ADD COLUMN fuel_price REAL")
+        db.execSQL("ALTER TABLE trips ADD COLUMN fuel_price_info TEXT")
     }
 
     private fun createSampleTables(db: SQLiteDatabase) {
@@ -200,7 +209,22 @@ class Repo(ctx: Context) {
     private fun tripFrom(c: Cursor) = Trip(
         c.long("id"), c.long("vehicle_id"), c.long("start"), c.long("end_t"), c.dbl("distance_km"), c.dbl("avg_kmh"), c.dbl("max_kmh"),
         c.str("from_label") ?: "", c.str("to_label") ?: "",
+        FuelType.of(c.str("fuel_type")), c.getColumnIndexOrThrow("fuel_price").let { if (c.isNull(it)) null else c.getDouble(it) }, c.str("fuel_price_info"),
     )
+
+    /** Carburant du véhicule : choisi par l'utilisateur, sinon celui conseillé par le modèle. */
+    fun fuelFor(vehicleId: Long): FuelType =
+        prefs.fuel(vehicleId) ?: _vehicles.value.find { it.id == vehicleId }?.template?.defaultFuel ?: FuelType.E10
+
+    fun setFuel(vehicleId: Long, f: FuelType) = prefs.setFuel(vehicleId, f)
+
+    /** Prix du carburant retenu pour un trajet. */
+    fun setTripFuel(id: Long, fuel: FuelType, price: FuelPrice) {
+        db.update("trips", ContentValues().apply {
+            put("fuel_type", fuel.name); put("fuel_price", price.perLiter); put("fuel_price_info", price.source)
+        }, "id=?", arrayOf(id.toString()))
+        bump()
+    }
 
     /** Trajets terminés du véhicule, du plus récent au plus ancien. */
     fun trips(vehicleId: Long): List<Trip> =

@@ -43,6 +43,11 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("lastGreeting", -1)
         set(v) = sp.edit().putInt("lastGreeting", v).apply()
 
+    /** Carburant utilisé par un véhicule (coût des trajets), null = celui conseillé par le modèle. */
+    fun fuel(vehicleId: Long): FuelType? = FuelType.of(sp.getString("fuel_$vehicleId", null))
+
+    fun setFuel(vehicleId: Long, f: FuelType) = sp.edit().putString("fuel_$vehicleId", f.name).apply()
+
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)
         set(v) = sp.edit().putLong("activeVehicle", v).apply()

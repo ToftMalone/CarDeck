@@ -47,6 +47,10 @@ data class Trip(
     val maxKmh: Double,
     val from: String,
     val to: String,
+    /** Carburant et prix au litre (€) retenus pour le coût, avec leur source ; null tant que le prix n'a pas été obtenu. */
+    val fuelType: FuelType? = null,
+    val fuelPrice: Double? = null,
+    val fuelPriceInfo: String? = null,
 )
 
 enum class DtcStatus(val label: String) { Stored("Mémorisé"), Pending("En attente"), Permanent("Permanent") }

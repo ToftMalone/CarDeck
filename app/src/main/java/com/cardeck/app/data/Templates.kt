@@ -61,6 +61,8 @@ data class VehicleTemplate(
     val engine: String,
     val power: String,
     val fuel: String,
+    /** Carburant proposé par défaut pour le coût des trajets. */
+    val defaultFuel: FuelType = FuelType.E10,
     val protocol: String,
     /** PIDs spécifiques au véhicule, affichés au tableau de bord. */
     val pids: List<PidDef>,
@@ -131,6 +133,8 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     engine = "K14C 1.4 BoosterJet",
     power = "140 ch",
     fuel = "Essence",
+    // K14C turbo : indice d'octane 95 minimum, SP98 conseillé.
+    defaultFuel = FuelType.SP98,
     protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
     elmProtocol = "6",
     // Rétro-ingénierie ZC33S : lecture seule (liste blanche des services de lecture).

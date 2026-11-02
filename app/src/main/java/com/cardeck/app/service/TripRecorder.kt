@@ -8,6 +8,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Looper
 import com.cardeck.app.Perms
+import com.cardeck.app.data.FuelPrices
 import com.cardeck.app.data.Repo
 import com.cardeck.app.data.TripPoint
 import java.util.Locale
@@ -17,7 +18,7 @@ import java.util.concurrent.Executors
  * Enregistre un trajet : points GPS, distance, vitesses et données du moteur
  * (le tracé GPS est enregistré à part : pas de données GPS ni d'accélérations).
  */
-class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: Long) {
+class TripRecorder(private val ctx: Context, private val repo: Repo, private val vehicleId: Long) {
     private val io = Executors.newSingleThreadExecutor()
     private val lm = ctx.getSystemService(LocationManager::class.java)
     val start = System.currentTimeMillis()
@@ -110,6 +111,8 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, vehicleId: 
                 val max = maxOf(ptsMax, repo.points(tripId).maxOfOrNull { it.speedKmh } ?: 0.0)
                 repo.finishTrip(tripId, end, dist, if (hours > 0) dist / hours else 0.0, max, from, to)
                 onDone(true, dist)
+                // Coût : prix du carburant du jour, près de l'arrivée (sinon obtenu à la première ouverture du trajet).
+                runCatching { repo.trip(tripId)?.let { FuelPrices.priceTrip(repo, it, repo.fuelFor(vehicleId)) } }
             }
         }
         io.shutdown()

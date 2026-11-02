@@ -15,6 +15,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.foundation.background
 import com.cardeck.app.ui.Spinner
+import com.cardeck.app.data.FuelType
+import com.cardeck.app.data.FuelPrices
+import com.cardeck.app.data.TripFuel
 import com.cardeck.app.export.TripExport
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -277,6 +280,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                             }
                         }
                     }
+                    FuelCards(vm, t, samples) { trip = it }
                     EngineHistory(t, samples, replayT)
                 }
             }
@@ -291,6 +295,88 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
             text = { T("Le tracé et les données de ce trajet seront définitivement supprimés.", 14, c.onv, lineHeight = 20) },
             confirmButton = { TextButton({ confirmDelete = false; vm.repo.deleteTrip(id); vm.back() }) { T("Supprimer", 14, c.e, 600) } },
             dismissButton = { TextButton({ confirmDelete = false }) { T("Annuler", 14, c.p, 500) } },
+        )
+    }
+}
+
+/** Consommation moyenne et coût du trajet (prix du carburant en temps réel, fixé à la fin du trajet). */
+@Composable
+private fun FuelCards(vm: AppViewModel, t: Trip, samples: Map<String, List<Sample>>, onTrip: (Trip) -> Unit) {
+    val c = Cd.c
+    val fuel = t.fuelType ?: vm.repo.fuelFor(t.vehicleId)
+    val liters = remember(samples, fuel) { TripFuel.liters(samples, fuel) }
+    var loading by remember(t.id) { mutableStateOf(false) }
+    var failed by remember(t.id) { mutableStateOf(false) }
+    var choose by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    fun price(f: FuelType) {
+        loading = true
+        failed = false
+        scope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { FuelPrices.priceTrip(vm.repo, t, f) } }
+            loading = false
+            r.onSuccess(onTrip).onFailure { failed = true }
+        }
+    }
+    LaunchedEffect(t.id) { if (t.fuelPrice == null) price(fuel) }
+
+    val conso = if (liters != null && t.distanceKm > 0.5) liters / t.distanceKm * 100 else null
+    val cost = t.fuelPrice?.let { p -> liters?.let { it * p } }
+    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).padding(12.dp)) {
+            T("Conso. moyenne", 12, c.onv)
+            T(conso?.let { "${fr(it, 1)} L/100 km" } ?: "—", 18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24)
+            T(liters?.let { "${fr(it, 1)} L consommés" } ?: "Débit d'air non enregistré", 11, c.onv, lineHeight = 14)
+        }
+        Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).clickable { if (failed) price(fuel) else choose = true }.padding(12.dp)) {
+            T("Coût du trajet", 12, c.onv)
+            T(
+                when {
+                    cost != null -> "${fr(cost, 2)} €"
+                    loading -> "…"
+                    else -> "—"
+                },
+                18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24,
+            )
+            T(
+                when {
+                    loading -> "Recherche du prix…"
+                    failed -> "Prix indisponible · toucher pour réessayer"
+                    t.fuelPrice != null -> "${fuel.label} · ${fr(t.fuelPrice, 3)} €/L"
+                    else -> fuel.label
+                },
+                11, if (failed) c.e else c.onv, lineHeight = 14,
+            )
+        }
+    }
+
+    if (choose) {
+        AlertDialog(
+            onDismissRequest = { choose = false },
+            containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+            title = { T("Carburant", 22, lineHeight = 28) },
+            text = {
+                Column {
+                    t.fuelPriceInfo?.let { T("Prix actuel : $it (prix-carburants.gouv.fr).", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 8.dp)) }
+                    FuelType.entries.forEach { f ->
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
+                                choose = false
+                                vm.repo.setFuel(t.vehicleId, f)
+                                price(f)
+                            }.padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Box(Modifier.size(20.dp).clip(CircleShape).border(2.dp, if (f == fuel) c.p else c.onv, CircleShape), contentAlignment = Alignment.Center) {
+                                if (f == fuel) Box(Modifier.size(10.dp).clip(CircleShape).background(c.p))
+                            }
+                            T(f.label, 16)
+                        }
+                    }
+                    T("Le choix s'applique aux prochains trajets du véhicule. Le prix est relevé à nouveau, au tarif du moment.", 12, c.onv, lineHeight = 16, modifier = Modifier.padding(top = 8.dp))
+                }
+            },
+            confirmButton = { TextButton({ choose = false }) { T("Fermer", 14, c.p, 500) } },
         )
     }
 }
