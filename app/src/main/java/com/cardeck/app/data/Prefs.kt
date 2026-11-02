@@ -48,6 +48,22 @@ class Prefs(ctx: Context) {
 
     fun setFuel(vehicleId: Long, f: FuelType) = sp.edit().putString("fuel_$vehicleId", f.name).apply()
 
+    /** Réveil d'un véhicule (Bluetooth coché + appareil « adresse|nom », Android Auto coché). */
+    fun wake(vehicleId: Long): WakeConfig {
+        val dev = sp.getString("wakeBtDevice_$vehicleId", null)?.split('|', limit = 2)
+        return WakeConfig(
+            bluetooth = sp.getBoolean("wakeBt_$vehicleId", false),
+            btAddress = dev?.getOrNull(0), btName = dev?.getOrNull(1),
+            androidAuto = sp.getBoolean("wakeAa_$vehicleId", false),
+        )
+    }
+
+    fun setWake(vehicleId: Long, w: WakeConfig) = sp.edit()
+        .putBoolean("wakeBt_$vehicleId", w.bluetooth)
+        .putBoolean("wakeAa_$vehicleId", w.androidAuto)
+        .putString("wakeBtDevice_$vehicleId", w.btAddress?.let { "$it|${w.btName ?: it}" })
+        .apply()
+
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)
         set(v) = sp.edit().putLong("activeVehicle", v).apply()

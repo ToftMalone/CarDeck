@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -45,6 +46,7 @@ import com.cardeck.app.AppViewModel
 import com.cardeck.app.BuildConfig
 import com.cardeck.app.Screen
 import com.cardeck.app.data.VehicleProfile
+import com.cardeck.app.data.WakeConfig
 import com.cardeck.app.ui.BackBar
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Field
@@ -99,6 +101,8 @@ fun SettingsScreen(vm: AppViewModel) {
                 }
             }
             T("Le véhicule sélectionné est utilisé partout : tableau de bord, diagnostic, trajets et connexion OBD2.", 12, c.onv, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), lineHeight = 16)
+
+            WakeSection(vm, vehicles)
 
             SectionLabel("Apparence")
             Group {
@@ -159,6 +163,108 @@ fun SettingsScreen(vm: AppViewModel) {
             dismissButton = { TextButton({ toDelete = null }) { T("Annuler", 14, c.p, 500) } },
         )
     }
+}
+
+/** Sortie de veille par véhicule : Bluetooth (coché + appareil choisi) et / ou Android Auto (coché). */
+@Composable
+private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
+    val c = Cd.c
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val changes by vm.repo.changes.collectAsState()
+    var editing by remember { mutableStateOf<VehicleProfile?>(null) }
+    var battery by remember { mutableStateOf(com.cardeck.app.service.Wake.batteryOk(ctx)) }
+    val batteryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { battery = com.cardeck.app.service.Wake.batteryOk(ctx) }
+    fun label(w: WakeConfig) = listOfNotNull(
+        if (w.btReady) "Bluetooth « ${w.btName} »" else if (w.bluetooth) "Bluetooth (appareil à choisir)" else null,
+        if (w.androidAuto) "Android Auto" else null,
+    ).joinToString(" ou ").ifEmpty { "Jamais : je lance CarDeck moi-même" }
+    SectionLabel("Réveil automatique")
+    Group {
+        vehicles.forEach { v ->
+            val w = remember(v.id, changes) { vm.repo.wake(v.id) }
+            BackupRow(Icons.Rounded.Bluetooth, v.nickname, label(w), true) { editing = v }
+        }
+    }
+    val anyAuto = remember(vehicles, changes) { vehicles.any { vm.repo.wake(it.id).any } }
+    T(
+        "Après un trajet, ou 5 minutes sans rouler (hors de l'application), CarDeck se met en veille, sans notification. " +
+            "Elle en sort quand tu l'ouvres, ou à la connexion cochée ci-dessus." +
+            if (anyAuto && !battery) " Pour cela, l'optimisation de batterie doit être désactivée pour CarDeck : touche ici pour l'autoriser." else "",
+        12, if (anyAuto && !battery) c.e else c.onv, lineHeight = 16,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).then(
+            if (anyAuto && !battery) Modifier.clickable { batteryLauncher.launch(batteryIntent(ctx)) } else Modifier,
+        ),
+    )
+
+    editing?.let { v ->
+        var w by remember(v.id) { mutableStateOf(vm.repo.wake(v.id)) }
+        val devices = remember(v.id) { bondedDevices(ctx).filter { !it.first.equals(v.adapter?.address, ignoreCase = true) } }
+        fun save(n: WakeConfig) {
+            w = n
+            vm.repo.setWake(v.id, n)
+        }
+        AlertDialog(
+            onDismissRequest = { editing = null },
+            containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+            title = { T("Réveil de ${v.nickname}", 22, lineHeight = 28) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    CheckRow("Android Auto", "La voiture a Android Auto : réveil à sa connexion", w.androidAuto) { save(w.copy(androidAuto = it)) }
+                    CheckRow("Bluetooth", "Réveil à la connexion à l'autoradio de la voiture", w.bluetooth) { save(w.copy(bluetooth = it)) }
+                    if (w.bluetooth) {
+                        if (devices.isEmpty()) T("Aucun appareil Bluetooth appairé : appaire d'abord le téléphone à l'autoradio.", 12, c.e, lineHeight = 16, modifier = Modifier.padding(start = 36.dp, top = 4.dp))
+                        devices.forEach { (addr, name) ->
+                            val sel = w.btAddress.equals(addr, ignoreCase = true)
+                            Row(
+                                Modifier.fillMaxWidth().padding(start = 28.dp).clip(RoundedCornerShape(12.dp)).clickable { save(w.copy(btAddress = addr, btName = name)) }
+                                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Box(Modifier.size(20.dp).clip(CircleShape).border(2.dp, if (sel) c.p else c.onv, CircleShape), contentAlignment = Alignment.Center) {
+                                    if (sel) Box(Modifier.size(10.dp).clip(CircleShape).background(c.p))
+                                }
+                                T(name, 15, lineHeight = 20)
+                            }
+                        }
+                    }
+                    if (w.androidAuto) T(
+                        "Android Auto : CarDeck vérifie qu'Android Auto démarre à chaque connexion Bluetooth du téléphone (pendant 3 minutes).",
+                        12, c.onv, lineHeight = 16, modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton({
+                    editing = null
+                    if (w.any && !com.cardeck.app.service.Wake.batteryOk(ctx)) batteryLauncher.launch(batteryIntent(ctx))
+                }) { T("OK", 14, c.p, 600) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun CheckRow(title: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val c = Cd.c
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onChange(!checked) }.padding(vertical = 8.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        androidx.compose.material3.Checkbox(checked, onChange, colors = androidx.compose.material3.CheckboxDefaults.colors(checkedColor = c.p, uncheckedColor = c.onv))
+        Column(Modifier.weight(1f)) { T(title, 16); T(sub, 12, c.onv, lineHeight = 16) }
+    }
+}
+
+@android.annotation.SuppressLint("BatteryLife")
+private fun batteryIntent(ctx: android.content.Context) =
+    android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${ctx.packageName}"))
+
+/** Appareils Bluetooth appairés au téléphone (adresse, nom). */
+@android.annotation.SuppressLint("MissingPermission")
+private fun bondedDevices(ctx: android.content.Context): List<Pair<String, String>> {
+    if (!com.cardeck.app.Perms.bluetoothOk(ctx)) return emptyList()
+    val bt = ctx.getSystemService(android.bluetooth.BluetoothManager::class.java)?.adapter ?: return emptyList()
+    return runCatching { bt.bondedDevices.map { it.address to (it.name ?: it.address) }.sortedBy { it.second.lowercase() } }.getOrDefault(emptyList())
 }
 
 /** Sauvegarde chiffrée de toutes les données, et restauration (remplace les données actuelles). */

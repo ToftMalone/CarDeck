@@ -102,10 +102,10 @@ class TripService : Service() {
         repo.recoverUnfinished()
         var cycle = 0
         while (scope.isActive) {
-            if (quitting) { quitApp(); return }
-            // Lancé sans rouler : arrêt complet après 5 minutes sans trajet, une fois CarDeck quittée.
+            if (sleeping) { sleep(); return }
+            // Lancé (ou réveillé) sans rouler : veille après 5 minutes sans trajet, une fois CarDeck quittée.
             if (recorder != null) idleSince = 0L
-            else if (idleTooLong() && !appVisible()) { quitApp(notify = false); return }
+            else if (idleTooLong() && !appVisible()) { sleep(); return }
             val v = repo.active
             val adapter = v?.adapter
             if (v == null) {
@@ -121,7 +121,7 @@ class TripService : Service() {
             }
             if (obd.connectedAddress != adapter.address || obd.state.value !is ObdState.Connected) {
                 if (recorder != null) linkLost()
-                if (quitting) continue
+                if (sleeping) continue
                 status(if (recorder != null) "Liaison perdue, reconnexion…" else "Recherche de ${adapter.name}…")
                 if (obd.connect(adapter).isFailure) {
                     delay(if (recorder != null) 5_000 else 30_000)
@@ -140,7 +140,7 @@ class TripService : Service() {
             obd.ecuOnline.value = rpm != null
             obd.publish(listOfNotNull(rpm?.let { "std0C" to it }, speed?.let { "std0D" to it.toDouble() }))
             onEngine(v.id, rpm, speed)
-            if (quitting) continue
+            if (sleeping) continue
             if (rpm == null) {
                 // Pas de réponse du moteur : lecture ratée pendant un trajet (on réessaie vite), ou contact coupé.
                 if (recorder != null) { delay(300); continue }
@@ -181,7 +181,7 @@ class TripService : Service() {
     }
 
     /**
-     * Démarrage du trajet dès que le moteur tourne. Fin du trajet (puis arrêt complet de l'application) :
+     * Démarrage du trajet dès que le moteur tourne. Fin du trajet (puis veille) :
      * - calculateur muet pendant [NO_ANSWER_MS] : contact coupé ;
      * - régime à 0 et véhicule immobile pendant [STOPPED_MS] : moteur arrêté, contact mis (un calage suivi d'un redémarrage
      *   ne coupe pas le trajet) ;
@@ -231,7 +231,7 @@ class TripService : Service() {
 
         // Lit un paquet, le publie et l'enregistre ; false si la liaison est perdue (le tour s'arrête).
         suspend fun read(defs: List<com.cardeck.app.data.PidDef>, volt: Boolean = false): Boolean {
-            if (quitting) return false
+            if (sleeping) return false
             if (defs.isEmpty() && !volt) return true
             val now = System.currentTimeMillis()
             val values = obd.use { e -> e.readAll(defs) + listOfNotNull(if (volt) e.voltage()?.let { "elm_volt" to it } else null) } ?: return false
@@ -257,37 +257,25 @@ class TripService : Service() {
         recording = true
     }
 
-    /** Recorder en cours de clôture (attendu avant l'arrêt complet). */
+    /** Recorder en cours de clôture (attendu avant la veille). */
     private var finishing: TripRecorder? = null
-    @Volatile private var quitting = false
+    @Volatile private var sleeping = false
 
-    /** Fin du trajet : il est enregistré, puis l'application s'arrête complètement. */
+    /** Fin du trajet : il est enregistré, puis CarDeck passe en veille. */
     private fun tripOver() {
         endTrip()
-        quitting = true
+        sleeping = true
     }
 
     /**
-     * Arrêt complet, comme « Forcer l'arrêt » : enregistrement terminé, boîtier déconnecté, écrans fermés, processus arrêté.
-     * Le suivi ne reprend qu'à la prochaine ouverture de CarDeck par l'utilisateur.
+     * Veille : trajet enregistré, boîtier déconnecté, service arrêté, sans notification. Réveil : ouverture de CarDeck,
+     * ou connexion au Bluetooth / à Android Auto choisi pour le véhicule (voir [Wake]).
      */
-    private suspend fun quitApp(notify: Boolean = true) {
+    private suspend fun sleep() {
         finishing?.awaitDone(30_000)
         cardeck.obd.disconnect()
-        if (notify) lastNote.value?.let { note ->
-            val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-            getSystemService(NotificationManager::class.java).notify(
-                NOTIF_DONE,
-                NotificationCompat.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_stat_car).setContentTitle("CarDeck arrêté")
-                    .setContentText(note).setAutoCancel(true).setSilent(true).setContentIntent(pi).build(),
-            )
-        }
-        getSystemService(android.app.ActivityManager::class.java).appTasks.forEach { runCatching { it.finishAndRemoveTask() } }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
-        // Service arrêté avant le processus : le système ne le relance pas (START_STICKY).
-        delay(500)
-        android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     private fun endTrip() {
@@ -302,12 +290,11 @@ class TripService : Service() {
     companion object {
         private const val CHANNEL = "vehicle"
         private const val NOTIF_ID = 42
-        private const val NOTIF_DONE = 43
 
         /** Délai sans réponse du moteur avant de clore le trajet. */
         private const val NO_ANSWER_MS = 3_000L
 
-        /** Lancé sans rouler : délai avant l'arrêt complet (une fois CarDeck quittée). */
+        /** Lancé sans rouler : délai avant la veille (une fois CarDeck quittée). */
         private const val IDLE_MS = 5 * 60_000L
 
         /** Régime à 0 et véhicule immobile : délai avant la fin du trajet. */
@@ -329,7 +316,7 @@ class TripService : Service() {
         /** Issue du dernier trajet (enregistré ou trop court). */
         val lastNote = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
-        /** Démarre le suivi si un véhicule existe (uniquement quand l'utilisateur ouvre CarDeck). */
+        /** Démarre le suivi si un véhicule existe (ouverture de CarDeck, ou réveil par Bluetooth / Android Auto). */
         fun start(ctx: Context) {
             if (ctx.cardeck.repo.vehicles.value.isEmpty()) return
             if (Build.VERSION.SDK_INT >= 34 && !Perms.bluetoothOk(ctx) && !Perms.has(ctx, android.Manifest.permission.CHANGE_NETWORK_STATE)) return

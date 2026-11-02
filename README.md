@@ -28,7 +28,7 @@ description, causes possibles et recommandations. Recherche d'un code, effacemen
 et lit les codes défaut de chacun. Le scan prend plus de temps, mais ne laisse rien de côté.
 
 ### 🗺️ Trajets
-Ouvre CarDeck avant de partir : le trajet démarre **tout seul** dès que le moteur tourne, et l'appli s'arrête complètement une fois le trajet terminé (contact coupé, ou moteur arrêté et voiture immobile pendant 1 minute). Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées,
+Le trajet démarre **tout seul** dès que le moteur tourne. Une fois terminé (contact coupé, ou moteur arrêté et voiture immobile pendant 1 minute), CarDeck se met en veille, sans notification. Elle en sort quand tu l'ouvres, ou automatiquement à la connexion Bluetooth à ta voiture et / ou à Android Auto, au choix pour chaque véhicule. Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées,
 vitesses, ainsi que **toutes les données du moteur** relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
 

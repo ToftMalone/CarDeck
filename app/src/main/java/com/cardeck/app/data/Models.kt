@@ -53,6 +53,16 @@ data class Trip(
     val fuelPriceInfo: String? = null,
 )
 
+/**
+ * Sortie de veille de CarDeck pour un véhicule, chaque déclencheur s'active séparément (aucun = ouverture manuelle seulement).
+ * [bluetooth] : coché, avec l'appareil choisi (autoradio de la voiture) ; [androidAuto] : connexion à Android Auto.
+ */
+data class WakeConfig(val bluetooth: Boolean = false, val btAddress: String? = null, val btName: String? = null, val androidAuto: Boolean = false) {
+    /** Bluetooth coché et appareil choisi. */
+    val btReady: Boolean get() = bluetooth && btAddress != null
+    val any: Boolean get() = btReady || androidAuto
+}
+
 enum class DtcStatus(val label: String) { Stored("Mémorisé"), Pending("En attente"), Permanent("Permanent") }
 
 data class FoundCode(val code: String, val status: DtcStatus, val ecu: String)

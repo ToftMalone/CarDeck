@@ -218,6 +218,13 @@ class Repo(ctx: Context) {
 
     fun setFuel(vehicleId: Long, f: FuelType) = prefs.setFuel(vehicleId, f)
 
+    fun wake(vehicleId: Long): WakeConfig = prefs.wake(vehicleId)
+
+    fun setWake(vehicleId: Long, w: WakeConfig) {
+        prefs.setWake(vehicleId, w)
+        bump()
+    }
+
     /** Prix du carburant retenu pour un trajet. */
     fun setTripFuel(id: Long, fuel: FuelType, price: FuelPrice) {
         db.update("trips", ContentValues().apply {
