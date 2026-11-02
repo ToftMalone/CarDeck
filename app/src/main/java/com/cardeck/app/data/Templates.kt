@@ -166,24 +166,7 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     codings = emptyList(),
 )
 
-val KIA_PICANTO_TA = VehicleTemplate(
-    id = "kia-picanto-ta-g3la",
-    brand = "Kia",
-    model = "Picanto 1.0",
-    code = "TA",
-    comingSoon = true,
-    engine = "G3LA 1.0 Kappa MPI",
-    power = "69 ch",
-    fuel = "Essence",
-    protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
-    elmProtocol = "6",
-    // Liste des PIDs Picanto à intégrer (à fournir ultérieurement).
-    pids = emptyList(),
-    // Fonctions de codage Picanto à intégrer (données à fournir).
-    codings = emptyList(),
-)
-
-val TEMPLATES = listOf(SWIFT_SPORT_ZC33S, KIA_PICANTO_TA)
+val TEMPLATES = listOf(SWIFT_SPORT_ZC33S)
 
 /** Retrouve une donnée moteur (standard ou propre à un modèle) par son identifiant. */
 fun pidById(id: String): PidDef? = TEMPLATES.flatMap { it.pids }.find { it.id == id } ?: StdPids.byId(id)

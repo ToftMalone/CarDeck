@@ -102,6 +102,7 @@ class TripService : Service() {
         var lostSince = 0L
         var cycle = 0
         while (scope.isActive) {
+            if (quitting) { quitApp(); return }
             val v = repo.active
             val adapter = v?.adapter
             if (v == null) {
@@ -130,7 +131,7 @@ class TripService : Service() {
                 // Plus de réponse du boîtier : on ne trace pas sans données moteur.
                 if (recorder != null) {
                     if (lostSince == 0L) lostSince = System.currentTimeMillis()
-                    if (System.currentTimeMillis() - lostSince > NO_ANSWER_MS) endTrip()
+                    if (System.currentTimeMillis() - lostSince > NO_ANSWER_MS) contactOff()
                 }
                 delay(1000)
                 continue
@@ -140,6 +141,7 @@ class TripService : Service() {
             obd.ecuOnline.value = rpm != null
             obd.publish(listOfNotNull(rpm?.let { "std0C" to it }, speed?.let { "std0D" to it.toDouble() }))
             onEngine(v.id, rpm, speed)
+            if (quitting) continue
             if (rpm == null) {
                 // Pas de réponse du moteur : lecture ratée pendant un trajet (on réessaie vite), ou contact coupé.
                 if (recorder != null) { delay(300); continue }
@@ -164,11 +166,12 @@ class TripService : Service() {
             if (recorder == null) startTrip(vehicleId)
             recorder?.onObdSpeed(speed)
         } else if (recorder != null) {
-            // Régime à 0 : fin immédiate du trajet. Calculateur muet : courte tolérance (lecture ratée).
-            if (rpm != null) endTrip()
+            // Régime à 0 mais calculateur qui répond : moteur calé, contact toujours mis, le trajet continue.
+            // Calculateur muet : contact coupé, fin du trajet après une courte tolérance (lecture ratée).
+            if (rpm != null) engineOffSince = 0L
             else {
                 if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
-                if (System.currentTimeMillis() - engineOffSince > NO_ANSWER_MS) endTrip()
+                if (System.currentTimeMillis() - engineOffSince > NO_ANSWER_MS) contactOff()
             }
         }
         return engineOn
@@ -193,6 +196,7 @@ class TripService : Service() {
 
         // Lit un paquet, le publie et l'enregistre ; false si la liaison est perdue (le tour s'arrête).
         suspend fun read(defs: List<com.cardeck.app.data.PidDef>, volt: Boolean = false): Boolean {
+            if (quitting) return false
             if (defs.isEmpty() && !volt) return true
             val now = System.currentTimeMillis()
             val values = obd.use { e -> e.readAll(defs) + listOfNotNull(if (volt) e.voltage()?.let { "elm_volt" to it } else null) } ?: return false
@@ -218,7 +222,41 @@ class TripService : Service() {
         recording = true
     }
 
+    /** Recorder en cours de clôture (attendu avant l'arrêt complet). */
+    private var finishing: TripRecorder? = null
+    @Volatile private var quitting = false
+
+    /** Contact coupé pendant un trajet : le trajet se termine et l'application s'arrête complètement. */
+    private fun contactOff() {
+        endTrip()
+        quitting = true
+    }
+
+    /**
+     * Arrêt complet, comme « Forcer l'arrêt » : enregistrement terminé, boîtier déconnecté, écrans fermés, processus arrêté.
+     * Le suivi ne reprend qu'à la prochaine ouverture de CarDeck (ou au redémarrage du téléphone).
+     */
+    private suspend fun quitApp() {
+        finishing?.awaitDone(30_000)
+        cardeck.obd.disconnect()
+        lastNote.value?.let { note ->
+            val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+            getSystemService(NotificationManager::class.java).notify(
+                NOTIF_DONE,
+                NotificationCompat.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_stat_car).setContentTitle("CarDeck arrêté")
+                    .setContentText(note).setAutoCancel(true).setSilent(true).setContentIntent(pi).build(),
+            )
+        }
+        getSystemService(android.app.ActivityManager::class.java).appTasks.forEach { runCatching { it.finishAndRemoveTask() } }
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        // Service arrêté avant le processus : le système ne le relance pas (START_STICKY).
+        delay(500)
+        android.os.Process.killProcess(android.os.Process.myPid())
+    }
+
     private fun endTrip() {
+        finishing = recorder
         recorder?.finish { saved, km ->
             lastNote.value = if (saved) "Dernier trajet enregistré · ${fr(km, 1)} km" else "Dernier trajet trop court (moins de 200 m) : non enregistré"
         }
@@ -229,6 +267,7 @@ class TripService : Service() {
     companion object {
         private const val CHANNEL = "vehicle"
         private const val NOTIF_ID = 42
+        private const val NOTIF_DONE = 43
 
         /** Délai sans réponse du moteur avant de clore le trajet. */
         private const val NO_ANSWER_MS = 3_000L

@@ -118,6 +118,9 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, private val
         io.shutdown()
     }
 
+    /** Attend la fin de l'enregistrement (données, clôture, prix du carburant), au plus [ms] millisecondes. */
+    fun awaitDone(ms: Long) = io.awaitTermination(ms, java.util.concurrent.TimeUnit.MILLISECONDS)
+
     private fun place(l: Location): String = try {
         @Suppress("DEPRECATION")
         val a = Geocoder(ctx, Locale.FRANCE).getFromLocation(l.latitude, l.longitude, 1)?.firstOrNull()

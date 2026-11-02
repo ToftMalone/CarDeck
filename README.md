@@ -49,7 +49,6 @@ Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lanc
 | Modèle | État |
 |---|---|
 | Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Disponible : lecture seule, données moteur et châssis, huile, carburant, identification |
-| Kia Picanto 1.0 TA (G3LA, 69 ch) | ⏳ Arrive bientôt |
 
 D'autres modèles sont prévus.
 
