@@ -50,7 +50,8 @@ class TripService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (loop == null) loop = scope.launch { run() }
-        return START_STICKY
+        // Jamais relancé par le système : seul l'utilisateur lance CarDeck.
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
@@ -99,10 +100,12 @@ class TripService : Service() {
         val repo = app.repo
         val obd = app.obd
         repo.recoverUnfinished()
-        var lostSince = 0L
         var cycle = 0
         while (scope.isActive) {
             if (quitting) { quitApp(); return }
+            // Lancé sans rouler : arrêt complet après 5 minutes sans trajet, une fois CarDeck quittée.
+            if (recorder != null) idleSince = 0L
+            else if (idleTooLong() && !appVisible()) { quitApp(notify = false); return }
             val v = repo.active
             val adapter = v?.adapter
             if (v == null) {
@@ -116,24 +119,19 @@ class TripService : Service() {
                 delay(5000)
                 continue
             }
-            val rec = recorder
             if (obd.connectedAddress != adapter.address || obd.state.value !is ObdState.Connected) {
-                // Boîtier perdu (contact coupé, sortie du véhicule) : le trajet s'arrête aussitôt.
-                if (rec != null) endTrip()
-                status("Recherche de ${adapter.name}…")
+                if (recorder != null) linkLost()
+                if (quitting) continue
+                status(if (recorder != null) "Liaison perdue, reconnexion…" else "Recherche de ${adapter.name}…")
                 if (obd.connect(adapter).isFailure) {
-                    if (recorder == null && idleTooLong()) { stopIdle(); return }
-                    delay(30_000)
+                    delay(if (recorder != null) 5_000 else 30_000)
                     continue
                 }
             }
             val snap = obd.use { e -> e.rpm() to e.speed() }
             if (snap == null) {
                 // Plus de réponse du boîtier : on ne trace pas sans données moteur.
-                if (recorder != null) {
-                    if (lostSince == 0L) lostSince = System.currentTimeMillis()
-                    if (System.currentTimeMillis() - lostSince > NO_ANSWER_MS) contactOff()
-                } else if (idleTooLong()) { stopIdle(); return }
+                if (recorder != null) linkLost()
                 delay(1000)
                 continue
             }
@@ -146,12 +144,10 @@ class TripService : Service() {
             if (rpm == null) {
                 // Pas de réponse du moteur : lecture ratée pendant un trajet (on réessaie vite), ou contact coupé.
                 if (recorder != null) { delay(300); continue }
-                if (idleTooLong()) { stopIdle(); return }
                 status("${v.nickname} · boîtier connecté, contact coupé")
                 delay(5_000)
                 continue
             }
-            idleSince = 0L
             readEverything(v, cycle++)
             val r = recorder
             status(if (r != null) "Trajet en cours · ${fr(r.distanceKm, 1)} km" else "${v.nickname} · contact mis, moteur arrêté")
@@ -160,40 +156,57 @@ class TripService : Service() {
     }
 
     private var engineOffSince = 0L
+    private var stoppedSince = 0L
+    private var lostSince = 0L
     private var idleSince = 0L
 
-    /**
-     * Contact coupé (ou boîtier introuvable) sans trajet : le boîtier reste alimenté en permanence, inutile de le garder
-     * connecté. Renvoie true après [IDLE_MS] d'inactivité.
-     */
+    /** Lancé sans trajet : true après [IDLE_MS]. */
     private fun idleTooLong(): Boolean {
         val now = System.currentTimeMillis()
         if (idleSince == 0L) idleSince = now
         return now - idleSince > IDLE_MS
     }
 
-    /** Inactivité prolongée : arrêt complet, ou seulement du suivi (boîtier déconnecté) si CarDeck est à l'écran. */
-    private suspend fun stopIdle() {
+    /** CarDeck est affichée (téléphone) : on ne l'arrête pas sous les yeux de l'utilisateur. */
+    private fun appVisible(): Boolean {
         val me = android.app.ActivityManager.RunningAppProcessInfo().also { android.app.ActivityManager.getMyMemoryState(it) }
-        if (me.importance > android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) { quitApp(notify = false); return }
-        cardeck.obd.disconnect()
-        stopSelf()
+        return me.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
     }
 
-    /** Démarrage / fin automatique du trajet selon le régime. Renvoie true si le moteur tourne. */
+    /** Liaison avec le boîtier perdue pendant un trajet : reconnexion, fin du trajet si elle ne revient pas. */
+    private fun linkLost() {
+        val now = System.currentTimeMillis()
+        if (lostSince == 0L) lostSince = now
+        if (now - lostSince > LINK_LOST_MS) tripOver()
+    }
+
+    /**
+     * Démarrage du trajet dès que le moteur tourne. Fin du trajet (puis arrêt complet de l'application) :
+     * - calculateur muet pendant [NO_ANSWER_MS] : contact coupé ;
+     * - régime à 0 et véhicule immobile pendant [STOPPED_MS] : moteur arrêté, contact mis (un calage suivi d'un redémarrage
+     *   ne coupe pas le trajet) ;
+     * - liaison avec le boîtier perdue pendant [LINK_LOST_MS] (voir [linkLost]).
+     */
     private fun onEngine(vehicleId: Long, rpm: Double?, speed: Int?): Boolean {
+        val now = System.currentTimeMillis()
         val engineOn = rpm != null && rpm > 300
         if (engineOn) {
             engineOffSince = 0L
+            stoppedSince = 0L
             if (recorder == null) startTrip(vehicleId)
             recorder?.onObdSpeed(speed)
         } else if (recorder != null) {
-            // Régime à 0 mais calculateur qui répond : moteur calé, contact toujours mis, le trajet continue.
-            // Calculateur muet : contact coupé, fin du trajet après une courte tolérance (lecture ratée).
-            if (rpm != null) engineOffSince = 0L
-            else {
-                if (engineOffSince == 0L) engineOffSince = System.currentTimeMillis()
-                if (System.currentTimeMillis() - engineOffSince > NO_ANSWER_MS) contactOff()
+            if (rpm == null) {
+                if (engineOffSince == 0L) engineOffSince = now
+                if (now - engineOffSince > NO_ANSWER_MS) tripOver()
+            } else {
+                engineOffSince = 0L
+                recorder?.onObdSpeed(speed)
+                if ((speed ?: 0) > 0) stoppedSince = 0L
+                else {
+                    if (stoppedSince == 0L) stoppedSince = now
+                    if (now - stoppedSince > STOPPED_MS) tripOver()
+                }
             }
         }
         return engineOn
@@ -248,15 +261,15 @@ class TripService : Service() {
     private var finishing: TripRecorder? = null
     @Volatile private var quitting = false
 
-    /** Contact coupé pendant un trajet : le trajet se termine et l'application s'arrête complètement. */
-    private fun contactOff() {
+    /** Fin du trajet : il est enregistré, puis l'application s'arrête complètement. */
+    private fun tripOver() {
         endTrip()
         quitting = true
     }
 
     /**
      * Arrêt complet, comme « Forcer l'arrêt » : enregistrement terminé, boîtier déconnecté, écrans fermés, processus arrêté.
-     * Le suivi ne reprend qu'à la prochaine ouverture de CarDeck (ou au redémarrage du téléphone).
+     * Le suivi ne reprend qu'à la prochaine ouverture de CarDeck par l'utilisateur.
      */
     private suspend fun quitApp(notify: Boolean = true) {
         finishing?.awaitDone(30_000)
@@ -294,8 +307,14 @@ class TripService : Service() {
         /** Délai sans réponse du moteur avant de clore le trajet. */
         private const val NO_ANSWER_MS = 3_000L
 
-        /** Inactivité (contact coupé ou boîtier introuvable, sans trajet) avant l'arrêt du suivi. */
+        /** Lancé sans rouler : délai avant l'arrêt complet (une fois CarDeck quittée). */
         private const val IDLE_MS = 5 * 60_000L
+
+        /** Régime à 0 et véhicule immobile : délai avant la fin du trajet. */
+        private const val STOPPED_MS = 60_000L
+
+        /** Liaison avec le boîtier perdue pendant un trajet : délai de reconnexion avant la fin du trajet. */
+        private const val LINK_LOST_MS = 60_000L
 
         /** Lues à chaque tour : régime, vitesse, charge, avance, MAP, débit d'air, papillon, pression atmosphérique. */
         private val HOT_IDS = setOf("std0C", "std0D", "std04", "std0E", "std0B", "std10", "std11", "std33")
@@ -310,7 +329,7 @@ class TripService : Service() {
         /** Issue du dernier trajet (enregistré ou trop court). */
         val lastNote = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
-        /** Démarre le suivi si un véhicule existe (à appeler depuis le premier plan ou au démarrage du téléphone). */
+        /** Démarre le suivi si un véhicule existe (uniquement quand l'utilisateur ouvre CarDeck). */
         fun start(ctx: Context) {
             if (ctx.cardeck.repo.vehicles.value.isEmpty()) return
             if (Build.VERSION.SDK_INT >= 34 && !Perms.bluetoothOk(ctx) && !Perms.has(ctx, android.Manifest.permission.CHANGE_NETWORK_STATE)) return
