@@ -34,7 +34,7 @@ class ObdManager(private val ctx: Context) {
     /** PIDs standard déclarés par le véhicule (null tant qu'on ne les a pas lus). */
     val supported = MutableStateFlow<Set<Int>?>(null)
 
-    /** Dernières valeurs lues (id de donnée → valeur), partagées avec l'écran Android Auto. */
+    /** Dernières valeurs lues (id de donnée → valeur), partagées entre les écrans. */
     val live = MutableStateFlow<Map<String, Double>>(emptyMap())
 
     fun publish(values: List<Pair<String, Double>>) {

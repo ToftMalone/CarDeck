@@ -33,7 +33,7 @@ description, causes possibles et recommandations. Recherche d'un code, effacemen
 et lit les codes défaut de chacun. Le scan prend plus de temps, mais ne laisse rien de côté.
 
 ### 🗺️ Trajets
-Le trajet démarre **tout seul** dès que le moteur tourne. Une fois terminé (contact coupé, ou moteur arrêté et voiture immobile pendant 1 minute), CarDeck se met en veille, sans notification. Elle en sort quand tu l'ouvres, ou automatiquement à la connexion Bluetooth à ta voiture et / ou à Android Auto, au choix pour chaque véhicule. Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées,
+Le trajet démarre **tout seul** dès que le moteur tourne. Une fois terminé (contact coupé, ou moteur arrêté et voiture immobile pendant 1 minute), CarDeck se met en veille, sans notification. Elle en sort quand tu l'ouvres, ou automatiquement à la connexion Bluetooth à ta voiture, au choix pour chaque véhicule. Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées,
 vitesses, **consommation moyenne**, **coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr),
 ainsi que les données du moteur relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
@@ -43,12 +43,9 @@ Les réglages du véhicule modifiables par diagnostic (à la manière de Bimmerc
 vérification par relecture et restauration en un geste. Disponible selon les modèles : certaines voitures ne s'y prêtent pas, et l'appli
 te dit pourquoi.
 
-### 🚘 Android Auto
-Le même écran d'accueil et les mêmes fonctions sur l'écran de ta voiture. Dès que le véhicule roule, tout se grise sauf le tableau de bord.
-
 ### ⏰ Réveil automatique
-Pour chaque véhicule, tu choisis comment CarDeck sort de veille : à la connexion Bluetooth à l'autoradio de ta voiture, à la connexion
-d'Android Auto, les deux, ou jamais (tu ouvres alors l'appli toi-même).
+Pour chaque véhicule, tu choisis si CarDeck sort de veille à la connexion Bluetooth à l'autoradio de ta voiture, ou jamais
+(tu ouvres alors l'appli toi-même).
 
 ### 💾 Sauvegarde
 Toutes tes données (véhicules, trajets, diagnostics, réglages) peuvent être sauvegardées dans un fichier **chiffré** que seule CarDeck

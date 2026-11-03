@@ -54,13 +54,13 @@ data class Trip(
 )
 
 /**
- * Sortie de veille de CarDeck pour un véhicule, chaque déclencheur s'active séparément (aucun = ouverture manuelle seulement).
- * [bluetooth] : coché, avec l'appareil choisi (autoradio de la voiture) ; [androidAuto] : connexion à Android Auto.
+ * Sortie de veille de CarDeck pour un véhicule : à la connexion Bluetooth à l'appareil choisi (autoradio de la voiture).
+ * Sans réveil, seule l'ouverture de CarDeck lance le suivi.
  */
-data class WakeConfig(val bluetooth: Boolean = false, val btAddress: String? = null, val btName: String? = null, val androidAuto: Boolean = false) {
+data class WakeConfig(val bluetooth: Boolean = false, val btAddress: String? = null, val btName: String? = null) {
     /** Bluetooth coché et appareil choisi. */
     val btReady: Boolean get() = bluetooth && btAddress != null
-    val any: Boolean get() = btReady || androidAuto
+    val any: Boolean get() = btReady
 }
 
 enum class DtcStatus(val label: String) { Stored("Mémorisé"), Pending("En attente"), Permanent("Permanent") }

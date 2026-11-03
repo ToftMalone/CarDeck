@@ -6,7 +6,7 @@ import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** Une donnée affichée par un tableau de bord (téléphone ou Android Auto). */
+/** Une donnée affichée par le tableau de bord. */
 data class Gauge(val def: PidDef, val value: Double?, val note: String?)
 
 /** Tableaux de bord Standard et Sport : données lues et valeurs calculées. */

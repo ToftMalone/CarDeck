@@ -163,21 +163,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return if (n == 0) t.model else "${t.model} ${n + 1}"
     }
 
-    /** Création d'un profil depuis Android Auto (nom par défaut, boîtier associé ensuite). */
-    fun createVehicleQuick(templateId: String): Long {
-        val t = com.cardeck.app.data.templateById(templateId)
-        val id = repo.addVehicle(templateId, defaultName(t), "", "")
-        repo.select(id)
-        if (!onboarded) {
-            prefs.onboarded = true
-            onboarded = true
-            stack.clear()
-            stack.add(Screen.Home)
-        }
-        TripService.start(ctx)
-        return id
-    }
-
     fun pairActive() {
         pairVehicleId = repo.active?.id ?: return
         go(Screen.Pair)

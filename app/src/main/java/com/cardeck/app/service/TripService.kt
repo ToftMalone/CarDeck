@@ -268,7 +268,7 @@ class TripService : Service() {
 
     /**
      * Veille : trajet enregistré, boîtier déconnecté, service arrêté, sans notification. Réveil : ouverture de CarDeck,
-     * ou connexion au Bluetooth / à Android Auto choisi pour le véhicule (voir [Wake]).
+     * ou connexion au Bluetooth choisi pour le véhicule (voir [Wake]).
      */
     private suspend fun sleep() {
         finishing?.awaitDone(30_000)
@@ -315,7 +315,7 @@ class TripService : Service() {
         /** Issue du dernier trajet (enregistré ou trop court). */
         val lastNote = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
-        /** Démarre le suivi si un véhicule existe (ouverture de CarDeck, ou réveil par Bluetooth / Android Auto). */
+        /** Démarre le suivi si un véhicule existe (ouverture de CarDeck, ou réveil par Bluetooth). */
         fun start(ctx: Context) {
             if (ctx.cardeck.repo.vehicles.value.isEmpty()) return
             if (Build.VERSION.SDK_INT >= 34 && !Perms.bluetoothOk(ctx) && !Perms.has(ctx, android.Manifest.permission.CHANGE_NETWORK_STATE)) return

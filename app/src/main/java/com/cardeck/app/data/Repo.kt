@@ -82,6 +82,7 @@ class Repo(ctx: Context) {
     private val prefs = Prefs(ctx)
 
     init {
+        prefs.purgeObsolete()
         // Ancienne voiture virtuelle (simulateur supprimé) : profil et données effacés.
         db.delete("vehicles", "template=?", arrayOf("cardeck-simulateur"))
     }
@@ -105,6 +106,7 @@ class Repo(ctx: Context) {
 
     /** Après une restauration : profils, véhicule actif et écrans rechargés. */
     fun afterRestore() {
+        prefs.purgeObsolete()
         reloadVehicles()
         _activeId.value = prefs.activeVehicleId
         bump()

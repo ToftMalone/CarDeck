@@ -165,7 +165,7 @@ fun SettingsScreen(vm: AppViewModel) {
     }
 }
 
-/** Sortie de veille par véhicule : Bluetooth (coché + appareil choisi) et / ou Android Auto (coché). */
+/** Sortie de veille par véhicule : à la connexion Bluetooth à l'appareil choisi (autoradio de la voiture). */
 @Composable
 private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
     val c = Cd.c
@@ -174,10 +174,8 @@ private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
     var editing by remember { mutableStateOf<VehicleProfile?>(null) }
     var battery by remember { mutableStateOf(com.cardeck.app.service.Wake.batteryOk(ctx)) }
     val batteryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { battery = com.cardeck.app.service.Wake.batteryOk(ctx) }
-    fun label(w: WakeConfig) = listOfNotNull(
-        if (w.btReady) "Bluetooth « ${w.btName} »" else if (w.bluetooth) "Bluetooth (appareil à choisir)" else null,
-        if (w.androidAuto) "Android Auto" else null,
-    ).joinToString(" ou ").ifEmpty { "Jamais : je lance CarDeck moi-même" }
+    fun label(w: WakeConfig) =
+        if (w.btReady) "Bluetooth « ${w.btName} »" else if (w.bluetooth) "Bluetooth (appareil à choisir)" else "Jamais : je lance CarDeck moi-même"
     SectionLabel("Réveil automatique")
     Group {
         vehicles.forEach { v ->
@@ -188,7 +186,7 @@ private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
     val anyAuto = remember(vehicles, changes) { vehicles.any { vm.repo.wake(it.id).any } }
     T(
         "Après un trajet, ou 5 minutes sans rouler (hors de l'application), CarDeck se met en veille, sans notification. " +
-            "Elle en sort quand tu l'ouvres, ou à la connexion cochée ci-dessus." +
+            "Elle en sort quand tu l'ouvres, ou à la connexion Bluetooth choisie ci-dessus." +
             if (anyAuto && !battery) " Pour cela, l'optimisation de batterie doit être désactivée pour CarDeck : touche ici pour l'autoriser." else "",
         12, if (anyAuto && !battery) c.e else c.onv, lineHeight = 16,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).then(
@@ -209,7 +207,6 @@ private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
             title = { T("Réveil de ${v.nickname}", 22, lineHeight = 28) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    CheckRow("Android Auto", "La voiture a Android Auto : réveil à sa connexion", w.androidAuto) { save(w.copy(androidAuto = it)) }
                     CheckRow("Bluetooth", "Réveil à la connexion à l'autoradio de la voiture", w.bluetooth) { save(w.copy(bluetooth = it)) }
                     if (w.bluetooth) {
                         if (devices.isEmpty()) T("Aucun appareil Bluetooth appairé : appaire d'abord le téléphone à l'autoradio.", 12, c.e, lineHeight = 16, modifier = Modifier.padding(start = 36.dp, top = 4.dp))
@@ -227,10 +224,6 @@ private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
                             }
                         }
                     }
-                    if (w.androidAuto) T(
-                        "Android Auto : CarDeck vérifie qu'Android Auto démarre à chaque connexion Bluetooth du téléphone (pendant 3 minutes).",
-                        12, c.onv, lineHeight = 16, modifier = Modifier.padding(top = 8.dp),
-                    )
                 }
             },
             confirmButton = {

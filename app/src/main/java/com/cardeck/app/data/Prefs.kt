@@ -33,11 +33,6 @@ class Prefs(ctx: Context) {
         get() = sp.getString("homeOrder", null)?.split(',')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = sp.edit().putString("homeOrder", v.joinToString(",")).apply()
 
-    /** Autorisation « vitesse du véhicule » déjà demandée par Android Auto. */
-    var carSpeedAsked: Boolean
-        get() = sp.getBoolean("carSpeedAsked", false)
-        set(v) = sp.edit().putBoolean("carSpeedAsked", v).apply()
-
     /** Index du dernier message d'accueil affiché (pour ne pas répéter le même). */
     var lastGreeting: Int
         get() = sp.getInt("lastGreeting", -1)
@@ -48,19 +43,23 @@ class Prefs(ctx: Context) {
 
     fun setFuel(vehicleId: Long, f: FuelType) = sp.edit().putString("fuel_$vehicleId", f.name).apply()
 
-    /** Réveil d'un véhicule (Bluetooth coché + appareil « adresse|nom », Android Auto coché). */
+    /** Efface les anciens réglages qui n'existent plus (au lancement et après une restauration). */
+    fun purgeObsolete() {
+        val old = sp.all.keys.filter { it == "carSpeedAsked" || it.startsWith("wakeAa_") }
+        if (old.isNotEmpty()) sp.edit().also { e -> old.forEach { e.remove(it) } }.apply()
+    }
+
+    /** Réveil d'un véhicule (Bluetooth coché + appareil « adresse|nom »). */
     fun wake(vehicleId: Long): WakeConfig {
         val dev = sp.getString("wakeBtDevice_$vehicleId", null)?.split('|', limit = 2)
         return WakeConfig(
             bluetooth = sp.getBoolean("wakeBt_$vehicleId", false),
             btAddress = dev?.getOrNull(0), btName = dev?.getOrNull(1),
-            androidAuto = sp.getBoolean("wakeAa_$vehicleId", false),
         )
     }
 
     fun setWake(vehicleId: Long, w: WakeConfig) = sp.edit()
         .putBoolean("wakeBt_$vehicleId", w.bluetooth)
-        .putBoolean("wakeAa_$vehicleId", w.androidAuto)
         .putString("wakeBtDevice_$vehicleId", w.btAddress?.let { "$it|${w.btName ?: it}" })
         .apply()
 

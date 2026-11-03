@@ -13,7 +13,7 @@ class CarDeckApp : Application() {
     lateinit var obd: ObdManager
         private set
 
-    /** État de l'appli partagé entre le téléphone et l'écran Android Auto. */
+    /** État de l'appli partagé entre les écrans. */
     val vm: AppViewModel by lazy { AppViewModel(this) }
 
     override fun onCreate() {
