@@ -21,9 +21,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BrightnessAuto
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.AlertDialog
@@ -48,8 +51,12 @@ import com.cardeck.app.ui.BackBar
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Field
 import com.cardeck.app.ui.Ico
+import com.cardeck.app.ui.Palette
 import com.cardeck.app.ui.SectionLabel
+import com.cardeck.app.ui.Segmented
 import com.cardeck.app.ui.T
+import com.cardeck.app.ui.ThemeMode
+import com.cardeck.app.ui.oklch
 
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
@@ -97,7 +104,37 @@ fun SettingsScreen(vm: AppViewModel) {
 
             WakeSection(vm, vehicles)
 
-            AppearanceSection(vm)
+            SectionLabel("Apparence")
+            Group {
+                Column(Modifier.fillMaxWidth().background(c.sf1).padding(16.dp)) {
+                    T("Thème", 16, modifier = Modifier.padding(bottom = 12.dp))
+                    Segmented(
+                        listOf(
+                            Triple("Clair", Icons.Rounded.LightMode, vm.themeMode == ThemeMode.Light),
+                            Triple("Sombre", Icons.Rounded.DarkMode, vm.themeMode == ThemeMode.Dark),
+                            Triple("Système", Icons.Rounded.BrightnessAuto, vm.themeMode == ThemeMode.System),
+                        ),
+                    ) { vm.updateThemeMode(ThemeMode.entries[it]) }
+                }
+                Column(Modifier.fillMaxWidth().background(c.sf1).padding(16.dp)) {
+                    T("Couleur dynamique", 16)
+                    T("Toute la palette est dérivée d'une couleur source", 13, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Palette.entries.forEach { p ->
+                            val sel = p == vm.palette
+                            Column(
+                                Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).then(if (sel) Modifier.border(3.dp, c.on, RoundedCornerShape(16.dp)) else Modifier).clickable { vm.updatePalette(p) },
+                            ) {
+                                Box(Modifier.fillMaxWidth().weight(1f).background(oklch(.62, .14, p.hue)))
+                                Row(Modifier.fillMaxWidth().weight(1f)) {
+                                    Box(Modifier.weight(1f).fillMaxSize().background(oklch(.8, .06, p.hue)))
+                                    Box(Modifier.weight(1f).fillMaxSize().background(oklch(.72, .1, (p.hue + 60) % 360)))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             BackupSection(vm)
             AppSection(vm)
         }

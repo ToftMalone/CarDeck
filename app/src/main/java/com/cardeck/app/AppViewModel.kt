@@ -40,7 +40,6 @@ sealed interface Screen {
     data object ObdData : Screen
     data object Changelog : Screen
     data object About : Screen
-    data class Tools(val domain: com.cardeck.app.ui.Domain) : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -131,57 +130,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var palette by mutableStateOf(prefs.palette)
         private set
 
-    var dynamicColor by mutableStateOf(prefs.dynamicColor)
-        private set
-    var haptics by mutableStateOf(prefs.haptics)
-        private set
-    var mph by mutableStateOf(prefs.imperialSpeed)
-        private set
-    var fahrenheit by mutableStateOf(prefs.fahrenheit)
-        private set
-    val language: String get() = prefs.language
-
-    fun updateDynamicColor(v: Boolean) { dynamicColor = v; prefs.dynamicColor = v }
-    fun updateHaptics(v: Boolean) { haptics = v; prefs.haptics = v }
-    fun updateMph(v: Boolean) { mph = v; prefs.imperialSpeed = v }
-    fun updateFahrenheit(v: Boolean) { fahrenheit = v; prefs.fahrenheit = v }
-    fun updateLanguage(v: String) { prefs.language = v }
-
-    // ---- Domaines et dock ----
-    /** Outil favori de chaque domaine (identifiant d'outil), modifiable par un appui long dans « Outils ». */
-    private val favorites = androidx.compose.runtime.mutableStateMapOf<com.cardeck.app.ui.Domain, String>().apply {
-        com.cardeck.app.ui.Domain.entries.forEach { d -> prefs.favorite(d.name)?.let { put(d, it) } }
-    }
-
-    fun favorite(d: com.cardeck.app.ui.Domain): String? = favorites[d]
-
-    fun setFavorite(d: com.cardeck.app.ui.Domain, tool: String) { favorites[d] = tool; prefs.setFavorite(d.name, tool) }
-
-    /** Ouvre un écran depuis le dock ou l'accueil : la pile repart de l'accueil. */
-    fun openFromHome(s: Screen) {
-        stack.clear(); stack.add(Screen.Home)
-        if (s != Screen.Home) stack.add(s)
-    }
-
-    fun home() { stack.clear(); stack.add(Screen.Home) }
-
-    // ---- Tableau de bord : seuil d'alerte et session de mesure ----
-    var shiftRpm by mutableIntStateOf(prefs.shiftRpm)
+    var homeOrder by mutableStateOf(prefs.homeOrder)
         private set
 
-    fun updateShiftRpm(v: Int) { shiftRpm = v; prefs.shiftRpm = v }
-
-    val drive = com.cardeck.app.data.DriveSession()
-
-    init {
-        // Échantillonnage du tableau de bord : une valeur par seconde (courbes, pointes, journal).
-        viewModelScope.launch {
-            while (true) {
-                drive.sample(System.currentTimeMillis(), obd.live.value, obd.state.value is com.cardeck.app.obd.ObdState.Connected && obd.ecuOnline.value, shiftRpm)
-                delay(1000)
-            }
-        }
-    }
+    fun updateHomeOrder(order: List<String>) { homeOrder = order; prefs.homeOrder = order }
 
     var dashSport by mutableStateOf(prefs.dashMode == "sport")
         private set
@@ -552,10 +504,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             r.onSuccess { s ->
                 themeMode = prefs.themeMode
                 palette = prefs.palette
-                dynamicColor = prefs.dynamicColor
-                haptics = prefs.haptics
-                mph = prefs.imperialSpeed
-                fahrenheit = prefs.fahrenheit
+                homeOrder = prefs.homeOrder
                 dashSport = prefs.dashMode == "sport"
                 obd.supported.value = null
                 if (repo.vehicles.value.isNotEmpty()) {

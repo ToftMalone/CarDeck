@@ -6,21 +6,10 @@ la pression du turbo, le niveau de carburant… ainsi que l'historique de tous t
 
 ## Ce que fait CarDeck
 
-### 🎨 Une interface Material 3 Expressive
-- L'accueil montre **une grande carte par domaine** (Conduite, Diagnostic, Trajets, Garage), avec sa donnée clé en direct et son état.
-- Dans un domaine, un **dock flottant** donne l'accès à l'accueil, au tableau de bord du domaine, à ton **outil favori** (appui long sur un outil pour le choisir) et à **tous les outils**.
-- Chaque domaine a sa couleur. Les couleurs suivent ton fond d'écran (**couleur dynamique**, Android 12 et plus) ou une palette Rose ou Bleu neutre.
-- Le thème est Système, Clair ou Sombre. Les animations sont douces et les chiffres glissent vers leur nouvelle valeur.
-- Il y a des **retours haptiques** (désactivables), des unités au choix (km/h ou mph, °C ou °F), et l'appli est en français ou en anglais.
-
 ### 📊 Tableau de bord
-- La **vitesse en direct** en grand, avec le régime, la charge et la température du liquide de refroidissement.
-- Deux jeux de jauges, que tu bascules d'un geste :
-  - **Standard** : vitesse, régime, température du liquide et de l'huile, niveau de carburant, consommation.
-  - **Sport** : température d'admission, pression du collecteur et de suralimentation (en bar), avance à l'allumage.
-- Un **compte-tours** avec la courbe de la dernière minute, et une **alerte de régime** réglable qui vibre quand tu la franchis.
-- Des **tendances** (vitesse, régime, charge, pression collecteur, liquide de refroidissement) et le détail de l'admission.
-- Des **sessions de mesure**, qui relèvent la vitesse et le régime maximum, la charge et la pression collecteur maximales, et un **journal** (connexions, alertes, sessions).
+Deux tableaux de bord en direct, que tu bascules d'un geste :
+- **Standard** : vitesse, régime, température du liquide et de l'huile, niveau de carburant, consommation.
+- **Sport** : température d'admission, pression du collecteur et de suralimentation (en bar), avance à l'allumage.
 
 ### 📟 Données OBD2
 Les valeurs du moteur que ton véhicule fournit, rangées par catégories, avec l'état de la liaison avec le boîtier.

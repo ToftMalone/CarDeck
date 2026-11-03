@@ -58,13 +58,7 @@ android {
     }
 
     buildTypes {
-        // La version de développement s'installe à côté de l'officielle : identifiant et nom différents.
-        debug {
-            applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "CarDeck Debug")
-        }
         release {
-            resValue("string", "app_name", "CarDeck")
             isMinifyEnabled = false
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
@@ -93,7 +87,7 @@ androidComponents {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2025.10.01")
+    val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation(composeBom)
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
@@ -101,9 +95,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.material3:material3:1.5.0-alpha16")
-    implementation("androidx.graphics:graphics-shapes:1.0.1")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     debugImplementation("androidx.compose.ui:ui-tooling")

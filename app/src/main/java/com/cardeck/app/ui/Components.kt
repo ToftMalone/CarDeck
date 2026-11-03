@@ -84,7 +84,7 @@ fun T(
         fontSize = size.sp,
         lineHeight = lineHeight.sp,
         fontWeight = FontWeight(weight),
-        fontFamily = if (mono) FontFamily.Monospace else if (size >= 22) GoogleSansFlex else RobotoFlex,
+        fontFamily = if (mono) FontFamily.Monospace else null,
         textAlign = align,
         maxLines = maxLines,
         overflow = if (maxLines == Int.MAX_VALUE) TextOverflow.Clip else TextOverflow.Ellipsis,
@@ -219,7 +219,7 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Mo
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(4.dp),
         keyboardOptions = if (number) KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number) else KeyboardOptions.Default,
-        textStyle = TextStyle(fontSize = 16.sp, fontFamily = if (mono) FontFamily.Monospace else RobotoFlex, letterSpacing = if (mono) 1.sp else 0.sp),
+        textStyle = TextStyle(fontSize = 16.sp, fontFamily = if (mono) FontFamily.Monospace else null, letterSpacing = if (mono) 1.sp else 0.sp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
             focusedIndicatorColor = c.p, unfocusedIndicatorColor = c.ol,

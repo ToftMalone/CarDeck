@@ -2,225 +2,132 @@ package com.cardeck.app.screens
 
 import android.Manifest
 import android.os.Build
-import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Route
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.SettingsInputHdmi
+import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.rounded.Troubleshoot
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.cardeck.app.AppViewModel
-import com.cardeck.app.BuildConfig
 import com.cardeck.app.Perms
-import com.cardeck.app.R
 import com.cardeck.app.Screen
-import com.cardeck.app.dashboard
-import com.cardeck.app.data.Trip
+import com.cardeck.app.obd.ObdState
 import com.cardeck.app.service.TripService
-import com.cardeck.app.title
-import com.cardeck.app.ui.Accent
-import com.cardeck.app.ui.ButtonStyle
-import com.cardeck.app.ui.CookieBadge
-import com.cardeck.app.ui.Corners
-import com.cardeck.app.ui.Domain
-import com.cardeck.app.ui.LiveNumber
-import com.cardeck.app.ui.LocalHaptics
-import com.cardeck.app.ui.MetricStyle
-import com.cardeck.app.ui.ProvideAccent
-import com.cardeck.app.ui.SecondaryButton
-import com.cardeck.app.ui.StatusChip
-import com.cardeck.app.ui.StatusKind
-import com.cardeck.app.ui.Sym
-import com.cardeck.app.ui.SymButton
-import com.cardeck.app.ui.Symbol
-import com.cardeck.app.ui.cs
-import com.cardeck.app.ui.fadeUp
-import com.cardeck.app.ui.pop
-import com.cardeck.app.ui.rise
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.cardeck.app.ui.Cd
+import com.cardeck.app.ui.CdColors
+import com.cardeck.app.ui.Ico
+import com.cardeck.app.ui.T
+import com.cardeck.app.ui.TextBtn
+
+private data class Tile(val id: String, val label: String, val icon: ImageVector, val kind: Char, val onClick: () -> Unit, val badge: String = "")
 
 @Composable
 fun HomeScreen(vm: AppViewModel) {
+    val c = Cd.c
     val v = rememberActiveVehicle(vm)
     val scan = rememberLastScan(vm, v?.id)
-    val conn = rememberConnection(vm, v)
-    val live by vm.obd.live.collectAsState()
-    val changes by vm.repo.changes.collectAsState()
-    var trips by remember { mutableStateOf<List<Trip>>(emptyList()) }
-    LaunchedEffect(v?.id, changes) { trips = withContext(Dispatchers.IO) { v?.let { vm.repo.trips(it.id) } ?: emptyList() } }
-    val hap = LocalHaptics.current
-    fun open(d: Domain) { hap.tick(); if (d == Domain.Garage && v?.adapter == null) { vm.home(); vm.pairActive() } else vm.openFromHome(d.dashboard) }
-
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-        Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.ic_logo), contentDescription = null, modifier = Modifier.size(32.dp).pop())
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, color = cs.onSurface, modifier = Modifier.padding(start = 12.dp).weight(1f))
-            SymButton(Sym.Settings, { hap.tick(); vm.openFromHome(Screen.Settings) }, stringResource(R.string.settings), tint = cs.onSurface)
-        }
-        if (vm.greeting.isNotEmpty()) {
-            Text(
-                vm.greeting, style = MaterialTheme.typography.headlineSmall, color = cs.onSurface,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 20.dp).fadeUp(),
-            )
-        }
-        TripPermissionCard()
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Conduite : vitesse en direct.
-            DomainCard(Domain.Drive, 0, { open(Domain.Drive) }, chip = { ConnectionChip(conn) }) {
-                val speed = live["std0D"]?.let { if (vm.mph) it / 1.609344 else it }
-                Row(verticalAlignment = Alignment.Bottom) {
-                    LiveNumber(if (conn == Conn.Live) speed else null, 0, MetricStyle.large, Accent.current.accent)
-                    Text(
-                        stringResource(if (vm.mph) R.string.unit_mph else R.string.unit_kmh), style = MaterialTheme.typography.titleMedium,
-                        color = cs.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
-                    )
-                    Spacer(Modifier.weight(1f))
-                    LiveNumber(if (conn == Conn.Live) live["std0C"] else null, 0, MetricStyle.small, cs.onSurfaceVariant, Modifier.padding(bottom = 8.dp))
-                    Text(stringResource(R.string.unit_rpm), style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
-                }
-            }
-            // Diagnostic : codes du dernier scan.
-            DomainCard(
-                Domain.Diagnostic, 1, { open(Domain.Diagnostic) },
-                chip = {
-                    when {
-                        vm.scanning -> StatusChip(stringResource(R.string.tool_scan), StatusKind.Busy)
-                        scan == null -> StatusChip(stringResource(R.string.home_no_scan), StatusKind.Idle)
-                        scan.codes.isEmpty() -> StatusChip(stringResource(R.string.home_no_fault), StatusKind.Good)
-                        else -> StatusChip(pluralStringResource(R.plurals.codes_count, scan.codes.size, scan.codes.size), StatusKind.Poor)
-                    }
-                },
+    val (connLabel, connKind) = connStatus(vm, v)
+    val codes = scan?.codes?.size ?: 0
+    val tiles = listOf(
+        Tile("dash", "Tableau de bord", Icons.Rounded.Dashboard, 'p', { vm.go(Screen.Dash) }),
+        Tile("obd", "Données OBD2", Icons.Rounded.Memory, 'p', { vm.go(Screen.ObdData) }),
+        Tile("diag", "Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
+        Tile("trips", "Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
+        Tile("pair", "Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 'p', { vm.pairActive() }),
+        Tile("settings", "Paramètres", Icons.Rounded.Settings, 'p', { vm.go(Screen.Settings) }),
+    )
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            Row(
+                Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    if (scan == null) stringResource(R.string.reason_no_scan)
-                    else stringResource(R.string.home_last_scan, DateUtils.getRelativeTimeSpanString(scan.t).toString()),
-                    style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant,
-                )
+                androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cardeck.app.R.drawable.ic_logo), contentDescription = "CarDeck", modifier = Modifier.size(32.dp))
+                T("CarDeck", 20, weight = 600, modifier = Modifier.weight(1f))
             }
-            // Trajets : dernier trajet.
-            DomainCard(
-                Domain.Trips, 2, { open(Domain.Trips) },
-                chip = { StatusChip(pluralStringResource(R.plurals.trips_count, trips.size, trips.size), StatusKind.Idle) },
-            ) {
-                val last = trips.firstOrNull()
-                if (last == null) {
-                    Text(stringResource(R.string.home_trip_none), style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
-                } else {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        LiveNumber(if (vm.mph) last.distanceKm / 1.609344 else last.distanceKm, 1, MetricStyle.large, Accent.current.accent)
-                        Text(
-                            if (vm.mph) "mi" else stringResource(R.string.unit_km), style = MaterialTheme.typography.titleMedium,
-                            color = cs.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
-                        )
-                    }
-                    Text(
-                        stringResource(R.string.home_last_trip, DateUtils.getRelativeTimeSpanString(last.start).toString()),
-                        style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant,
-                    )
-                }
-            }
-            // Garage : véhicule actif, boîtier, version.
-            DomainCard(Domain.Garage, 3, { open(Domain.Garage) }, chip = { ConnectionChip(conn) }) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
+                T(vm.greeting, 24, lineHeight = 32, modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 16.dp))
                 if (v != null) {
-                    Text(v.nickname, style = MaterialTheme.typography.headlineSmall, color = Accent.current.accent, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        listOf(v.template.fullName, v.plate).filter { it.isNotBlank() }.joinToString(" · "),
-                        style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.pc).padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(Modifier.size(44.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 24, c.op) }
+                        Column(Modifier.weight(1f)) {
+                            T(v.nickname, 18, c.opc, 500, lineHeight = 24, maxLines = 1)
+                            T(listOf(v.template.fullName, v.plate).filter { it.isNotBlank() }.joinToString(" · "), 12, c.opc.copy(alpha = .85f), maxLines = 1)
+                        }
+                        ConnChip(connLabel, connKind, 36) { if (v.adapter == null) vm.pairActive() else if (connKind == ConnKind.Off) vm.connectNow() }
+                    }
                 }
-                val up = vm.update
-                Text(
-                    if (up != null) stringResource(R.string.home_update, up.version) else stringResource(R.string.home_version, BuildConfig.VERSION_NAME),
-                    style = MaterialTheme.typography.labelMedium, color = if (up != null) Accent.current.accent else cs.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                TripPermissionCard()
+                ReorderableTiles(tiles, vm.homeOrder) { vm.updateHomeOrder(it) }
             }
         }
+        ConnectionStrip(vm)
     }
-}
-
-/** Grande carte d'un domaine : badge cookie, titre, métrique clé et état ; un toucher ouvre le domaine. */
-@Composable
-private fun DomainCard(d: Domain, index: Int, onClick: () -> Unit, chip: @Composable () -> Unit, body: @Composable () -> Unit) {
-    ProvideAccent(d) {
-        Column(
-            Modifier.fillMaxWidth().rise(index).clip(Corners.section).background(cs.surfaceContainerLow)
-                .clickable(role = Role.Button, onClick = onClick).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                CookieBadge(d.sym, Modifier.pop(80 + index * 60), size = 56.dp)
-                Text(stringResource(d.title), style = MaterialTheme.typography.titleLarge, color = cs.onSurface, modifier = Modifier.weight(1f))
-                Symbol(Sym.ChevronRight, tint = cs.onSurfaceVariant)
-            }
-            Column { body() }
-            chip()
-        }
-    }
-}
-
-enum class Conn { NoAdapter, Offline, Connecting, Connected, Live }
-
-/** État de la liaison : boîtier, puis calculateur moteur qui répond (« en direct »). */
-@Composable
-fun rememberConnection(vm: AppViewModel, v: com.cardeck.app.data.VehicleProfile?): Conn {
-    val (_, kind) = connStatus(vm, v)
-    val ecu by vm.obd.ecuOnline.collectAsState()
-    return when {
-        v?.adapter == null -> Conn.NoAdapter
-        kind == ConnKind.Busy -> Conn.Connecting
-        kind == ConnKind.Ok && ecu -> Conn.Live
-        kind == ConnKind.Ok -> Conn.Connected
-        else -> Conn.Offline
-    }
-}
-
-@Composable
-fun ConnectionChip(c: Conn, onHero: Boolean = false) = when (c) {
-    Conn.Live -> StatusChip(stringResource(R.string.conn_live), StatusKind.Live, onHero = onHero)
-    Conn.Connected -> StatusChip(stringResource(R.string.conn_ecu_off), StatusKind.Fair, onHero = onHero)
-    Conn.Connecting -> StatusChip(stringResource(R.string.conn_connecting), StatusKind.Busy, onHero = onHero)
-    Conn.Offline -> StatusChip(stringResource(R.string.conn_offline), StatusKind.Idle, onHero = onHero)
-    Conn.NoAdapter -> StatusChip(stringResource(R.string.conn_no_adapter), StatusKind.Idle, onHero = onHero)
 }
 
 /** Invite à accorder localisation (« toujours ») + notifications pour l'enregistrement automatique des trajets. */
 @Composable
 private fun TripPermissionCard() {
+    val c = Cd.c
     val ctx = LocalContext.current
     var tick by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
@@ -232,28 +139,159 @@ private fun TripPermissionCard() {
         TripService.start(ctx)
     }
     if (ok) return
-    ProvideAccent(Domain.Trips) {
-        val a = Accent.current
-        Row(
-            Modifier.fillMaxWidth().padding(bottom = 12.dp).fadeUp().clip(Corners.section).background(a.container).padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            CookieBadge(Sym.LocationOn, Modifier.pop(), size = 56.dp, container = a.accent, content = a.onAccent)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.perm_trips_title), style = MaterialTheme.typography.titleMedium, color = a.onContainer)
-                Text(stringResource(R.string.perm_trips_body), style = MaterialTheme.typography.bodyMedium, color = a.onContainer.copy(alpha = 0.85f))
-                Box(Modifier.padding(top = 8.dp)) {
-                    SecondaryButton(stringResource(R.string.perm_allow), {
-                        if (!Perms.locationOk(ctx) || !Perms.notificationsOk(ctx)) {
-                            val list = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                            if (Build.VERSION.SDK_INT >= 33) list += Manifest.permission.POST_NOTIFICATIONS
-                            fgLauncher.launch(list.toTypedArray())
-                        } else if (Build.VERSION.SDK_INT >= 29) {
-                            bgLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                        }
-                    }, style = ButtonStyle.Filled)
+    Row(
+        Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(20.dp)).background(c.tc).padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Ico(Icons.Rounded.LocationOn, 22, c.otc)
+        Column(Modifier.weight(1f)) {
+            T("Enregistrement automatique des trajets", 14, c.otc, 600)
+            T("Autorisez la localisation « Toujours » et les notifications pour que CarDeck enregistre vos trajets dès que le moteur démarre.", 13, c.otc, lineHeight = 18, modifier = Modifier.padding(top = 2.dp))
+            Box(Modifier.padding(top = 4.dp)) {
+                TextBtn("Autoriser", {
+                    if (!Perms.locationOk(ctx) || !Perms.notificationsOk(ctx)) {
+                        val list = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        if (Build.VERSION.SDK_INT >= 33) list += Manifest.permission.POST_NOTIFICATIONS
+                        fgLauncher.launch(list.toTypedArray())
+                    } else if (Build.VERSION.SDK_INT >= 29) {
+                        bgLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    }
+                }, color = c.otc, weight = 600)
+            }
+        }
+    }
+}
+
+/** Grille de cartes réorganisable : appui long puis glisser pour déplacer une carte. */
+@Composable
+private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: (List<String>) -> Unit) {
+    val c = Cd.c
+    val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+    val byId = tiles.associateBy { it.id }
+    fun normalize(o: List<String>) = o.filter { it in byId } + tiles.map { it.id }.filter { it !in o }
+    // Un seul état pour toute la vie de l'écran : le geste d'appui long garde toujours la liste affichée.
+    var current by remember { mutableStateOf(normalize(order)) }
+    var dragId by remember { mutableStateOf<String?>(null) }
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    val save by rememberUpdatedState(onReorder)
+    var dragEndedAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(order) { if (dragId == null) current = normalize(order) }
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        val gap = 10.dp
+        val cellH = 116.dp
+        val cellW = (maxWidth - gap * 2) / 3
+        val rows = (current.size + 2) / 3
+        val gapPx = with(density) { gap.toPx() }
+        val cellWPx = with(density) { cellW.toPx() }
+        val cellHPx = with(density) { cellH.toPx() }
+        fun pos(i: Int) = Offset((i % 3) * (cellWPx + gapPx), (i / 3) * (cellHPx + gapPx))
+        Box(Modifier.fillMaxWidth().height(cellH * rows + gap * (rows - 1))) {
+            current.forEachIndexed { i, id ->
+                val t = byId[id] ?: return@forEachIndexed
+                key(id) {
+                    val dragging = dragId == id
+                    val anim by animateOffsetAsState(pos(i), label = "tile")
+                    val p = if (dragging) pos(i) + dragOffset else anim
+                    // Pas d'ouverture de la carte à la fin d'un appui long / déplacement.
+                    val tile = t.copy(onClick = { if (dragId == null && System.currentTimeMillis() - dragEndedAt > 400) t.onClick() })
+                    TileCard(
+                        tile, c,
+                        Modifier
+                            .offset { IntOffset(p.x.roundToInt(), p.y.roundToInt()) }
+                            .zIndex(if (dragging) 1f else 0f)
+                            .width(cellW)
+                            .graphicsLayer {
+                                if (dragging) {
+                                    scaleX = 1.06f; scaleY = 1.06f
+                                    shadowElevation = 12.dp.toPx(); shape = RoundedCornerShape(20.dp)
+                                }
+                            }
+                            .pointerInput(id, cellWPx, cellHPx) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        dragId = id
+                                        dragOffset = Offset.Zero
+                                    },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        dragOffset += amount
+                                        val from = current.indexOf(id)
+                                        val center = pos(from) + dragOffset + Offset(cellWPx / 2, cellHPx / 2)
+                                        val col = (center.x / (cellWPx + gapPx)).toInt().coerceIn(0, 2)
+                                        val rowCount = (current.size + 2) / 3
+                                        val row = (center.y / (cellHPx + gapPx)).toInt().coerceIn(0, rowCount - 1)
+                                        val to = (row * 3 + col).coerceIn(0, current.size - 1)
+                                        if (to != from) {
+                                            current = current.toMutableList().apply { add(to, removeAt(from)) }
+                                            dragOffset -= pos(to) - pos(from)
+                                        }
+                                    },
+                                    onDragEnd = { dragEndedAt = System.currentTimeMillis(); dragId = null; dragOffset = Offset.Zero; save(current) },
+                                    onDragCancel = { dragEndedAt = System.currentTimeMillis(); dragId = null; dragOffset = Offset.Zero; save(current) },
+                                )
+                            },
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TileCard(t: Tile, c: CdColors, modifier: Modifier) {
+    val bg = c.pc
+    val fg = c.opc
+    Box(
+        modifier.height(116.dp).clip(RoundedCornerShape(20.dp)).background(c.sf2).clickable(onClick = t.onClick).padding(start = 6.dp, end = 6.dp, top = 16.dp, bottom = 14.dp),
+    ) {
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(bg), contentAlignment = Alignment.Center) { Ico(t.icon, 28, fg) }
+            T(t.label, 13, weight = 500, align = TextAlign.Center, lineHeight = 17)
+        }
+        if (t.badge.isNotEmpty()) {
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(end = 6.dp).height(20.dp).width(20.dp).clip(CircleShape).background(c.e),
+                contentAlignment = Alignment.Center,
+            ) { T(t.badge, 12, c.oe, 600) }
+        }
+    }
+}
+
+/** Bandeau « Appli — OBD2 — ECU » reflétant l'état réel de la liaison. */
+@Composable
+private fun ConnectionStrip(vm: AppViewModel) {
+    val c = Cd.c
+    val st by vm.obd.state.collectAsState()
+    val ecu by vm.obd.ecuOnline.collectAsState()
+    val obdOk = st is ObdState.Connected
+    Row(
+        Modifier.fillMaxWidth().height(76.dp).background(c.sf2).padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        StripNode(Icons.Rounded.Smartphone, "Appli", true)
+        StripLink(Modifier.weight(1f), obdOk)
+        StripNode(Icons.Rounded.SettingsInputHdmi, "OBD2", obdOk)
+        StripLink(Modifier.weight(1f), obdOk && ecu)
+        StripNode(Icons.Rounded.Memory, "ECU", obdOk && ecu)
+    }
+}
+
+@Composable
+private fun StripNode(icon: ImageVector, label: String, on: Boolean) {
+    val c = Cd.c
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.size(36.dp).clip(CircleShape).background(if (on) c.gc else c.sf3), contentAlignment = Alignment.Center) { Ico(icon, 20, if (on) c.ogc else c.onv) }
+        T(label, 11, c.onv, 500)
+    }
+}
+
+@Composable
+private fun StripLink(modifier: Modifier, on: Boolean) {
+    val c = Cd.c
+    Canvas(modifier.height(20.dp)) {
+        val y = size.height / 2 - 9.dp.toPx()
+        drawLine(if (on) c.g.copy(alpha = .9f) else c.olv, Offset(0f, y), Offset(size.width, y), strokeWidth = 2.dp.toPx())
     }
 }
