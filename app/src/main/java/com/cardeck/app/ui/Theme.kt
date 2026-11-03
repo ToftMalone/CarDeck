@@ -1,61 +1,236 @@
 package com.cardeck.app.ui
 
+import android.os.Build
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import com.google.android.material.color.MaterialColors
 
-enum class Palette(val label: String, val hue: Double) {
-    Vert("Vert", 158.0),
-    Turquoise("Turquoise", 190.0),
-    Violet("Violet", 300.0),
-    Orange("Orange", 50.0),
+enum class ThemeMode { System, Light, Dark }
+
+/** Palette statique de secours (sans couleur dynamique). */
+enum class Palette(val seed: Color) {
+    Rose(Color(0xFF8C4A5A)),
+    Blue(Color(0xFF455E83)),
 }
 
-enum class ThemeMode { Light, Dark, System }
+/** Accents de base, harmonisés ensuite avec la couleur primaire. */
+object AccentSeeds {
+    val Blue = Color(0xFF3A5BA9)
+    val Violet = Color(0xFF5E4DB2)
+    val Green = Color(0xFF2F6A3E)
+    val Ochre = Color(0xFF7F5700)
+    val Teal = Color(0xFF006A6A)
+    val Brick = Color(0xFFA0412D)
 
-/** Convertit une couleur OKLCH en sRGB (avec réduction de chroma si hors gamut, comme les navigateurs). */
-fun oklch(l: Double, c: Double, h: Double): Color {
-    fun toRgb(chroma: Double): DoubleArray {
-        val hr = Math.toRadians(h)
-        val a = chroma * cos(hr)
-        val b = chroma * sin(hr)
-        val l_ = (l + 0.3963377774 * a + 0.2158037573 * b).pow(3)
-        val m_ = (l - 0.1055613458 * a - 0.0638541728 * b).pow(3)
-        val s_ = (l - 0.0894841775 * a - 1.2914855480 * b).pow(3)
-        return doubleArrayOf(
-            4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
-            -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
-            -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_,
-        )
+    // Couleurs sémantiques d'état.
+    val Good = Color(0xFF2E7D32)
+    val Fair = Color(0xFFB26A00)
+    val Poor = Color(0xFFBA1A1A)
+}
+
+/** Domaines fonctionnels : chacun a son accent. */
+enum class Domain(val seed: Color, val sym: Sym) {
+    Drive(AccentSeeds.Blue, Sym.Speed),
+    Diagnostic(AccentSeeds.Brick, Sym.Stethoscope),
+    Trips(AccentSeeds.Green, Sym.Route),
+    Garage(AccentSeeds.Violet, Sym.DirectionsCar),
+}
+
+/** Rôles d'un accent (équivalent de MaterialColors.getColorRoles). */
+@Immutable
+data class AccentRoles(val accent: Color, val onAccent: Color, val container: Color, val onContainer: Color)
+
+enum class Level { Good, Fair, Poor }
+
+@Immutable
+data class Accents(
+    val domains: Map<Domain, AccentRoles>,
+    val primary: AccentRoles,
+    val good: AccentRoles,
+    val fair: AccentRoles,
+    val poor: AccentRoles,
+) {
+    fun of(d: Domain?) = if (d == null) primary else domains.getValue(d)
+    fun of(l: Level) = when (l) { Level.Good -> good; Level.Fair -> fair; Level.Poor -> poor }
+}
+
+/** Accent harmonisé avec la couleur primaire (dynamique ou statique). */
+fun accentRoles(seed: Color, primary: Color, light: Boolean): AccentRoles {
+    val h = MaterialColors.harmonize(seed.toArgb(), primary.toArgb())
+    val r = MaterialColors.getColorRoles(h, light)
+    return AccentRoles(Color(r.accent), Color(r.onAccent), Color(r.accentContainer), Color(r.onAccentContainer))
+}
+
+fun accentsFor(scheme: ColorScheme, light: Boolean): Accents {
+    val p = scheme.primary
+    return Accents(
+        domains = Domain.entries.associateWith { accentRoles(it.seed, p, light) },
+        primary = AccentRoles(scheme.primary, scheme.onPrimary, scheme.primaryContainer, scheme.onPrimaryContainer),
+        good = accentRoles(AccentSeeds.Good, p, light),
+        fair = accentRoles(AccentSeeds.Fair, p, light),
+        poor = accentRoles(AccentSeeds.Poor, p, light),
+    )
+}
+
+val LocalAccents = staticCompositionLocalOf { accentsFor(lightRose, true) }
+
+/** Accent de la section active. */
+val LocalAccent = compositionLocalOf { accentsFor(lightRose, true).primary }
+
+object Accent {
+    val current: AccentRoles
+        @Composable @ReadOnlyComposable get() = LocalAccent.current
+    val all: Accents
+        @Composable @ReadOnlyComposable get() = LocalAccents.current
+}
+
+/** Fournit l'accent d'un domaine (null = couleur primaire), avec un changement animé (350 ms). */
+@Composable
+fun ProvideAccent(domain: Domain?, content: @Composable () -> Unit) {
+    val target = LocalAccents.current.of(domain)
+    ProvideAccentRoles(target, content)
+}
+
+@Composable
+fun ProvideAccentRoles(target: AccentRoles, content: @Composable () -> Unit) {
+    val spec = tween<Color>(350, easing = Motion.Emphasized)
+    val a by animateColorAsState(target.accent, spec, label = "accent")
+    val oa by animateColorAsState(target.onAccent, spec, label = "onAccent")
+    val c by animateColorAsState(target.container, spec, label = "container")
+    val oc by animateColorAsState(target.onContainer, spec, label = "onContainer")
+    val roles = AccentRoles(a, oa, c, oc)
+    val base = LocalCd.current
+    CompositionLocalProvider(
+        LocalAccent provides roles,
+        LocalCd provides base.copy(p = a, op = oa, pc = c, opc = oc),
+        content = content,
+    )
+}
+
+/** Mélange deux schémas de couleurs (transition animée du thème). */
+private fun lerp(a: ColorScheme, b: ColorScheme, t: Float): ColorScheme {
+    if (t >= 1f) return b
+    fun l(x: Color, y: Color) = lerp(x, y, t)
+    return a.copy(
+        primary = l(a.primary, b.primary), onPrimary = l(a.onPrimary, b.onPrimary),
+        primaryContainer = l(a.primaryContainer, b.primaryContainer), onPrimaryContainer = l(a.onPrimaryContainer, b.onPrimaryContainer),
+        inversePrimary = l(a.inversePrimary, b.inversePrimary),
+        secondary = l(a.secondary, b.secondary), onSecondary = l(a.onSecondary, b.onSecondary),
+        secondaryContainer = l(a.secondaryContainer, b.secondaryContainer), onSecondaryContainer = l(a.onSecondaryContainer, b.onSecondaryContainer),
+        tertiary = l(a.tertiary, b.tertiary), onTertiary = l(a.onTertiary, b.onTertiary),
+        tertiaryContainer = l(a.tertiaryContainer, b.tertiaryContainer), onTertiaryContainer = l(a.onTertiaryContainer, b.onTertiaryContainer),
+        background = l(a.background, b.background), onBackground = l(a.onBackground, b.onBackground),
+        surface = l(a.surface, b.surface), onSurface = l(a.onSurface, b.onSurface),
+        surfaceVariant = l(a.surfaceVariant, b.surfaceVariant), onSurfaceVariant = l(a.onSurfaceVariant, b.onSurfaceVariant),
+        surfaceTint = l(a.surfaceTint, b.surfaceTint),
+        inverseSurface = l(a.inverseSurface, b.inverseSurface), inverseOnSurface = l(a.inverseOnSurface, b.inverseOnSurface),
+        error = l(a.error, b.error), onError = l(a.onError, b.onError),
+        errorContainer = l(a.errorContainer, b.errorContainer), onErrorContainer = l(a.onErrorContainer, b.onErrorContainer),
+        outline = l(a.outline, b.outline), outlineVariant = l(a.outlineVariant, b.outlineVariant), scrim = l(a.scrim, b.scrim),
+        surfaceBright = l(a.surfaceBright, b.surfaceBright), surfaceDim = l(a.surfaceDim, b.surfaceDim),
+        surfaceContainer = l(a.surfaceContainer, b.surfaceContainer),
+        surfaceContainerHigh = l(a.surfaceContainerHigh, b.surfaceContainerHigh),
+        surfaceContainerHighest = l(a.surfaceContainerHighest, b.surfaceContainerHighest),
+        surfaceContainerLow = l(a.surfaceContainerLow, b.surfaceContainerLow),
+        surfaceContainerLowest = l(a.surfaceContainerLowest, b.surfaceContainerLowest),
+    )
+}
+
+/** Schéma courant, avec une transition de 400 ms quand le thème change. */
+@Composable
+private fun animatedScheme(target: ColorScheme): ColorScheme {
+    var from by remember { mutableStateOf(target) }
+    var to by remember { mutableStateOf(target) }
+    val progress = remember { Animatable(1f) }
+    LaunchedEffect(target) {
+        if (target === to) return@LaunchedEffect
+        from = lerp(from, to, progress.value)
+        to = target
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(400, easing = Motion.Emphasized))
     }
-    fun inGamut(v: DoubleArray) = v.all { it in -0.0005..1.0005 }
-    var rgb = toRgb(c)
-    if (!inGamut(rgb)) {
-        var lo = 0.0
-        var hi = c
-        repeat(18) {
-            val mid = (lo + hi) / 2
-            if (inGamut(toRgb(mid))) lo = mid else hi = mid
+    return lerp(from, to, progress.value)
+}
+
+fun dynamicColorAvailable() = Build.VERSION.SDK_INT >= 31
+
+@Composable
+fun isDark(mode: ThemeMode) = when (mode) {
+    ThemeMode.Light -> false
+    ThemeMode.Dark -> true
+    ThemeMode.System -> isSystemInDarkTheme()
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun CarDeckTheme(
+    mode: ThemeMode,
+    dynamic: Boolean,
+    palette: Palette,
+    haptics: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val ctx = LocalContext.current
+    val dark = isDark(mode)
+    val useDynamic = dynamic && dynamicColorAvailable()
+    val target = remember(dark, useDynamic, palette) {
+        when {
+            useDynamic && dark -> dynamicDarkColorScheme(ctx)
+            useDynamic -> dynamicLightColorScheme(ctx)
+            palette == Palette.Rose -> if (dark) darkRose else lightRose
+            else -> if (dark) darkBlue else lightBlue
         }
-        rgb = toRgb(lo)
     }
-    fun enc(x: Double): Float {
-        val v = x.coerceIn(0.0, 1.0)
-        return (if (v <= 0.0031308) 12.92 * v else 1.055 * v.pow(1 / 2.4) - 0.055).toFloat()
+    // Les accents sont calculés une fois pour le schéma cible, puis animés par ProvideAccent.
+    val accents = remember(target) { accentsFor(target, !dark) }
+    val scheme = animatedScheme(target)
+    val view = LocalView.current
+    val hap = remember(view, haptics) { Haptics(view, haptics) }
+    CompositionLocalProvider(
+        LocalAccents provides accents,
+        LocalHaptics provides hap,
+        LocalCd provides cdColorsOf(scheme, accents, dark),
+    ) {
+        MaterialExpressiveTheme(
+            colorScheme = scheme,
+            motionScheme = MotionScheme.expressive(),
+            typography = CarDeckTypography,
+            shapes = CarDeckShapes,
+        ) {
+            ProvideAccentRoles(accents.primary, content)
+        }
     }
-    return Color(enc(rgb[0]), enc(rgb[1]), enc(rgb[2]))
 }
 
-/** Jetons de couleur de l'application (équivalent des variables CSS de la maquette). */
+// ---------------------------------------------------------------------------------------------
+// Jetons hérités : les écrans pas encore refaits lisent ces couleurs, désormais dérivées du schéma
+// Material 3 et de l'accent courant.
+
 data class CdColors(
     val p: Color, val op: Color, val pc: Color, val opc: Color,
     val s: Color, val os: Color, val sc: Color, val osc: Color,
@@ -69,68 +244,27 @@ data class CdColors(
     val dark: Boolean,
 )
 
-fun cdColors(h: Double, dark: Boolean): CdColors {
-    val t = (h + 60) % 360
-    return if (dark) CdColors(
-        p = oklch(.82, .11, h), op = oklch(.3, .09, h), pc = oklch(.4, .11, h), opc = oklch(.93, .05, h),
-        s = oklch(.82, .04, h), os = oklch(.3, .03, h), sc = oklch(.38, .045, h), osc = oklch(.92, .03, h),
-        t = oklch(.82, .09, t), ot = oklch(.3, .07, t), tc = oklch(.4, .08, t), otc = oklch(.93, .04, t),
-        sf = oklch(.165, .012, h), sfl = oklch(.135, .01, h), sf1 = oklch(.195, .013, h), sf2 = oklch(.215, .014, h),
-        sf3 = oklch(.25, .015, h), sf4 = oklch(.285, .016, h),
-        on = oklch(.92, .01, h), onv = oklch(.8, .02, h), ol = oklch(.62, .02, h), olv = oklch(.4, .02, h),
-        isf = oklch(.92, .01, h), ion = oklch(.27, .012, h),
-        e = oklch(.8, .11, 25.0), oe = oklch(.33, .1, 25.0), ec = oklch(.42, .13, 25.0), oec = oklch(.93, .04, 25.0),
-        w = oklch(.85, .12, 80.0), wc = oklch(.44, .09, 70.0), owc = oklch(.94, .06, 85.0),
-        g = oklch(.83, .13, 150.0), gc = oklch(.42, .09, 150.0), ogc = oklch(.93, .06, 150.0),
-        dark = true,
-    ) else CdColors(
-        p = oklch(.5, .13, h), op = Color.White, pc = oklch(.92, .05, h), opc = oklch(.28, .09, h),
-        s = oklch(.5, .04, h), os = Color.White, sc = oklch(.91, .035, h), osc = oklch(.28, .04, h),
-        t = oklch(.5, .1, t), ot = Color.White, tc = oklch(.92, .05, t), otc = oklch(.28, .08, t),
-        sf = oklch(.985, .006, h), sfl = Color.White, sf1 = oklch(.965, .008, h), sf2 = oklch(.95, .009, h),
-        sf3 = oklch(.935, .01, h), sf4 = oklch(.905, .011, h),
-        on = oklch(.22, .012, h), onv = oklch(.43, .02, h), ol = oklch(.58, .02, h), olv = oklch(.84, .015, h),
-        isf = oklch(.3, .012, h), ion = oklch(.95, .008, h),
-        e = oklch(.53, .19, 27.0), oe = Color.White, ec = oklch(.93, .045, 20.0), oec = oklch(.36, .12, 25.0),
-        w = oklch(.58, .13, 65.0), wc = oklch(.93, .07, 85.0), owc = oklch(.38, .08, 60.0),
-        g = oklch(.52, .13, 150.0), gc = oklch(.93, .06, 150.0), ogc = oklch(.32, .08, 150.0),
-        dark = false,
-    )
-}
+private fun cdColorsOf(s: ColorScheme, a: Accents, dark: Boolean) = CdColors(
+    p = s.primary, op = s.onPrimary, pc = s.primaryContainer, opc = s.onPrimaryContainer,
+    s = s.secondary, os = s.onSecondary, sc = s.secondaryContainer, osc = s.onSecondaryContainer,
+    t = s.tertiary, ot = s.onTertiary, tc = s.tertiaryContainer, otc = s.onTertiaryContainer,
+    sf = s.background, sfl = s.surfaceContainerLowest, sf1 = s.surfaceContainerLow, sf2 = s.surfaceContainer,
+    sf3 = s.surfaceContainerHigh, sf4 = s.surfaceContainerHighest,
+    on = s.onSurface, onv = s.onSurfaceVariant, ol = s.outline, olv = s.outlineVariant,
+    isf = s.inverseSurface, ion = s.inverseOnSurface,
+    e = s.error, oe = s.onError, ec = s.errorContainer, oec = s.onErrorContainer,
+    w = a.fair.accent, wc = a.fair.container, owc = a.fair.onContainer,
+    g = a.good.accent, gc = a.good.container, ogc = a.good.onContainer,
+    dark = dark,
+)
 
-val LocalCd = staticCompositionLocalOf { cdColors(158.0, true) }
+val LocalCd = staticCompositionLocalOf { cdColorsOf(lightRose, accentsFor(lightRose, true), false) }
 
 object Cd {
     val c: CdColors
         @Composable @ReadOnlyComposable get() = LocalCd.current
 }
 
-@Composable
-fun CarDeckTheme(palette: Palette, mode: ThemeMode, content: @Composable () -> Unit) {
-    val dark = when (mode) {
-        ThemeMode.Light -> false
-        ThemeMode.Dark -> true
-        ThemeMode.System -> isSystemInDarkTheme()
-    }
-    val c = cdColors(palette.hue, dark)
-    val scheme = if (dark) darkColorScheme(
-        primary = c.p, onPrimary = c.op, primaryContainer = c.pc, onPrimaryContainer = c.opc,
-        secondary = c.s, onSecondary = c.os, secondaryContainer = c.sc, onSecondaryContainer = c.osc,
-        tertiary = c.t, onTertiary = c.ot, tertiaryContainer = c.tc, onTertiaryContainer = c.otc,
-        background = c.sf, onBackground = c.on, surface = c.sf, onSurface = c.on, onSurfaceVariant = c.onv,
-        surfaceVariant = c.sf3, outline = c.ol, outlineVariant = c.olv,
-        error = c.e, onError = c.oe, errorContainer = c.ec, onErrorContainer = c.oec,
-        inverseSurface = c.isf, inverseOnSurface = c.ion,
-    ) else lightColorScheme(
-        primary = c.p, onPrimary = c.op, primaryContainer = c.pc, onPrimaryContainer = c.opc,
-        secondary = c.s, onSecondary = c.os, secondaryContainer = c.sc, onSecondaryContainer = c.osc,
-        tertiary = c.t, onTertiary = c.ot, tertiaryContainer = c.tc, onTertiaryContainer = c.otc,
-        background = c.sf, onBackground = c.on, surface = c.sf, onSurface = c.on, onSurfaceVariant = c.onv,
-        surfaceVariant = c.sf3, outline = c.ol, outlineVariant = c.olv,
-        error = c.e, onError = c.oe, errorContainer = c.ec, onErrorContainer = c.oec,
-        inverseSurface = c.isf, inverseOnSurface = c.ion,
-    )
-    CompositionLocalProvider(LocalCd provides c) {
-        MaterialTheme(colorScheme = scheme, content = content)
-    }
-}
+/** Raccourci vers le schéma Material courant. */
+val cs: ColorScheme
+    @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme
