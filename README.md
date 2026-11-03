@@ -33,8 +33,13 @@ description, causes possibles et recommandations. Recherche d'un code, effacemen
 et lit les codes défaut de chacun. Le scan prend plus de temps, mais ne laisse rien de côté.
 
 ### 🗺️ Trajets
-Le trajet démarre **tout seul** dès que le moteur tourne. Une fois terminé (contact coupé, ou moteur arrêté et voiture immobile pendant 1 minute), CarDeck se met en veille, sans notification. Elle en sort quand tu l'ouvres, ou automatiquement à la connexion Bluetooth à ta voiture, au choix pour chaque véhicule. Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées,
-vitesses, **consommation moyenne**, **coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr),
+Ouvre CarDeck (ou laisse-la se réveiller par Bluetooth, voir plus bas) : le trajet démarre **tout seul** dès que le moteur tourne.
+Un moteur calé ne le coupe pas. Il se termine quand le contact est coupé, quand le moteur est arrêté et la voiture immobile pendant 1 minute,
+ou quand la liaison avec le boîtier est perdue pendant 1 minute. CarDeck se met alors en veille, sans notification.
+Si tu ouvres l'appli sans rouler, elle se met aussi en veille après 5 minutes sans trajet, dès que tu la quittes.
+
+Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées, vitesses, **consommation moyenne**,
+**coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr, carburant au choix pour chaque véhicule),
 ainsi que les données du moteur relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
 Dans l'historique, un appui long sur un trajet lance la **multi-sélection** : tu peux **fusionner** plusieurs trajets en un seul (mis bout à bout, tracé et données repris) ou les **supprimer**.
@@ -42,11 +47,12 @@ Dans l'historique, un appui long sur un trajet lance la **multi-sélection** : t
 ### 🔧 Codage
 Les réglages du véhicule modifiables par diagnostic (à la manière de Bimmercode), avec sauvegarde automatique du codage d'origine,
 vérification par relecture et restauration en un geste. Disponible selon les modèles : certaines voitures ne s'y prêtent pas, et l'appli
-te dit pourquoi.
+te dit pourquoi (c'est le cas de la Swift Sport, dont les calculateurs d'habitacle ne répondent à aucune demande de diagnostic).
 
 ### ⏰ Réveil automatique
 Pour chaque véhicule, tu choisis si CarDeck sort de veille à la connexion Bluetooth à l'autoradio de ta voiture, ou jamais
-(tu ouvres alors l'appli toi-même).
+(tu ouvres alors l'appli toi-même). Pour que le réveil fonctionne, Android doit autoriser CarDeck à ignorer l'optimisation de batterie :
+l'appli te le demande quand tu actives l'option.
 
 ### 💾 Sauvegarde
 Toutes tes données (véhicules, trajets, diagnostics, réglages) peuvent être sauvegardées dans un fichier **chiffré** que seule CarDeck
@@ -72,7 +78,9 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
 ## Respect de ta voiture et de tes données
 
 - 🔒 Sur la Swift Sport, CarDeck est en **lecture seule** : il regarde, il n'écrit rien dans la voiture.
-- 📍 Les trajets et les diagnostics restent **sur ton téléphone**.
+- 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
+  d'arrivée du trajet), les cartes OpenStreetMap et la recherche de mises à jour.
+- 🔐 Tes sauvegardes sont **chiffrées** : seule CarDeck sait les relire.
 - 🔄 Les mises à jour sont proposées au lancement et installables depuis **Paramètres → Application**, où tu retrouves aussi le journal des nouveautés.
 
 ## Installer
