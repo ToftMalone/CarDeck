@@ -86,3 +86,7 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
 ## Installer
 
 Télécharge l'APK de la dernière version dans les [releases](https://github.com/ToftMalone/CarDeck/releases) et installe-le sur ton téléphone Android (8.0 ou plus récent).
+
+## Soutenir CarDeck ☕
+
+CarDeck est gratuite. Si elle t'est utile, tu peux soutenir son développement sur [Ko-fi](https://ko-fi.com/toftmalone).
