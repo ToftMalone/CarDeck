@@ -95,6 +95,7 @@ object Backup {
                     }
                     stmt?.close()
                 }
+                purgeRemovedPids(db)
                 // Fin du fichier lue et authentifiée (dernier bloc chiffré, contrôle gzip) avant de valider quoi que ce soit.
                 if (d.read() != -1) throw BackupCrypto.BadBackup("Sauvegarde illisible")
                 db.setTransactionSuccessful()

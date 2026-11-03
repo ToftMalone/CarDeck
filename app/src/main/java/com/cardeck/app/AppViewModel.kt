@@ -261,7 +261,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val (permanent, _) = e.readDtcs("0A")
                     scanStep = 4
                     val ff = runCatching { e.freezeFrame() }.getOrNull()
-                    // Tous les calculateurs, un par un (environ 1 à 2 minutes) : y compris ceux hors OBD2 (airbags, ABS…).
+                    // Tous les calculateurs, un par un (environ 1 à 2 minutes) : y compris ceux hors OBD2 (ABS…).
                     scanStep = 5
                     val found = e.findEcus { scanDetail = "Adresse %03X".format(it) }
                     scanStep = 6
@@ -491,27 +491,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         "22F18C" -> "N° de série"
         "1A99" -> "Date (probable)"
         else -> req
-    }
-
-    // ---- État sécurité (airbags) ----
-    var safetyBusy by mutableStateOf(false)
-        private set
-    var safety by mutableStateOf<com.cardeck.app.data.AirbagReport?>(null)
-        private set
-
-    fun readSafety() {
-        val ecu = repo.active?.template?.airbag ?: return
-        if (safetyBusy) return
-        safetyBusy = true
-        viewModelScope.launch {
-            val out = withContext(Dispatchers.IO) { obd.use { e -> runCatching { e.readEcu(ecu) }.getOrDefault(emptyList()) } }
-            when {
-                out == null -> showSnack("Boîtier OBD2 non connecté")
-                out.isEmpty() -> showSnack("Le calculateur d'airbags ne répond pas : mettez le contact")
-                else -> safety = com.cardeck.app.data.AirbagReport.from(out.toMap(), System.currentTimeMillis())
-            }
-            safetyBusy = false
-        }
     }
 
     // ---- Trajets ----

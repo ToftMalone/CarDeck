@@ -372,7 +372,7 @@ class Elm327(private val t: ObdTransport) {
     /**
      * Balayage de toutes les adresses de diagnostic CAN 11 bits (700 à 7F7) : un calculateur est présent s'il répond,
      * même par un refus, à « 3E 00 » (présence testeur) ou à « 10 01 » (session par défaut). Lecture seule.
-     * Jamais 7F1 / 7F9 (neutralisation des airbags), ni 7DF (diffusion), ni une adresse de réponse déjà trouvée.
+     * Jamais les adresses réservées 7F1 / 7F9 (ISO 26021), ni 7DF (diffusion), ni une adresse de réponse déjà trouvée.
      * Renvoie les couples (émission, réception) ; [progress] reçoit l'adresse en cours.
      */
     suspend fun findEcus(progress: (Int) -> Unit = {}): List<Pair<Int, Int>> {
@@ -618,7 +618,7 @@ class Elm327(private val t: ObdTransport) {
         if (c.startsWith("AT")) {
             val a = c.substring(2)
             if (listOf("PP", "WM", "SW", "BRD").any { a.startsWith(it) }) return false
-            // Interface ISO 26021 de neutralisation des airbags : jamais interrogée.
+            // Adresses réservées (ISO 26021) : jamais interrogées.
             if (Regex("^(SH|FCSH)0*7F1$").matches(a) || Regex("^CRA0*7F9$").matches(a)) return false
             return true
         }

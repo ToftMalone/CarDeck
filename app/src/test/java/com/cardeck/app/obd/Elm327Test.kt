@@ -240,7 +240,7 @@ class Elm327Test {
         assertTrue(fake.sent.containsAll(listOf("1081", "2100", "22F190")))
     }
 
-    @Test fun calculateur7F1JamaisInterroge() = runBlocking {
+    @Test fun adressesReserveesJamaisInterrogees() = runBlocking {
         val fake = FakeElm(base)
         val e = Elm327(fake)
         e.raw("ATSH7F1"); e.raw("ATCRA7F9"); e.raw("ATPP0CSV00")
@@ -285,14 +285,13 @@ class Elm327Test {
         assertEquals(listOf(listOf(0x1AC, 0x1B8), listOf(0x3B9)), Elm327.busGroups(listOf(0x3B9, 0x1B8, 0x1AC)))
     }
 
-    @Test fun carburantEtFreinParEcouteDuBus() = runBlocking {
-        val fake = FakeElm(base + mapOf("ATMA" to "3B9 00 00 00 00 F0 C0\r318 05 10 00 00 00 00 00 00"))
+    @Test fun carburantParEcouteDuBus() = runBlocking {
+        val fake = FakeElm(base + mapOf("ATMA" to "3B9 00 00 00 00 F0 C0"))
         val e = Elm327(fake)
         e.init(); e.probe()
         val swift = com.cardeck.app.data.SWIFT_SPORT_ZC33S.pids
-        val v = e.readAll(swift.filter { it.id in setOf("std2F", "swift_brake") }).toMap()
+        val v = e.readAll(swift.filter { it.id == "std2F" }).toMap()
         assertEquals(80.0, v.getValue("std2F"), 0.01)
-        assertEquals(1.0, v.getValue("swift_brake"), 0.01)
         assertTrue("ATH0" == fake.sent.last())
     }
 
@@ -305,35 +304,26 @@ class Elm327Test {
         assertEquals("ATSH7DF", fake.sent.last())
     }
 
-    @Test fun etatAirbags() {
-        val r = com.cardeck.app.data.AirbagReport.from(
-            mapOf("221000" to listOf(0x00, 0x15, 0x1B, 0xFF, 0x18), "221F00" to listOf(0xAB, 0, 0, 0, 0, 0, 0, 0x01, 0x2C)), 0L,
-        )
-        assertEquals(listOf(2.1, 2.7, 2.4), r.circuits)
-        assertEquals(300, r.secondsOn)
-        assertEquals(13.36, r.voltage!!, 0.01)
-    }
-
     @Test fun balayageDesCalculateurs() = runBlocking {
         val bus = BusFake(mapOf(
             "7E0" to mapOf("3E00" to "7E8 03 7F 3E 12"),
-            "793" to mapOf("3E00" to "7A3 02 7E 00"),
-            "7A3" to mapOf("3E00" to "7B3 02 7E 00"),
+            "79B" to mapOf("3E00" to "7AB 02 7E 00"),
+            "7AB" to mapOf("3E00" to "7BB 02 7E 00"),
             "798" to mapOf("1001" to "7A8 06 50 01 00 32 01 F4"),
         ))
         val e = Elm327(bus)
         e.init(); e.probe()
-        assertEquals(listOf(0x793 to 0x7A3, 0x798 to 0x7A8, 0x7E0 to 0x7E8), e.findEcus())
-        // Jamais l'interface de neutralisation des airbags, ni une adresse de réponse déjà trouvée.
-        assertTrue(bus.sent.none { it == "ATSH7F1" || it == "ATSH7F9" || it == "ATSH7A3" || it == "ATSH7E8" })
+        assertEquals(listOf(0x798 to 0x7A8, 0x79B to 0x7AB, 0x7E0 to 0x7E8), e.findEcus())
+        // Jamais les adresses réservées, ni une adresse de réponse déjà trouvée.
+        assertTrue(bus.sent.none { it == "ATSH7F1" || it == "ATSH7F9" || it == "ATSH7AB" || it == "ATSH7E8" })
     }
 
     @Test fun codesDunCalculateurUds() = runBlocking {
         val r = "00F\r0: 59 02 FF 90 01 23 09\r1: C1 23 00 08 81 11 22\r2: 40 00 00"
-        val e = Elm327(BusFake(mapOf("793" to mapOf("1902FF" to r))))
-        val codes = e.ecuDtcs(0x793, 0x7A3, "Airbags")!!
+        val e = Elm327(BusFake(mapOf("79B" to mapOf("1902FF" to r))))
+        val codes = e.ecuDtcs(0x79B, 0x7AB, "Module")!!
         assertEquals(listOf("B1001", "U0123"), codes.map { it.code })
-        assertTrue(codes.all { it.ecu == "Airbags" && it.status == DtcStatus.Stored })
+        assertTrue(codes.all { it.ecu == "Module" && it.status == DtcStatus.Stored })
     }
 
     @Test fun codesDunCalculateurKwp() = runBlocking {

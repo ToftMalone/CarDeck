@@ -84,15 +84,12 @@ data class VehicleTemplate(
     val dashSport: List<String> = emptyList(),
     /** Calculateurs à interroger pour l'identification. */
     val idents: List<EcuIdent> = emptyList(),
-    /** Calculateur d'airbags (page « État sécurité ») : 22 1000 = circuits d'allumage, 22 1F00 = contact / tension. */
-    val airbag: EcuIdent? = null,
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
 }
 
 private fun u16(d: IntArray, i: Int) = (d[i] * 256 + d[i + 1]).toDouble()
-private fun bit(d: IntArray, i: Int, mask: Int) = if (d[i] and mask != 0) 1.0 else 0.0
 
 private fun bus(
     id: String, label: String, unit: String, icon: ImageVector, can: Int, category: String, size: Int, window: Long,
@@ -103,7 +100,6 @@ private fun bus(
     category = category, can = can, window = window, states = states, peak = peak, decode = decode,
 )
 
-private const val PEDALS = "Pédales et boîte"
 private const val COUNTERS = "Compteurs"
 
 /**
@@ -116,10 +112,6 @@ private val SWIFT_BUS = listOf(
     bus("swift_fuel_l", "Carburant (litres, estimé)", "L", Icons.Rounded.LocalGasStation, 0x3B9, "Carburant", 6, 200, max = 37.0, decimals = 1, slow = true) { it[5] / 6.5 },
     bus("std46", "Temp. extérieure", "°C", Icons.Rounded.Thermostat, 0x3BA, "Températures", 1, 200, min = -20.0, max = 50.0, slow = true) { it[0] / 2.0 - 40 },
     bus("swift_odo", "Kilométrage", "km", Icons.Rounded.Speed, 0x460, COUNTERS, 3, 1200, max = 300_000.0, slow = true) { it[0] * 65536.0 + it[1] * 256 + it[2] },
-    bus("swift_brake", "Pédale de frein", "", Icons.Rounded.Speed, 0x318, PEDALS, 1, 200, states = listOf("Relâchée", "Enfoncée")) { bit(it, 0, 0x04) },
-    bus("swift_clutch", "Embrayage", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Relâché", "Enfoncé")) { if (it[5] and 0xC0 == 0xC0) 1.0 else 0.0 },
-    bus("swift_handbrake", "Frein à main", "", Icons.Rounded.Speed, 0x1D0, PEDALS, 6, 40, states = listOf("Desserré", "Serré")) { bit(it, 5, 0x10) },
-    bus("swift_reverse", "Marche arrière", "", Icons.Rounded.Speed, 0x3A1, PEDALS, 2, 200, states = listOf("Non", "Engagée")) { bit(it, 1, 0x40) },
 )
 
 /** Identifiants KWP 1A essayés sur les calculateurs Suzuki (références, versions). */
@@ -152,11 +144,8 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
             min = 20.0, max = 150.0, slow = true, size = 9, category = "Températures",
         ) { it[8] - 40.0 },
     ) + SWIFT_BUS,
-    // Identification : le calculateur 7F1 (neutralisation des airbags, ISO 26021) n'est jamais interrogé.
-    airbag = EcuIdent("Airbags", "793", "7A3", true, listOf("221000", "221F00")),
     idents = listOf(
         EcuIdent("Moteur", "7E0", "7E8", false, listOf("1A90", "1A8A", "1A8B", "1A8E", "1A9E", "1A9F", "1A98", "1A99")),
-        EcuIdent("Airbags", "793", "7A3", true, listOf("22F190", "22F188", "22F101", "22F18C")),
         EcuIdent("ABS / ESP (estimé)", "798", "7A8", false, KWP_IDS),
         EcuIdent("Calculateur 776 (radar ?)", "776", "786", false, KWP_IDS),
         EcuIdent("Calculateur 778 (caméra ?)", "778", "788", false, KWP_IDS),
