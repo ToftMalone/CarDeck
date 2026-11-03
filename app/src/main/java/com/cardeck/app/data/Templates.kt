@@ -2,7 +2,6 @@ package com.cardeck.app.data
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeviceThermostat
-import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Thermostat
 import androidx.compose.material.icons.rounded.Speed
@@ -50,8 +49,6 @@ data class PidDef(
  * Calculateur interrogé pour l'identification (références, logiciels, VIN), en lecture seule.
  * [rx] : adresse de réponse ; [uds] : UDS (22 xxxx, session 10 01) sinon KWP2000 (1A xx, session 10 81).
  */
-data class EcuIdent(val name: String, val tx: String, val rx: String, val uds: Boolean, val requests: List<String>)
-
 /** Modèle de véhicule : caractéristiques + fonctionnalités dédiées (PIDs…). Un profil est créé à partir d'un modèle. */
 data class VehicleTemplate(
     val id: String,
@@ -82,8 +79,6 @@ data class VehicleTemplate(
     val comingSoon: Boolean = false,
     /** Données du modèle ajoutées au tableau de bord Sport. */
     val dashSport: List<String> = emptyList(),
-    /** Calculateurs à interroger pour l'identification. */
-    val idents: List<EcuIdent> = emptyList(),
 ) {
     val fullName get() = "$brand $model $code".trim()
     val specs get() = "$engine · $power · $fuel"
@@ -114,9 +109,6 @@ private val SWIFT_BUS = listOf(
     bus("swift_odo", "Kilométrage", "km", Icons.Rounded.Speed, 0x460, COUNTERS, 3, 1200, max = 300_000.0, slow = true) { it[0] * 65536.0 + it[1] * 256 + it[2] },
 )
 
-/** Identifiants KWP 1A essayés sur les calculateurs Suzuki (références, versions). */
-private val KWP_IDS = listOf("1A8A", "1A8B", "1A8C", "1A8D", "1A8E", "1A9E", "1A9F")
-
 val SWIFT_SPORT_ZC33S = VehicleTemplate(
     id = "suzuki-swift-sport-zc33s",
     brand = "Suzuki",
@@ -144,13 +136,6 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
             min = 20.0, max = 150.0, slow = true, size = 9, category = "Températures",
         ) { it[8] - 40.0 },
     ) + SWIFT_BUS,
-    idents = listOf(
-        EcuIdent("Moteur", "7E0", "7E8", false, listOf("1A90", "1A8A", "1A8B", "1A8E", "1A9E", "1A9F", "1A98", "1A99")),
-        EcuIdent("ABS / ESP (estimé)", "798", "7A8", false, KWP_IDS),
-        EcuIdent("Calculateur 776 (radar ?)", "776", "786", false, KWP_IDS),
-        EcuIdent("Calculateur 778 (caméra ?)", "778", "788", false, KWP_IDS),
-        EcuIdent("Calculateur 79A", "79A", "7AA", false, KWP_IDS),
-    ),
     // Fonctions de codage Swift Sport à intégrer (données à fournir).
     codings = emptyList(),
 )

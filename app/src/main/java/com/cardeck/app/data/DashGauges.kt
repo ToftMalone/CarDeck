@@ -2,7 +2,6 @@ package com.cardeck.app.data
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Air
-import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -32,7 +31,6 @@ object DashGauges {
 
     val MAP_BAR = pseudo("dash_map", "Pression collecteur (MAP)", "bar", Icons.Rounded.Air, 2, 0.0, 2.5)
     val BOOST_BAR = pseudo("dash_boost", "Pression de suralimentation", "bar", Icons.Rounded.Speed, 2, -1.0, 1.5)
-    val VOLT = pseudo("dash_volt", "Tension batterie", "V", Icons.Rounded.BatteryChargingFull, 1, 11.0, 15.0)
     val CONSO_100 = pseudo("dash_conso", "Consommation", "L/100 km", Icons.Rounded.LocalGasStation, 1, 0.0, 20.0)
     val CONSO_H = pseudo("dash_conso_h", "Consommation", "L/h", Icons.Rounded.LocalGasStation, 1, 0.0, 5.0)
 
@@ -54,8 +52,7 @@ object DashGauges {
                 speed != null && speed >= 5 -> Gauge(CONSO_100, lph / speed * 100, null)
                 else -> Gauge(CONSO_H, lph, "À l'arrêt")
             }
-            val volt = Gauge(VOLT, values["elm_volt"], "Prise OBD")
-            STANDARD_IDS.take(5).map { gauge(it) } + listOf(conso, volt)
+            STANDARD_IDS.take(5).map { gauge(it) } + conso
         } else {
             val map = values["std0B"]
             val baro = values["std33"] ?: BARO_DEFAULT_KPA

@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import com.cardeck.app.AppViewModel
 import com.cardeck.app.data.PidDef
 import com.cardeck.app.data.StdPids
-import com.cardeck.app.data.fr
 import com.cardeck.app.obd.ObdState
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Ico
@@ -51,7 +50,6 @@ fun ObdDataScreen(vm: AppViewModel) {
     val (connLabel, connKind) = connStatus(vm, v)
     val st by vm.obd.state.collectAsState()
     val ecu by vm.obd.ecuOnline.collectAsState()
-    val volt by vm.obd.voltage.collectAsState()
     val protocol by vm.obd.protocol.collectAsState()
     val connected = connKind == ConnKind.Ok
     // Toutes les données sont lues en permanence par le service de suivi : l'écran affiche ses dernières mesures.
@@ -84,7 +82,6 @@ fun ObdDataScreen(vm: AppViewModel) {
                     InfoRow("Interface", (st as? ObdState.Connected)?.version ?: "—")
                     InfoRow("Protocole", if (connected) protocol ?: "—" else "—")
                     InfoRow("Véhicule", if (!connected) "—" else if (ecu) "Calculateur moteur joignable" else "Contact coupé")
-                    InfoRow("Tension batterie", if (connected) volt?.let { fr(it, 1) + " V" } ?: "—" else "—")
                     InfoRow("VIN", v.vin ?: "Non lu")
                     (st as? ObdState.Failed)?.takeIf { it.adapter.address == a.address }?.let {
                         T(it.message, 13, c.e, modifier = Modifier.padding(top = 8.dp), lineHeight = 18)
@@ -92,7 +89,6 @@ fun ObdDataScreen(vm: AppViewModel) {
                     if (connKind == ConnKind.Off) TextBtn("Se connecter", { vm.connectNow() })
                 }
             }
-            if (tpl.idents.isNotEmpty()) IdentCard(vm, connected)
             val sup = supported
             val std = if (sup == null) emptyList() else StdPids.forSupported(sup)
             T("Toutes les valeurs du véhicule", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
@@ -110,28 +106,6 @@ fun ObdDataScreen(vm: AppViewModel) {
             }
             tpl.pids.groupBy { it.category }.forEach { (cat, list) -> PidSection("$cat · ${tpl.model}", list, values) }
         }
-    }
-}
-
-/** Identification du véhicule : VIN, kilométrage, références et logiciels des calculateurs (lecture seule). */
-@Composable
-private fun IdentCard(vm: AppViewModel, connected: Boolean) {
-    val c = Cd.c
-    val live by vm.obd.live.collectAsState()
-    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
-        T("Identification", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
-        live["swift_odo"]?.let { InfoRow("Kilométrage", fr(it) + " km") }
-        val list = vm.ident
-        when {
-            vm.identBusy -> T("Lecture des calculateurs…", 14, c.onv)
-            list == null -> T("Références, logiciels et VIN des calculateurs, lus sans rien modifier.", 14, c.onv, lineHeight = 20)
-            else -> list.forEach { (ecu, lines) ->
-                T(ecu, 14, c.p, 500, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
-                if (lines.isEmpty()) T("Pas de réponse", 13, c.onv)
-                lines.forEach { l -> InfoRow(l.substringBefore(" : "), l.substringAfter(" : ")) }
-            }
-        }
-        if (connected && !vm.identBusy) TextBtn(if (list == null) "Lire l'identification" else "Relire", { vm.readIdent() })
     }
 }
 

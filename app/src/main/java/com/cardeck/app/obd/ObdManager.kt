@@ -29,7 +29,6 @@ class ObdManager(private val ctx: Context) {
 
     /** Au moins un calculateur répond (contact mis / moteur tournant). */
     val ecuOnline = MutableStateFlow(false)
-    val voltage = MutableStateFlow<Double?>(null)
     val protocol = MutableStateFlow<String?>(null)
 
     /** PIDs standard déclarés par le véhicule (null tant qu'on ne les a pas lus). */
@@ -112,7 +111,6 @@ class ObdManager(private val ctx: Context) {
         transport = null
         elm = null
         ecuOnline.value = false
-        voltage.value = null
         supported.value = null
         live.value = emptyMap()
     }

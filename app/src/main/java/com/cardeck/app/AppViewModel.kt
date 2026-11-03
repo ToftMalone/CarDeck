@@ -265,10 +265,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     scanStep = 5
                     val found = e.findEcus { scanDetail = "Adresse %03X".format(it) }
                     scanStep = 6
-                    val names = v.template.idents.associate { it.tx.toInt(16) to it.name }
                     var answered = 0
                     val more = found.flatMap { (tx, rx) ->
-                        val name = names[tx] ?: if (tx == 0x7E0) "Moteur" else "Calculateur %03X".format(tx)
+                        val name = if (tx == 0x7E0) "Moteur" else "Calculateur %03X".format(tx)
                         scanDetail = name
                         e.ecuDtcs(tx, rx, name)?.also { answered++ }.orEmpty()
                     }
@@ -452,45 +451,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
             codingBusy = null
         }
-    }
-
-    // ---- Identification ----
-    var identBusy by mutableStateOf(false)
-        private set
-    /** Résultat par calculateur : (nom, lignes « libellé : valeur »). */
-    var ident by mutableStateOf<List<Pair<String, List<String>>>?>(null)
-        private set
-
-    fun readIdent() {
-        val v = repo.active ?: return
-        if (identBusy || v.template.idents.isEmpty()) return
-        identBusy = true
-        viewModelScope.launch {
-            val out = withContext(Dispatchers.IO) {
-                obd.use { e -> v.template.idents.map { ecu -> ecu to runCatching { e.identify(ecu) }.getOrDefault(emptyList()) } }
-            }
-            if (out == null) showSnack("Boîtier OBD2 non connecté")
-            else {
-                ident = out.map { (ecu, lines) -> ecu.name to lines.map { (req, txt) -> identLabel(req) + " : " + txt } }
-                // VIN lu par l'identification : enregistré dans le profil du véhicule.
-                val vin = out.flatMap { it.second }.firstOrNull { (req, txt) -> (req == "1A90" || req == "22F190") && txt.length >= 17 }?.second?.take(17)
-                val a = v.adapter
-                if (vin != null && a != null && v.vin != vin) withContext(Dispatchers.IO) { repo.setAdapter(v.id, a, vin) }
-                if (out.all { it.second.isEmpty() }) showSnack("Aucun calculateur n'a répondu : mettez le contact")
-            }
-            identBusy = false
-        }
-    }
-
-    private fun identLabel(req: String): String = when (req) {
-        "1A90", "22F190" -> "VIN"
-        "1A8A", "22F188", "22F101" -> "Référence"
-        "1A8B" -> "Calculateur"
-        "1A8E" -> "Matériel"
-        "1A9E", "1A9F" -> "Logiciel"
-        "22F18C" -> "N° de série"
-        "1A99" -> "Date (probable)"
-        else -> req
     }
 
     // ---- Trajets ----

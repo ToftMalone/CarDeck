@@ -230,12 +230,11 @@ class TripService : Service() {
         val chunks = share(normal, 3) + share(slow, 6)
 
         // Lit un paquet, le publie et l'enregistre ; false si la liaison est perdue (le tour s'arrête).
-        suspend fun read(defs: List<com.cardeck.app.data.PidDef>, volt: Boolean = false): Boolean {
+        suspend fun read(defs: List<com.cardeck.app.data.PidDef>): Boolean {
             if (sleeping) return false
-            if (defs.isEmpty() && !volt) return true
+            if (defs.isEmpty()) return true
             val now = System.currentTimeMillis()
-            val values = obd.use { e -> e.readAll(defs) + listOfNotNull(if (volt) e.voltage()?.let { "elm_volt" to it } else null) } ?: return false
-            values.firstOrNull { it.first == "elm_volt" }?.let { obd.voltage.value = it.second }
+            val values = obd.use { e -> e.readAll(defs) } ?: return false
             obd.publish(values)
             recorder?.addSamples(now, values)
             // Régime relu dans la voie rapide : le trajet s'arrête dès que le moteur est coupé, sans attendre la fin du tour.
@@ -244,7 +243,7 @@ class TripService : Service() {
             return true
         }
 
-        if (!read(hot, volt = true)) return
+        if (!read(hot)) return
         for (chunk in chunks) {
             if (!read(chunk.flatten())) return
             if (!read(hot)) return

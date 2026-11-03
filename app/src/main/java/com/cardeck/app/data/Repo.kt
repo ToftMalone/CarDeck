@@ -14,13 +14,12 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** Version du schéma de la base (sauvegardes comprises). */
-const val DB_VERSION = 5
+const val DB_VERSION = 6
 
-/** Données retirées de l'application : leurs mesures déjà enregistrées dans les trajets sont effacées. */
-val REMOVED_PIDS = listOf("swift_brake", "swift_clutch", "swift_handbrake", "swift_reverse")
-
+/** Efface les mesures de données que CarDeck ne lit plus (celles absentes des catalogues actuels). */
 fun purgeRemovedPids(db: SQLiteDatabase) {
-    db.delete("trip_samples", "pid IN (${REMOVED_PIDS.joinToString(",") { "'$it'" }})", null)
+    val known = (StdPids.ids + TEMPLATES.flatMap { t -> t.pids.map { it.id } }).toTypedArray()
+    db.delete("trip_samples", "pid NOT IN (${known.joinToString(",") { "?" }})", known)
 }
 
 private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null, DB_VERSION) {
@@ -54,7 +53,7 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         if (oldVersion < 2) createCodingTables(db)
         if (oldVersion < 3) createSampleTables(db)
         if (oldVersion < 4) addFuelColumns(db)
-        if (oldVersion < 5) purgeRemovedPids(db)
+        if (oldVersion < 6) purgeRemovedPids(db)
     }
 
     /** Carburant et prix au litre retenus pour le coût du trajet. */

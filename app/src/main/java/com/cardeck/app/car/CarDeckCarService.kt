@@ -146,7 +146,6 @@ internal class HomeCarScreen(ctx: CarContext) : CarScreen(ctx, parkedOnly = fals
 
 /** Libellés courts des données du tableau de bord sur l'écran de la voiture. */
 private val SHORT_LABELS = mapOf(
-    "dash_volt" to "Batterie",
     "dash_map" to "MAP",
     "dash_boost" to "Suralimentation",
     "std0E" to "Avance allumage",
