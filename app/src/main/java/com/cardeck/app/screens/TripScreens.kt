@@ -18,12 +18,23 @@ import com.cardeck.app.ui.Spinner
 import com.cardeck.app.data.FuelType
 import com.cardeck.app.data.FuelPrices
 import com.cardeck.app.data.TripFuel
+import com.cardeck.app.data.TripMerge
 import com.cardeck.app.export.TripExport
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.foundation.border
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.rounded.CallMerge
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.SelectAll
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.cardeck.app.ui.TextBtn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -125,8 +136,26 @@ fun TripsScreen(vm: AppViewModel) {
     val now = System.currentTimeMillis()
     val list = all.orEmpty().filter { tripInPeriod(it, tf, now) }
     val km = list.sumOf { it.distanceKm }
+
+    // Multi-sélection : appui long sur un trajet, puis touches pour ajouter ou retirer. Fusionner (2 ou plus) ou supprimer.
+    var selected by remember(v.id) { mutableStateOf(setOf<Long>()) }
+    LaunchedEffect(tf, changes) { selected = selected.filter { id -> all.orEmpty().any { it.id == id } && tripInPeriod(all.orEmpty().first { it.id == id }, tf, now) }.toSet() }
+    val chosen = list.filter { it.id in selected }
+    val selecting = chosen.isNotEmpty()
+    BackHandler(enabled = selecting) { selected = emptySet() }
+    var confirm by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+
     Column(Modifier.fillMaxSize()) {
-        BackBar("Trajets", scroll.value > 48, { vm.back() })
+        if (selecting) Row(
+            Modifier.fillMaxWidth().height(64.dp).background(c.sf2).padding(start = 4.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            IconBtn(Icons.Rounded.Close, { selected = emptySet() })
+            T("${chosen.size} sélectionné${if (chosen.size > 1) "s" else ""}", 18, weight = 500, modifier = Modifier.weight(1f))
+            IconBtn(Icons.Rounded.SelectAll, { selected = if (chosen.size == list.size) emptySet() else list.map { it.id }.toSet() })
+        } else BackBar("Trajets", scroll.value > 48, { vm.back() })
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             ScreenTitle("Trajets", "${v.nickname} · ${list.size} trajet${if (list.size > 1) "s" else ""} · ${fr(km, 1)} km")
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -150,19 +179,89 @@ fun TripsScreen(vm: AppViewModel) {
                 else -> list.groupBy { dayLabel(it.start) }.forEach { (date, trips) ->
                     T(date, 14, c.onv, 500, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp))
                     Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        trips.forEach { t -> TripCard(t) { vm.go(Screen.Trip(t.id)) } }
+                        trips.forEach { t ->
+                            TripCard(
+                                t, selecting, t.id in selected,
+                                onClick = { if (selecting) selected = if (t.id in selected) selected - t.id else selected + t.id else vm.go(Screen.Trip(t.id)) },
+                                onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selected = selected + t.id },
+                            )
+                        }
                     }
                 }
             }
         }
+        if (selecting) Row(
+            Modifier.fillMaxWidth().background(c.sf2).padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (chosen.size >= 2) TextBtn("Fusionner (${chosen.size})", { confirm = "merge" }, Icons.Rounded.CallMerge)
+            else T("Sélectionne un 2e trajet pour fusionner", 12, c.onv)
+            TextBtn("Supprimer (${chosen.size})", { confirm = "delete" }, Icons.Rounded.Delete, c.e)
+        }
+    }
+
+    confirm?.let { what ->
+        val n = chosen.size
+        val km = chosen.sumOf { it.distanceKm }
+        if (what == "delete") AlertDialog(
+            onDismissRequest = { confirm = null },
+            containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+            title = { T("Supprimer $n trajet${if (n > 1) "s" else ""} ?", 22, lineHeight = 28) },
+            text = { T("Le tracé et les données ${if (n > 1) "de ces trajets" else "de ce trajet"} (${fr(km, 1)} km) seront définitivement supprimés.", 14, c.onv, lineHeight = 20) },
+            confirmButton = {
+                TextButton({
+                    val ids = chosen.map { it.id }
+                    confirm = null
+                    selected = emptySet()
+                    scope.launch { withContext(Dispatchers.IO) { vm.repo.deleteTrips(ids) }; vm.showSnack("$n trajet${if (n > 1) "s" else ""} supprimé${if (n > 1) "s" else ""}") }
+                }) { T("Supprimer", 14, c.e, 600) }
+            },
+            dismissButton = { TextButton({ confirm = null }) { T("Annuler", 14, c.p, 500) } },
+        ) else {
+            val plan = TripMerge.plan(chosen)
+            AlertDialog(
+                onDismissRequest = { confirm = null },
+                containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+                title = { T("Fusionner $n trajets ?", 22, lineHeight = 28) },
+                text = {
+                    T(
+                        if (plan == null) "Ces trajets ne peuvent pas être fusionnés."
+                        else "Ils deviennent un seul trajet de ${fr(plan.merged.distanceKm, 1)} km et ${durationLabel(plan.merged.end - plan.merged.start)} " +
+                            "(${plan.merged.from} → ${plan.merged.to}), mis bout à bout : les pauses entre eux ne sont pas comptées. " +
+                            "Les $n trajets d'origine sont remplacés et ne pourront pas être récupérés.",
+                        14, c.onv, lineHeight = 20,
+                    )
+                },
+                confirmButton = {
+                    TextButton({
+                        val ids = chosen.map { it.id }
+                        confirm = null
+                        selected = emptySet()
+                        scope.launch {
+                            val r = withContext(Dispatchers.IO) { runCatching { vm.repo.mergeTrips(ids) } }.getOrNull()
+                            vm.showSnack(if (r != null) "$n trajets fusionnés · ${fr(r.distanceKm, 1)} km" else "Fusion impossible")
+                        }
+                    }, enabled = plan != null) { T("Fusionner", 14, c.p, 600) }
+                },
+                dismissButton = { TextButton({ confirm = null }) { T("Annuler", 14, c.p, 500) } },
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TripCard(t: Trip, onClick: () -> Unit) {
+private fun TripCard(t: Trip, selecting: Boolean, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val c = Cd.c
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).clickable(onClick = onClick).padding(16.dp)) {
-        T("${timeHm(t.start)} – ${timeHm(t.end)}", 16, weight = 500)
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (selected) c.sc else c.sf1)
+            .then(if (selected) Modifier.border(2.dp, c.p, RoundedCornerShape(20.dp)) else Modifier)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(16.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            T("${timeHm(t.start)} – ${timeHm(t.end)}", 16, weight = 500)
+            if (selecting) Ico(if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, 24, if (selected) c.p else c.onv)
+        }
         Row(Modifier.padding(top = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.padding(top = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(10.dp).clip(CircleShape).border(2.dp, c.g, CircleShape))

@@ -211,6 +211,49 @@ class Repo(ctx: Context) {
         bump()
     }
 
+    /** Supprime plusieurs trajets (tracé et données compris) en une seule opération. */
+    fun deleteTrips(ids: Collection<Long>) {
+        if (ids.isEmpty()) return
+        db.beginTransaction()
+        try {
+            ids.forEach { db.delete("trips", "id=?", arrayOf(it.toString())) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        bump()
+    }
+
+    /**
+     * Fusionne des trajets terminés d'un même véhicule en un seul (voir [TripMerge]) : tracé et données sont repris, mis bout à bout,
+     * et les trajets d'origine disparaissent. Tout ou rien. Renvoie le nouveau trajet, ou null si la fusion est impossible.
+     */
+    fun mergeTrips(ids: Collection<Long>): Trip? {
+        val plan = TripMerge.plan(ids.mapNotNull { trip(it) }.takeIf { it.size == ids.size }.orEmpty()) ?: return null
+        val m = plan.merged
+        var newId = 0L
+        db.beginTransaction()
+        try {
+            newId = db.insertOrThrow("trips", null, ContentValues().apply {
+                put("vehicle_id", m.vehicleId); put("start", m.start); put("end_t", m.end)
+                put("distance_km", m.distanceKm); put("avg_kmh", m.avgKmh); put("max_kmh", m.maxKmh)
+                put("from_label", m.from); put("to_label", m.to)
+                put("fuel_type", m.fuelType?.name); put("fuel_price", m.fuelPrice); put("fuel_price_info", m.fuelPriceInfo)
+            })
+            plan.sources.forEachIndexed { i, t ->
+                val args = arrayOf<Any>(newId, plan.shifts[i], t.id)
+                db.execSQL("UPDATE trip_points SET trip_id=?, t=t+? WHERE trip_id=?", args)
+                db.execSQL("UPDATE trip_samples SET trip_id=?, t=t+? WHERE trip_id=?", args)
+            }
+            plan.sources.forEach { db.delete("trips", "id=?", arrayOf(it.id.toString())) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        bump()
+        return m.copy(id = newId)
+    }
+
     fun points(tripId: Long): List<TripPoint> = db.rawQuery("SELECT * FROM trip_points WHERE trip_id=? ORDER BY t", arrayOf(tripId.toString())).use { c ->
         buildList { while (c.moveToNext()) add(TripPoint(c.long("t"), c.dbl("lat"), c.dbl("lon"), c.dbl("speed"))) }
     }

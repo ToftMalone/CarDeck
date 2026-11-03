@@ -37,6 +37,7 @@ Le trajet démarre **tout seul** dès que le moteur tourne. Une fois terminé (c
 vitesses, **consommation moyenne**, **coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr),
 ainsi que les données du moteur relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
+Dans l'historique, un appui long sur un trajet lance la **multi-sélection** : tu peux **fusionner** plusieurs trajets en un seul (mis bout à bout, tracé et données repris) ou les **supprimer**.
 
 ### 🔧 Codage
 Les réglages du véhicule modifiables par diagnostic (à la manière de Bimmercode), avec sauvegarde automatique du codage d'origine,
