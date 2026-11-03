@@ -220,7 +220,10 @@ class TripService : Service() {
      */
     private suspend fun readEverything(v: com.cardeck.app.data.VehicleProfile, cycle: Int) {
         val obd = cardeck.obd
-        if (obd.supported.value == null) obd.use { it.supportedPids() }?.let { obd.supported.value = it }
+        if (obd.supported.value == null) obd.use { it.supportedPids() }?.let {
+            obd.supported.value = it
+            cardeck.repo.setSupportedPids(v.id, it)
+        }
         val sup = obd.supported.value.orEmpty()
         val all = StdPids.forSupported(sup) + v.template.pids
         val hot = all.filter { it.id in HOT_IDS && it.can == null && it.header == null }

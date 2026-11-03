@@ -341,7 +341,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                         }
                     }.getOrNull()
                     exporting = false
-                    if (file == null) vm.showSnack("Échec de l'export du trajet") else shareFile(ctx, file)
+                    if (file == null) vm.showSnack("Échec de l'export du trajet") else shareFile(ctx, file, "application/zip", "Exporter le trajet")
                 }
             }, c.on, c.sf3, Modifier.shadow(4.dp, CircleShape))
             IconBtn(Icons.Rounded.Delete, { confirmDelete = true }, c.on, c.sf3, Modifier.shadow(4.dp, CircleShape))
@@ -686,13 +686,3 @@ private fun MomentCard(p: PidDef, value: Double?, modifier: Modifier) {
 }
 
 /** Ouvre le menu de partage Android pour l'archive exportée. */
-private fun shareFile(ctx: Context, file: java.io.File) {
-    val uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", file)
-    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = "application/zip"
-        putExtra(android.content.Intent.EXTRA_STREAM, uri)
-        putExtra(android.content.Intent.EXTRA_SUBJECT, file.nameWithoutExtension)
-        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    ctx.startActivity(android.content.Intent.createChooser(send, "Exporter le trajet"))
-}

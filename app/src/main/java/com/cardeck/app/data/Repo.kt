@@ -270,6 +270,10 @@ class Repo(ctx: Context) {
 
     fun setFuel(vehicleId: Long, f: FuelType) = prefs.setFuel(vehicleId, f)
 
+    fun supportedPids(vehicleId: Long): Set<Int>? = prefs.supported(vehicleId)
+
+    fun setSupportedPids(vehicleId: Long, pids: Set<Int>) = prefs.setSupported(vehicleId, pids)
+
     fun wake(vehicleId: Long): WakeConfig = prefs.wake(vehicleId)
 
     fun setWake(vehicleId: Long, w: WakeConfig) {

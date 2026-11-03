@@ -341,4 +341,50 @@ class Elm327Test {
         assertEquals(listOf(DtcStatus.Stored, DtcStatus.Pending), codes.map { it.status })
         assertNull(Elm327(BusFake(emptyMap())).ecuDtcs(0x776, 0x786, "Radar"))
     }
+
+    @Test fun codesSansEnTetes() = runBlocking {
+        // Boîtier qui ignore ATH1 : réponse brute, sans en-tête ni octet de longueur.
+        val e = elm(mapOf("03" to "43 02 05 15 0A 5A"))
+        e.init(); e.probe()
+        val (codes, ecus) = e.readDtcs("03")
+        assertEquals(listOf("P0515", "P0A5A"), codes.map { it.code })
+        assertEquals("Moteur", codes[0].ecu)
+        assertEquals(setOf("7E8"), ecus)
+    }
+
+    @Test fun codesSansNombreDeCodes() = runBlocking {
+        // Calculateur qui omet le nombre de codes après 43.
+        val e = elm(mapOf("03" to "7E8 05 43 05 15 0A 5A"))
+        e.init(); e.probe()
+        assertEquals(listOf("P0515", "P0A5A"), e.readDtcs("03").first.map { it.code })
+    }
+
+    @Test fun codesMoteurAdresseDirectement() = runBlocking {
+        // Le moteur ne répond qu'aux demandes qui lui sont adressées (7E0), pas à la diffusion (7DF).
+        val bus = BusFake(mapOf("7E0" to mapOf("0100" to "41 00 BE 3F A8 13", "03" to "7E8 06 43 02 05 15 0A 5A")))
+        val e = Elm327(bus)
+        assertTrue(e.readDtcs("03").first.isEmpty())
+        val (codes, _) = e.readDtcs("03", 0x7E0, 0x7E8)
+        assertEquals(listOf("P0515", "P0A5A"), codes.map { it.code })
+        assertEquals("ATSH7DF", bus.sent.last { it.startsWith("ATSH") })
+    }
+
+    @Test fun journalDuScan() = runBlocking {
+        val e = elm(mapOf("03" to "7E8 06 43 02 05 15 0A 5A"))
+        val log = StringBuilder()
+        e.trace = log
+        assertTrue(e.reset())
+        e.readDtcs("03")
+        e.trace = null
+        assertTrue(log.contains("> ATZ"))
+        assertTrue(log.contains("> 03\n7E8 06 43 02 05 15 0A 5A"))
+        assertTrue(log.contains("# 03 (diffusé) : P0515, P0A5A"))
+    }
+
+    @Test fun codesKwpMemorisesFiltresParEtat() = runBlocking {
+        // 18 00 FF 00 : codes mémorisés ; un code d'état nul (non présent, non mémorisé) est ignoré.
+        val bus = BusFake(mapOf("7E0" to mapOf("1800FF00" to "58 02 05 15 E0 0A 5A 00")))
+        val codes = Elm327(bus).ecuDtcs(0x7E0, 0x7E8, "Moteur")!!
+        assertEquals(listOf("P0515"), codes.map { it.code })
+    }
 }

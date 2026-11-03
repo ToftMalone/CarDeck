@@ -78,3 +78,15 @@ fun ConnChip(label: String, kind: ConnKind, height: Int = 32, onClick: (() -> Un
         T(label, 13, fg, 600)
     }
 }
+
+/** Partage un fichier de l'application (export, journal) via le menu de partage d'Android. */
+internal fun shareFile(ctx: android.content.Context, file: java.io.File, mime: String, title: String) {
+    val uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", file)
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = mime
+        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        putExtra(android.content.Intent.EXTRA_SUBJECT, file.nameWithoutExtension)
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    ctx.startActivity(android.content.Intent.createChooser(send, title))
+}

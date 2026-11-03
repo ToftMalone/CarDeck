@@ -63,6 +63,13 @@ class Prefs(ctx: Context) {
         .putString("wakeBtDevice_$vehicleId", w.btAddress?.let { "$it|${w.btName ?: it}" })
         .apply()
 
+    /** Derniers PIDs déclarés par un véhicule (affichage des données hors connexion), null s'il n'a jamais été interrogé. */
+    fun supported(vehicleId: Long): Set<Int>? =
+        sp.getString("supported_$vehicleId", null)?.split(',')?.mapNotNull { it.toIntOrNull(16) }?.toSet()
+
+    fun setSupported(vehicleId: Long, pids: Set<Int>) =
+        sp.edit().putString("supported_$vehicleId", pids.sorted().joinToString(",") { "%02X".format(it) }).apply()
+
     var activeVehicleId: Long
         get() = sp.getLong("activeVehicle", -1L)
         set(v) = sp.edit().putLong("activeVehicle", v).apply()

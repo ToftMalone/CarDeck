@@ -13,6 +13,7 @@ Deux tableaux de bord en direct, que tu bascules d'un geste :
 
 ### 📟 Données OBD2
 Les valeurs du moteur que ton véhicule fournit, rangées par catégories, avec l'état de la liaison avec le boîtier.
+La liste reste affichée même boîtier déconnecté (les valeurs apparaissent dès la connexion).
 
 **Lecture en continu** : tant que le contact est mis, CarDeck lit les données en permanence, écran ouvert ou non, selon leur rythme.
 
@@ -29,8 +30,12 @@ et la consommation et le coût d'un trajet sont **calculés** à partir de ces m
 Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français** :
 description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.
 
-**Diagnostic complet** : après les codes OBD2, CarDeck recherche tous les calculateurs du réseau CAN (moteur, ABS…)
-et lit les codes défaut de chacun. Le scan prend plus de temps, mais ne laisse rien de côté.
+**Diagnostic complet** : le boîtier est d'abord remis à zéro, puis CarDeck lit les codes OBD2 de tous les calculateurs, interroge aussi
+le calculateur moteur directement, recherche tous les calculateurs du réseau CAN (moteur, ABS…) et lit les codes défaut de chacun
+(UDS et KWP2000). Le scan prend 1 à 2 minutes, mais ne laisse rien de côté.
+
+**Journal du scan** : chaque diagnostic enregistre toutes les questions posées à la voiture et ses réponses ; il se partage depuis
+l'écran Diagnostic, pour comprendre un défaut qui ne serait pas trouvé.
 
 ### 🗺️ Trajets
 Ouvre CarDeck (ou laisse-la se réveiller par Bluetooth, voir plus bas) : le trajet démarre **tout seul** dès que le moteur tourne.
@@ -43,11 +48,6 @@ Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées, 
 ainsi que les données du moteur relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
 Dans l'historique, un appui long sur un trajet lance la **multi-sélection** : tu peux **fusionner** plusieurs trajets en un seul (mis bout à bout, tracé et données repris) ou les **supprimer**.
-
-### 🔧 Codage
-Les réglages du véhicule modifiables par diagnostic (à la manière de Bimmercode), avec sauvegarde automatique du codage d'origine,
-vérification par relecture et restauration en un geste. Disponible selon les modèles : certaines voitures ne s'y prêtent pas, et l'appli
-te dit pourquoi (c'est le cas de la Swift Sport, dont les calculateurs d'habitacle ne répondent à aucune demande de diagnostic).
 
 ### ⏰ Réveil automatique
 Pour chaque véhicule, tu choisis si CarDeck sort de veille à la connexion Bluetooth à l'autoradio de ta voiture, ou jamais

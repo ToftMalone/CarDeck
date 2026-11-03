@@ -39,8 +39,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AddCircle
-import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOn
@@ -91,8 +89,6 @@ fun HomeScreen(vm: AppViewModel) {
         Tile("obd", "Données OBD2", Icons.Rounded.Memory, 'p', { vm.go(Screen.ObdData) }),
         Tile("diag", "Diagnostic", Icons.Rounded.Troubleshoot, 'p', { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("trips", "Trajets", Icons.Rounded.Route, 'p', { vm.go(Screen.Trips) }),
-        Tile("coding", "Codage", Icons.Rounded.Build, 'p', { vm.go(Screen.Coding) }),
-        Tile("add", "Ajouter un véhicule", Icons.Rounded.AddCircle, 'p', { vm.go(Screen.AddVehicle) }),
         Tile("pair", "Boîtier OBD2", Icons.Rounded.SettingsInputHdmi, 'p', { vm.pairActive() }),
         Tile("settings", "Paramètres", Icons.Rounded.Settings, 'p', { vm.go(Screen.Settings) }),
     )

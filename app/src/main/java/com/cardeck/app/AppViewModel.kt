@@ -218,8 +218,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var query by mutableStateOf("")
 
     val scanSteps = listOf(
-        "Communication avec le véhicule", "Codes mémorisés", "Codes en attente", "Codes permanents", "Données figées",
-        "Recherche des calculateurs", "Codes de chaque calculateur",
+        "Préparation du boîtier", "Codes mémorisés", "Codes en attente", "Codes permanents", "Calculateur moteur",
+        "Données figées", "Recherche des calculateurs", "Codes de chaque calculateur",
     )
 
     /** Détail de l'étape en cours (adresse balayée, calculateur interrogé). */
@@ -228,6 +228,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private class ScanOut(val ecus: Int, val codes: List<FoundCode>, val ff: Pair<String, List<String>>?)
 
+    /** Journal du dernier diagnostic (tous les échanges avec le boîtier), à partager en cas de problème ; null s'il n'existe pas. */
+    fun scanLog(): java.io.File? = java.io.File(java.io.File(ctx.cacheDir, "exports"), "CarDeck-diagnostic.txt").takeIf { it.exists() }
+
     fun startScan() {
         if (scanning) return
         val v = repo.active ?: return
@@ -235,31 +238,49 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         scanStep = 0
         query = ""
         viewModelScope.launch {
+            val log = StringBuilder()
             val out = withContext(Dispatchers.IO) {
                 obd.use { e ->
-                    if (!e.probe()) return@use null
-                    scanStep = 1
-                    val (stored, ecus) = e.readDtcs("03")
-                    scanStep = 2
-                    val (pending, _) = e.readDtcs("07")
-                    scanStep = 3
-                    val (permanent, _) = e.readDtcs("0A")
-                    scanStep = 4
-                    val ff = runCatching { e.freezeFrame() }.getOrNull()
-                    // Tous les calculateurs, un par un (environ 1 à 2 minutes) : y compris ceux hors OBD2 (ABS…).
-                    scanStep = 5
-                    val found = e.findEcus { scanDetail = "Adresse %03X".format(it) }
-                    scanStep = 6
-                    var answered = 0
-                    val more = found.flatMap { (tx, rx) ->
-                        val name = if (tx == 0x7E0) "Moteur" else "Calculateur %03X".format(tx)
-                        scanDetail = name
-                        e.ecuDtcs(tx, rx, name)?.also { answered++ }.orEmpty()
+                    val date = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.FRANCE).format(java.util.Date())
+                    log.append("CarDeck ${BuildConfig.VERSION_NAME} · diagnostic du $date\nVéhicule : ${v.nickname} (${v.template.fullName})\n\n")
+                    e.trace = log
+                    try {
+                        // Boîtier remis à zéro : aucun réglage laissé par la lecture des données (filtres, en-têtes…) ne gêne le scan.
+                        if (!e.reset()) return@use null
+                        e.note("Boîtier ${e.version} · protocole ${e.protocolName} (${e.protocolNum})")
+                        scanStep = 1
+                        val (stored, ecus) = e.readDtcs("03")
+                        scanStep = 2
+                        val (pending, _) = e.readDtcs("07")
+                        scanStep = 3
+                        val (permanent, _) = e.readDtcs("0A")
+                        // Calculateur moteur interrogé directement aussi : certains ne répondent pas aux demandes diffusées.
+                        scanStep = 4
+                        val engine = if (e.isCan) e.readDtcs("03", 0x7E0, 0x7E8).first + e.readDtcs("07", 0x7E0, 0x7E8).first else emptyList()
+                        scanStep = 5
+                        val ff = runCatching { e.freezeFrame() }.getOrNull()
+                        // Tous les calculateurs, un par un (environ 1 à 2 minutes) : y compris ceux hors OBD2 (ABS…).
+                        scanStep = 6
+                        val found = e.findEcus { scanDetail = "Adresse %03X".format(it) }.toMutableList()
+                        if (e.isCan && found.none { it.first == 0x7E0 }) found.add(0, 0x7E0 to 0x7E8)
+                        scanStep = 7
+                        var answered = 0
+                        val more = found.flatMap { (tx, rx) ->
+                            val name = if (tx == 0x7E0) "Moteur" else "Calculateur %03X".format(tx)
+                            scanDetail = name
+                            e.ecuDtcs(tx, rx, name)?.also { answered++ }.orEmpty()
+                        }
+                        scanDetail = null
+                        val all = (stored + pending + permanent + engine + more).distinctBy { it.code to it.ecu }
+                        e.note("Résultat : ${all.size} code(s) ${all.joinToString { "${it.code} (${it.ecu}, ${it.status.label})" }}")
+                        ScanOut(maxOf(ecus.size, found.size, answered), all, ff)
+                    } finally {
+                        e.trace = null
                     }
-                    scanDetail = null
-                    val all = stored + pending + permanent + more
-                    ScanOut(maxOf(ecus.size, found.size, answered), all.distinctBy { it.code to it.ecu }, ff)
                 }
+            }
+            withContext(Dispatchers.IO) {
+                runCatching { java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }.resolve("CarDeck-diagnostic.txt").writeText(log.toString()) }
             }
             if (out == null) {
                 showSnack("Aucun calculateur ne répond : branchez le boîtier et mettez le contact")

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
 import androidx.compose.material.icons.rounded.Troubleshoot
 import androidx.compose.material.icons.rounded.Verified
@@ -210,6 +211,15 @@ fun DiagScreen(vm: AppViewModel) {
                 if (!connected) ConnectAction(vm, v.adapter != null)
             }
 
+            // Journal du dernier scan : tous les échanges avec le boîtier, pour comprendre un défaut non trouvé.
+            if (!vm.scanning && q.isEmpty()) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val log = remember(scan?.id) { vm.scanLog() }
+                if (log != null) Column(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    TextBtn("Partager le journal du scan", { shareFile(ctx, log, "text/plain", "Journal du diagnostic") }, Icons.Rounded.Share)
+                    T("Toutes les questions posées à la voiture et ses réponses, à partager pour analyser un défaut qui ne serait pas trouvé.", 12, c.onv, align = TextAlign.Center, lineHeight = 16)
+                }
+            }
         }
     }
 

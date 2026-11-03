@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,22 +90,26 @@ fun ObdDataScreen(vm: AppViewModel) {
                     if (connKind == ConnKind.Off) TextBtn("Se connecter", { vm.connectNow() })
                 }
             }
-            val sup = supported
-            val std = if (sup == null) emptyList() else StdPids.forSupported(sup)
-            T("Toutes les valeurs du véhicule", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
+            // Toujours affichées, même boîtier déconnecté : données déclarées par le véhicule (dernière connexion),
+            // ou toute la liste lue par CarDeck tant que le véhicule n'a jamais été interrogé.
+            val cached = remember(v.id, supported) { vm.repo.supportedPids(v.id) }
+            val known = supported ?: cached
+            val std = known?.let { StdPids.forSupported(it) } ?: StdPids.all
+            T("Toutes les valeurs du véhicule", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
             when {
-                !connected -> EmptyNote(Icons.Rounded.HourglassEmpty, "Boîtier non connecté", "Connectez le boîtier OBD2 pour lire les données du moteur.")
-                sup == null -> EmptyNote(Icons.Rounded.HourglassEmpty, "Lecture des données disponibles…", "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.")
-                std.isEmpty() -> EmptyNote(Icons.Rounded.HourglassEmpty, "Aucune donnée standard", "Ce véhicule ne déclare aucun PID OBD2 standard.")
-                else -> {
-                    StdPids.CATEGORIES.forEach { cat ->
-                        val inCat = std.filter { it.category == cat }
-                        if (inCat.isNotEmpty()) PidSection(cat, inCat, values)
-                    }
-                    T("${std.size} valeurs fournies par le véhicule", 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
-                }
+                !connected -> T("Boîtier non connecté : les valeurs s'afficheront dès la connexion.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
+                supported == null -> T("Mets le contact : CarDeck interroge le véhicule pour savoir quelles données il fournit.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
+            }
+            if (std.isEmpty()) EmptyNote(Icons.Rounded.HourglassEmpty, "Aucune donnée standard", "Ce véhicule ne déclare aucun PID OBD2 standard.")
+            StdPids.CATEGORIES.forEach { cat ->
+                val inCat = std.filter { it.category == cat }
+                if (inCat.isNotEmpty()) PidSection(cat, inCat, values)
             }
             tpl.pids.groupBy { it.category }.forEach { (cat, list) -> PidSection("$cat · ${tpl.model}", list, values) }
+            T(
+                if (known != null) "${std.size + tpl.pids.size} valeurs fournies par le véhicule" else "${std.size + tpl.pids.size} valeurs lues par CarDeck (le véhicule n'a pas encore été interrogé)",
+                12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            )
         }
     }
 }

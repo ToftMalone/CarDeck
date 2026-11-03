@@ -42,11 +42,17 @@ class Elm327(private val t: ObdTransport) {
     /** Calculateurs déjà passés en session par défaut KWP (10 81) depuis l'initialisation. */
     private val sessions = mutableSetOf<String>()
 
-    private val isCan get() = protocolNum.lastOrNull()?.let { it in '6'..'9' || it in 'A'..'C' } ?: true
+    val isCan get() = protocolNum.lastOrNull()?.let { it in '6'..'9' || it in 'A'..'C' } ?: true
+
+    /** Journal des échanges (commande puis réponse brute), activé pendant un diagnostic. */
+    var trace: StringBuilder? = null
+
+    /** Ajoute une ligne de résumé au journal. */
+    fun note(s: String) { trace?.append("# ")?.append(s)?.append('\n') }
 
     /** Envoie une commande et renvoie la réponse nettoyée (lignes non vides, sans écho ni « SEARCHING… »). */
     suspend fun raw(cmd: String, timeoutMs: Long = 8000): String {
-        if (!allowed(cmd)) return BLOCKED
+        if (!allowed(cmd)) { trace?.append("> ")?.append(cmd)?.append("\nBLOQUÉ (lecture seule)\n"); return BLOCKED }
         while (t.incoming.tryReceive().isSuccess) { /* purge */ }
         buf.clear()
         t.send((cmd + "\r").toByteArray(Charsets.US_ASCII))
@@ -56,8 +62,13 @@ class Elm327(private val t: ObdTransport) {
                 buf.append(String(chunk, Charsets.US_ASCII))
             }
         }
-        if (done == null) throw IOException("Le boîtier ne répond pas ($cmd)")
+        if (done == null) {
+            trace?.append("> ")?.append(cmd)?.append("\n(pas de réponse du boîtier)\n")
+            throw IOException("Le boîtier ne répond pas ($cmd)")
+        }
         val text = buf.substring(0, buf.indexOf(">"))
+        trace?.takeIf { it.length < 2_000_000 }?.append("> ")?.append(cmd)?.append('\n')
+            ?.append(text.replace('\r', '\n').lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n").ifEmpty { "(vide)" })?.append('\n')
         return text.replace('\r', '\n').lines().map { it.trim() }
             .filter { it.isNotEmpty() && !it.equals(cmd, ignoreCase = true) && !it.startsWith("SEARCHING") && !it.startsWith("BUS INIT") }
             .joinToString("\n")
@@ -78,6 +89,12 @@ class Elm327(private val t: ObdTransport) {
         extraInit = extra
         extra.forEach { raw(it) }
         sessions.clear()
+    }
+
+    /** Remet le boîtier dans un état connu (ATZ puis réglages du modèle) et interroge le véhicule. */
+    suspend fun reset(): Boolean {
+        init(forcedProtocol, extraInit)
+        return probe()
     }
 
     /** Interroge le véhicule (0100). Renvoie true si au moins un calculateur répond (contact mis). */
@@ -316,25 +333,47 @@ class Elm327(private val t: ObdTransport) {
         return if (vin.length >= 17) vin.take(17) else null
     }
 
-    /** Lecture des codes défaut. [mode] = « 03 » (mémorisés), « 07 » (en attente) ou « 0A » (permanents). */
-    suspend fun readDtcs(mode: String): Pair<List<FoundCode>, Set<String>> {
+    /**
+     * Lecture des codes défaut OBD2. [mode] = « 03 » (mémorisés), « 07 » (en attente) ou « 0A » (permanents).
+     * [tx] null : requête diffusée à tous les calculateurs (7DF) ; sinon adressée à ce calculateur, réponse attendue sur [rx].
+     * Attente fixe et longue : le temps adaptatif couperait l'écoute après le premier calculateur et manquerait les plus lents.
+     */
+    suspend fun readDtcs(mode: String, tx: Int? = null, rx: Int? = null): Pair<List<FoundCode>, Set<String>> {
         val status = when (mode) { "07" -> DtcStatus.Pending; "0A" -> DtcStatus.Permanent; else -> DtcStatus.Stored }
         val resp = mode.toInt(16) + 0x40
-        // Requête diffusée à tous les calculateurs (7DF, sans filtre de réception), avec une attente fixe et longue :
-        // le temps adaptatif coupe l'écoute après le premier répondant et manque les calculateurs plus lents.
-        raw("ATSH7DF"); raw("ATCRA"); raw("ATAT0"); raw("ATST96"); raw("ATH1")
-        val r = try { raw(mode, 12000) } finally { raw("ATH0"); raw("ATST32"); raw("ATAT1") }
-        if (isError(r)) return emptyList<FoundCode>() to emptySet()
-        val messages = if (isCan) canMessages(r) else legacyMessages(r)
+        raw(if (tx == null) "ATSH7DF" else "ATSH%03X".format(tx))
+        raw(if (rx == null) "ATCRA" else "ATCRA%03X".format(rx))
+        raw("ATCAF1"); raw("ATAT0"); raw("ATST96"); raw("ATH1")
+        val r = try { raw(mode, 12000) } finally {
+            raw("ATH0"); raw("ATST32"); raw("ATAT1")
+            if (tx != null || rx != null) { raw("ATCRA"); raw("ATSH7DF") }
+        }
+        var messages = if (isCan) canMessages(r) else legacyMessages(r)
+        if (messages.none { it.second.firstOrNull() == resp }) {
+            // Boîtier qui n'affiche pas les en-têtes malgré ATH1 : réponses brutes, attribuées au calculateur interrogé (moteur par défaut).
+            val who = rx?.let { "%03X".format(it) } ?: "7E8"
+            messages = udsMessages(r).filter { it.firstOrNull() == resp }.map { who to it.toList() }
+        }
         val codes = mutableListOf<FoundCode>()
         for ((hdr, payload) in messages) {
             if (payload.isEmpty() || payload[0] != resp) continue
-            val data = if (isCan) payload.drop(2) else payload.drop(1) // en CAN, l'octet 2 = nombre de codes
-            data.chunked(2).filter { it.size == 2 && (it[0] != 0 || it[1] != 0) }.forEach {
-                codes += FoundCode(decodeDtc(it[0], it[1]), status, ecuName(hdr))
-            }
+            dtcPairs(payload, isCan).forEach { (x, y) -> codes += FoundCode(decodeDtc(x, y), status, ecuName(hdr)) }
         }
-        return codes.distinctBy { it.code } to messages.map { it.first }.toSet()
+        note("$mode${tx?.let { " → %03X".format(it) } ?: " (diffusé)"} : ${codes.joinToString { it.code }.ifEmpty { "aucun code" }}")
+        return codes.distinctBy { it.code } to messages.filter { it.second.firstOrNull() == resp }.map { it.first }.toSet()
+    }
+
+    /**
+     * Paires d'octets des codes d'une réponse 43 / 47 / 4A. En CAN, l'octet suivant le service donne le nombre de codes ;
+     * certains calculateurs l'omettent (format des anciens protocoles) : les codes suivent alors directement le service.
+     */
+    private fun dtcPairs(payload: List<Int>, can: Boolean): List<Pair<Int, Int>> {
+        val body = if (!can) payload.drop(1) else {
+            val n = payload.getOrNull(1) ?: return emptyList()
+            val rest = payload.drop(2)
+            if (n * 2 <= rest.size) rest.take(n * 2) else payload.drop(1)
+        }
+        return body.chunked(2).filter { it.size == 2 && (it[0] != 0 || it[1] != 0) }.map { it[0] to it[1] }
     }
 
     /**
@@ -379,26 +418,40 @@ class Elm327(private val t: ObdTransport) {
     }
 
     /**
-     * Codes défaut d'un calculateur précis : UDS 19 02 FF, sinon KWP2000 18 02 FF 00. Null si aucun des deux ne répond.
-     * UDS : code SAE (le type de panne est ignoré) ; seuls les codes en défaut, en attente ou confirmés sont gardés.
+     * Codes défaut d'un calculateur précis, en lecture seule. Essaie l'UDS (19 02, masque FF puis 0D) puis le KWP2000
+     * (18 00 FF 00 mémorisés, 18 02 FF 00 tous) ; si rien ne répond positivement, ouvre la session de diagnostic par défaut
+     * (10 81 KWP, 10 01 UDS) et recommence. Null si le calculateur ne répond à aucune de ces demandes.
+     * Seuls les codes présents ou mémorisés sont gardés (octet d'état non nul sur les bits de défaut).
      */
     suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String): List<FoundCode>? {
         raw("ATH0"); raw("ATCAF1"); raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx)); raw("ATFCSH%03X".format(tx)); raw("ATST96")
         fun final(r: String, service: Int): IntArray? = if (isError(r)) null
             else udsMessages(r).lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }?.takeIf { it.isNotEmpty() && it[0] == service + 0x40 }
-        try {
-            final(raw("1902FF", 10000), 0x19)?.let { m ->
-                return m.drop(3).chunked(4).filter { it.size == 4 && (it[3] and 0x8F) != 0 }.map { (a, b, _, st) ->
-                    FoundCode(decodeDtc(a, b), if (st and 0x08 == 0 && st and 0x04 != 0) DtcStatus.Pending else DtcStatus.Stored, ecu)
+        suspend fun attempt(): List<FoundCode>? {
+            for (req in listOf("1902FF", "19020D")) {
+                final(raw(req, 10000), 0x19)?.let { m ->
+                    return m.drop(3).chunked(4).filter { it.size == 4 && (it[3] and 0x8F) != 0 }.map { (a, b, _, st) ->
+                        FoundCode(decodeDtc(a, b), if (st and 0x08 == 0 && st and 0x04 != 0) DtcStatus.Pending else DtcStatus.Stored, ecu)
+                    }
                 }
             }
-            final(raw("1802FF00", 10000), 0x18)?.let { m ->
-                return m.drop(2).chunked(3).filter { it.size == 3 && (it[0] != 0 || it[1] != 0) }.map { (a, b, st) ->
-                    // KWP2000 : bits 6-5 = état de mémorisation (01 = en attente).
-                    FoundCode(decodeDtc(a, b), if (st and 0x60 == 0x20) DtcStatus.Pending else DtcStatus.Stored, ecu)
+            for (req in listOf("1800FF00", "1802FF00")) {
+                final(raw(req, 10000), 0x18)?.let { m ->
+                    // KWP2000 : 58 nombre [code (2 octets) + état]… ; bits 6-5 de l'état = mémorisation (01 = en attente).
+                    return m.drop(2).chunked(3).filter { it.size == 3 && (it[0] != 0 || it[1] != 0) && (it[2] and 0xE1) != 0 }.map { (a, b, st) ->
+                        FoundCode(decodeDtc(a, b), if (st and 0x60 == 0x20) DtcStatus.Pending else DtcStatus.Stored, ecu)
+                    }
                 }
             }
             return null
+        }
+        try {
+            val codes = attempt() ?: run {
+                raw("1081"); raw("1001")
+                attempt()
+            }
+            note("Calculateur %03X : ".format(tx) + (codes?.joinToString { it.code }?.ifEmpty { "aucun code" } ?: "pas de réponse aux demandes de codes"))
+            return codes
         } finally {
             raw("ATCRA"); raw("ATSH7DF"); raw("ATST32")
             extraInit.forEach { raw(it) }
