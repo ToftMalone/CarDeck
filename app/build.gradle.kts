@@ -58,7 +58,13 @@ android {
     }
 
     buildTypes {
+        // La version de développement s'installe à côté de l'officielle : identifiant et nom différents.
+        debug {
+            applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "CarDeck Debug")
+        }
         release {
+            resValue("string", "app_name", "CarDeck")
             isMinifyEnabled = false
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
