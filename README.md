@@ -59,16 +59,22 @@ Toutes tes données (véhicules, trajets, diagnostics, réglages) peuvent être 
 sait relire, puis restaurées depuis **Paramètres → Sauvegarde**.
 
 ### 🏠 Un garage pour plusieurs voitures
-Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Tu choisis un modèle, l'appli y apporte ses fonctions dédiées.
+Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Pour le créer, tu choisis ton véhicule **en trois listes** : la **marque**, le **modèle**, puis la **génération et la motorisation**.
+Par exemple Suzuki › Swift › Sport ZC33S › K14C 1.4 BoosterJet. Un champ de recherche permet d'aller plus vite (« Clio V 1.0 TCe », « Golf GTI »…).
 Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lancement t'accueille avec un message différent.
 
 ## Véhicules pris en charge
 
-| Modèle | État |
-|---|---|
-| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Disponible : lecture seule, données moteur, huile, carburant, kilométrage |
+- **Une liste de véhicules courants en France**, de nombreuses marques (Peugeot, Renault, Citroën, Volkswagen, Toyota, Suzuki, BMW, Audi…) avec leurs modèles, générations et motorisations essence, diesel, hybrides et GPL.
+- Ces véhicules utilisent les **données OBD2 standard** (régime, vitesse, températures, pressions, diagnostic des défauts, trajets et coût). Le protocole est détecté automatiquement à la connexion.
+- Ton véhicule n'est pas dans la liste ? Choisis **Autre véhicule** : toute voiture essence depuis 2001 ou diesel depuis 2004 a une prise OBD2.
+- Certains véhicules ont en plus un **profil dédié**, avec des données propres au modèle :
 
-D'autres modèles sont prévus.
+| Modèle | Profil dédié |
+|---|---|
+| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Lecture seule, huile, carburant, kilométrage |
+
+La liste est un point de départ : elle n'a pas été testée sur chaque voiture, seule la Swift Sport l'a été.
 
 ## Boîtier OBD2
 

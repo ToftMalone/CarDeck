@@ -81,7 +81,10 @@ data class VehicleTemplate(
     val dashSport: List<String> = emptyList(),
 ) {
     val fullName get() = "$brand $model $code".trim()
-    val specs get() = "$engine · $power · $fuel"
+    val specs get() = listOf(engine, power, fuel).filter { it.isNotBlank() }.joinToString(" · ")
+
+    /** Profil dédié : données propres au modèle en plus des données OBD2 standard. */
+    val dedicated get() = pids.isNotEmpty() || elmProtocol != null
 }
 
 private fun u16(d: IntArray, i: Int) = (d[i] * 256 + d[i + 1]).toDouble()
@@ -140,9 +143,15 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     codings = emptyList(),
 )
 
-val TEMPLATES = listOf(SWIFT_SPORT_ZC33S)
+/** Modèles avec un profil dédié (données constructeur, protocole connu…). */
+val DEDICATED = listOf(SWIFT_SPORT_ZC33S)
+
+/** Tous les modèles : profils dédiés et motorisations du catalogue (données OBD2 standard). */
+val TEMPLATES: List<VehicleTemplate> by lazy { DEDICATED + CATALOG_TEMPLATES.filter { t -> DEDICATED.none { it.id == t.id } } }
+
+private val byId by lazy { TEMPLATES.associateBy { it.id } }
 
 /** Retrouve une donnée moteur (standard ou propre à un modèle) par son identifiant. */
-fun pidById(id: String): PidDef? = TEMPLATES.flatMap { it.pids }.find { it.id == id } ?: StdPids.byId(id)
+fun pidById(id: String): PidDef? = DEDICATED.flatMap { it.pids }.find { it.id == id } ?: StdPids.byId(id)
 
-fun templateById(id: String): VehicleTemplate = TEMPLATES.find { it.id == id } ?: SWIFT_SPORT_ZC33S
+fun templateById(id: String): VehicleTemplate = byId[id] ?: SWIFT_SPORT_ZC33S

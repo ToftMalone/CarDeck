@@ -18,7 +18,7 @@ const val DB_VERSION = 6
 
 /** Efface les mesures de données que CarDeck ne lit plus (celles absentes des catalogues actuels). */
 fun purgeRemovedPids(db: SQLiteDatabase) {
-    val known = (StdPids.ids + TEMPLATES.flatMap { t -> t.pids.map { it.id } }).toTypedArray()
+    val known = (StdPids.ids + DEDICATED.flatMap { t -> t.pids.map { it.id } }).toTypedArray()
     db.delete("trip_samples", "pid NOT IN (${known.joinToString(",") { "?" }})", known)
 }
 
