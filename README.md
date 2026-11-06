@@ -34,6 +34,10 @@ description, causes possibles et recommandations. Recherche d'un code, effacemen
 le calculateur moteur directement, recherche tous les calculateurs du réseau CAN (moteur, ABS…) et lit les codes défaut de chacun
 (UDS et KWP2000). Le scan prend 1 à 2 minutes, mais ne laisse rien de côté.
 
+**Toutes les voitures** : le scan s'adapte au protocole détecté. En CAN 11 bits (la plupart des voitures depuis 2008), il fait
+le diagnostic complet ci-dessus. En CAN 29 bits, en K-Line ou en J1850 (beaucoup de voitures plus anciennes), il lit les codes
+OBD2 et les données figées de tous les calculateurs qui répondent. Un même code vu par plusieurs calculateurs apparaît pour chacun.
+
 **Journal du scan** : chaque diagnostic enregistre toutes les questions posées à la voiture et ses réponses ; il se partage depuis
 l'écran Diagnostic, pour comprendre un défaut qui ne serait pas trouvé.
 

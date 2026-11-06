@@ -212,6 +212,12 @@ object DtcCatalog {
         d("P0505", "Système de régulation du ralenti", DtcSystem.Intake)
         d("P0506", "Régime de ralenti inférieur à la consigne", DtcSystem.Intake, Severity.Low)
         d("P0507", "Régime de ralenti supérieur à la consigne", DtcSystem.Intake, Severity.Low)
+        d("P0515", "Circuit du capteur de température de batterie", DtcSystem.Electrical, Severity.Low,
+            "Le calculateur ne reçoit pas une valeur plausible du capteur de température de la batterie. Sur les voitures avec arrêt / démarrage automatique (Stop & Start), ce capteur fait partie de la gestion de la charge.",
+            listOf("Capteur de batterie (sur la borne négative) débranché ou défectueux", "Connecteur ou fil endommagé", "Batterie remplacée sans réinitialisation"),
+            listOf("Vérifiez que le connecteur du capteur de batterie est bien branché", "Le Stop & Start et la gestion de charge peuvent être désactivés tant que le défaut est présent"))
+        d("P0516", "Circuit du capteur de température de batterie : signal bas", DtcSystem.Electrical, Severity.Low)
+        d("P0517", "Circuit du capteur de température de batterie : signal haut", DtcSystem.Electrical, Severity.Low)
         d("P0520", "Circuit du capteur / contacteur de pression d'huile", DtcSystem.Sensors)
         d("P0524", "Pression d'huile moteur trop basse", DtcSystem.Sensors, Severity.Crit,
             "La pression d'huile mesurée est insuffisante pour lubrifier correctement le moteur.",
@@ -274,7 +280,11 @@ object DtcCatalog {
     fun info(code: String): DtcInfo = map[code] ?: unknown(code)
 
     private fun unknown(code: String): DtcInfo {
-        val manufacturer = code.length >= 2 && (code[1] == '1' || code[1] == '3')
+        // Codes constructeur (SAE J2012) : P1 / P3, et B1 / B2, C1 / C2, U1 / U2.
+        val manufacturer = code.length >= 2 && when (code[0]) {
+            'P' -> code[1] == '1' || code[1] == '3'
+            else -> code[1] == '1' || code[1] == '2'
+        }
         val sys = when (code.firstOrNull()) {
             'U' -> DtcSystem.Network
             'B', 'C' -> DtcSystem.Body

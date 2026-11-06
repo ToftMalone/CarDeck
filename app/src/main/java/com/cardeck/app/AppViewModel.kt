@@ -226,7 +226,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var scanDetail by mutableStateOf<String?>(null)
         private set
 
-    private class ScanOut(val ecus: Int, val codes: List<FoundCode>, val ff: Pair<String, List<String>>?)
+    /** Résultat d'un scan ; [noAnswer] = boîtier joignable mais aucun calculateur ne répond (contact coupé). */
+    private class ScanOut(val ecus: Int, val codes: List<FoundCode>, val ff: Pair<String, List<String>>?, val noAnswer: Boolean = false)
 
     /** Journal du dernier diagnostic (tous les échanges avec le boîtier), à partager en cas de problème ; null s'il n'existe pas. */
     fun scanLog(): java.io.File? = java.io.File(java.io.File(ctx.cacheDir, "exports"), "CarDeck-diagnostic.txt").takeIf { it.exists() }
@@ -246,7 +247,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     e.trace = log
                     try {
                         // Boîtier remis à zéro : aucun réglage laissé par la lecture des données (filtres, en-têtes…) ne gêne le scan.
-                        if (!e.reset()) return@use null
+                        if (!e.reset()) {
+                            e.note("Aucune réponse à 0100 : contact coupé ou boîtier mal branché")
+                            return@use ScanOut(0, emptyList(), null, noAnswer = true)
+                        }
                         e.note("Boîtier ${e.version} · protocole ${e.protocolName} (${e.protocolNum})")
                         scanStep = 1
                         val (stored, ecus) = e.readDtcs("03")
@@ -256,24 +260,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         val (permanent, _) = e.readDtcs("0A")
                         // Calculateur moteur interrogé directement aussi : certains ne répondent pas aux demandes diffusées.
                         scanStep = 4
-                        val engine = if (e.isCan) e.readDtcs("03", 0x7E0, 0x7E8).first + e.readDtcs("07", 0x7E0, 0x7E8).first else emptyList()
+                        val engine = if (e.is11bit) e.readDtcs("03", 0x7E0, 0x7E8).first + e.readDtcs("07", 0x7E0, 0x7E8).first else emptyList()
                         scanStep = 5
                         val ff = runCatching { e.freezeFrame() }.getOrNull()
                         // Tous les calculateurs, un par un (environ 1 à 2 minutes) : y compris ceux hors OBD2 (ABS…).
                         scanStep = 6
                         val found = e.findEcus { scanDetail = "Adresse %03X".format(it) }.toMutableList()
-                        if (e.isCan && found.none { it.first == 0x7E0 }) found.add(0, 0x7E0 to 0x7E8)
+                        if (e.is11bit && found.none { it.first == 0x7E0 }) found.add(0, 0x7E0 to 0x7E8)
                         scanStep = 7
                         var answered = 0
                         val more = found.flatMap { (tx, rx) ->
-                            val name = if (tx == 0x7E0) "Moteur" else "Calculateur %03X".format(tx)
+                            val name = com.cardeck.app.obd.Elm327.ecuLabel(tx, rx)
                             scanDetail = name
                             e.ecuDtcs(tx, rx, name)?.also { answered++ }.orEmpty()
                         }
                         scanDetail = null
                         val all = (stored + pending + permanent + engine + more).distinctBy { it.code to it.ecu }
                         e.note("Résultat : ${all.size} code(s) ${all.joinToString { "${it.code} (${it.ecu}, ${it.status.label})" }}")
-                        ScanOut(maxOf(ecus.size, found.size, answered), all, ff)
+                        ScanOut(maxOf(ecus.size, found.size, answered).coerceAtLeast(1), all, ff)
                     } finally {
                         e.trace = null
                     }
@@ -283,6 +287,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 runCatching { java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }.resolve("CarDeck-diagnostic.txt").writeText(log.toString()) }
             }
             if (out == null) {
+                showSnack("Boîtier non connecté ou liaison perdue pendant le scan : reconnectez-le et relancez")
+            } else if (out.noAnswer) {
                 showSnack("Aucun calculateur ne répond : branchez le boîtier et mettez le contact")
             } else {
                 withContext(Dispatchers.IO) { repo.saveScan(v.id, System.currentTimeMillis(), out.ecus, out.codes, out.ff?.first, out.ff?.second) }

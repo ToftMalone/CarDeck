@@ -44,6 +44,13 @@ class Elm327(private val t: ObdTransport) {
 
     val isCan get() = protocolNum.lastOrNull()?.let { it in '6'..'9' || it in 'A'..'C' } ?: true
 
+    /**
+     * CAN à identifiants 11 bits (protocoles 6 et 8) : seuls ces protocoles utilisent les adresses 7DF / 7E0 / 7E8…
+     * En CAN 29 bits et sur les anciens protocoles (K-Line, J1850), l'en-tête par défaut du boîtier ne doit pas être touché.
+     * Protocole encore inconnu (aucune réponse à 0100) : CAN 11 bits, le cas standard depuis 2008.
+     */
+    val is11bit get() = protocolNum.lastOrNull().let { it == null || it == '6' || it == '8' }
+
     /** Journal des échanges (commande puis réponse brute), activé pendant un diagnostic. */
     var trace: StringBuilder? = null
 
@@ -327,7 +334,7 @@ class Elm327(private val t: ObdTransport) {
 
     /** VIN par l'identification KWP2000 du moteur (1A 90), quand le service 09 ne le donne pas (Suzuki…). */
     private suspend fun vinKwp(): String? {
-        if (!isCan) return null
+        if (!is11bit) return null
         val b = query("1A90", "7E0") ?: return null
         val vin = b.filter { it in 0x30..0x5A }.map { it.toChar() }.joinToString("").filter { it.isLetterOrDigit() }
         return if (vin.length >= 17) vin.take(17) else null
@@ -341,9 +348,14 @@ class Elm327(private val t: ObdTransport) {
     suspend fun readDtcs(mode: String, tx: Int? = null, rx: Int? = null): Pair<List<FoundCode>, Set<String>> {
         val status = when (mode) { "07" -> DtcStatus.Pending; "0A" -> DtcStatus.Permanent; else -> DtcStatus.Stored }
         val resp = mode.toInt(16) + 0x40
-        raw(if (tx == null) "ATSH7DF" else "ATSH%03X".format(tx))
-        raw(if (rx == null) "ATCRA" else "ATCRA%03X".format(rx))
-        raw("ATCAF1"); raw("ATAT0"); raw("ATST96"); raw("ATH1")
+        // Adressage direct : seulement en CAN 11 bits (adresses 7E0 / 7E8…).
+        if ((tx != null || rx != null) && !is11bit) return emptyList<FoundCode>() to emptySet()
+        if (is11bit) {
+            raw(if (tx == null) "ATSH7DF" else "ATSH%03X".format(tx))
+            raw(if (rx == null) "ATCRA" else "ATCRA%03X".format(rx))
+        }
+        if (isCan) raw("ATCAF1")
+        raw("ATAT0"); raw("ATST96"); raw("ATH1")
         val r = try { raw(mode, 12000) } finally {
             raw("ATH0"); raw("ATST32"); raw("ATAT1")
             if (tx != null || rx != null) { raw("ATCRA"); raw("ATSH7DF") }
@@ -351,7 +363,7 @@ class Elm327(private val t: ObdTransport) {
         var messages = if (isCan) canMessages(r) else legacyMessages(r)
         if (messages.none { it.second.firstOrNull() == resp }) {
             // Boîtier qui n'affiche pas les en-têtes malgré ATH1 : réponses brutes, attribuées au calculateur interrogé (moteur par défaut).
-            val who = rx?.let { "%03X".format(it) } ?: "7E8"
+            val who = rx?.let { "%03X".format(it) } ?: if (isCan) "7E8" else "10"
             messages = udsMessages(r).filter { it.firstOrNull() == resp }.map { who to it.toList() }
         }
         val codes = mutableListOf<FoundCode>()
@@ -359,8 +371,9 @@ class Elm327(private val t: ObdTransport) {
             if (payload.isEmpty() || payload[0] != resp) continue
             dtcPairs(payload, isCan).forEach { (x, y) -> codes += FoundCode(decodeDtc(x, y), status, ecuName(hdr)) }
         }
-        note("$mode${tx?.let { " → %03X".format(it) } ?: " (diffusé)"} : ${codes.joinToString { it.code }.ifEmpty { "aucun code" }}")
-        return codes.distinctBy { it.code } to messages.filter { it.second.firstOrNull() == resp }.map { it.first }.toSet()
+        note("$mode${tx?.let { " → %03X".format(it) } ?: " (diffusé)"} : ${codes.joinToString { "${it.code} (${it.ecu})" }.ifEmpty { "aucun code" }}")
+        // Un même code peut venir de plusieurs calculateurs (ex. U0100 vu par la boîte et l'ABS) : chacun est gardé.
+        return codes.distinctBy { it.code to it.ecu } to messages.filter { it.second.firstOrNull() == resp }.map { it.first }.toSet()
     }
 
     /**
@@ -383,7 +396,7 @@ class Elm327(private val t: ObdTransport) {
      * Renvoie les couples (émission, réception) ; [progress] reçoit l'adresse en cours.
      */
     suspend fun findEcus(progress: (Int) -> Unit = {}): List<Pair<Int, Int>> {
-        if (!isCan) return emptyList()
+        if (!is11bit) return emptyList()
         val found = mutableListOf<Pair<Int, Int>>()
         val skip = (setOf(0x7DF, 0x7F1, 0x7F9) + (0x7E8..0x7EF)).toMutableSet()
         raw("ATH1"); raw("ATCAF1"); raw("ATAT0"); raw("ATST19"); raw("ATCF700"); raw("ATCM700")
@@ -424,7 +437,11 @@ class Elm327(private val t: ObdTransport) {
      * Seuls les codes présents ou mémorisés sont gardés (octet d'état non nul sur les bits de défaut).
      */
     suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String): List<FoundCode>? {
-        raw("ATH0"); raw("ATCAF1"); raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx)); raw("ATFCSH%03X".format(tx)); raw("ATST96")
+        if (!is11bit) return null
+        raw("ATH0"); raw("ATCAF1"); raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx)); raw("ATST96")
+        // Contrôle de flux envoyé au calculateur interrogé : par défaut le boîtier l'envoie à « réception − 8 », ce qui ne
+        // convient pas aux calculateurs dont la réponse n'est pas à émission + 8 (réponses en plusieurs trames perdues).
+        raw("ATFCSH%03X".format(tx)); raw(extraInit.firstOrNull { it.startsWith("ATFCSD") } ?: "ATFCSD300000"); raw("ATFCSM1")
         fun final(r: String, service: Int): IntArray? = if (isError(r)) null
             else udsMessages(r).lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }?.takeIf { it.isNotEmpty() && it[0] == service + 0x40 }
         suspend fun attempt(): List<FoundCode>? {
@@ -453,7 +470,7 @@ class Elm327(private val t: ObdTransport) {
             note("Calculateur %03X : ".format(tx) + (codes?.joinToString { it.code }?.ifEmpty { "aucun code" } ?: "pas de réponse aux demandes de codes"))
             return codes
         } finally {
-            raw("ATCRA"); raw("ATSH7DF"); raw("ATST32")
+            raw("ATCRA"); raw("ATSH7DF"); raw("ATST32"); raw("ATFCSM0")
             extraInit.forEach { raw(it) }
         }
     }
@@ -488,10 +505,17 @@ class Elm327(private val t: ObdTransport) {
         if (b.size < 5) null else "%02X".format(b[2]) to b.drop(3).dropLast(1)
     }
 
-    private fun ecuName(hdr: String): String = when (hdr.uppercase()) {
-        "7E8", "18DAF110" -> "Moteur"
-        "7E9", "18DAF118" -> "Boîte de vitesses"
-        else -> "Calculateur $hdr"
+    /** Nom d'un calculateur d'après l'en-tête de sa réponse (CAN 11 / 29 bits, ou adresse source K-Line / J1850). */
+    private fun ecuName(hdr: String): String {
+        val h = hdr.uppercase()
+        return when {
+            h.length == 3 -> h.toIntOrNull(16)?.let { ecuLabel(null, it) } ?: "Calculateur $h"
+            h == "18DAF110" -> "Moteur"
+            h == "18DAF118" -> "Boîte de vitesses"
+            h == "10" -> "Moteur"
+            h == "18" -> "Boîte de vitesses"
+            else -> "Calculateur $h"
+        }
     }
 
     private fun decodeDtc(a: Int, b: Int): String {
@@ -651,6 +675,18 @@ class Elm327(private val t: ObdTransport) {
     }
 
     companion object {
+        /**
+         * Nom d'un calculateur CAN 11 bits, identique qu'il réponde à une demande diffusée ou adressée : moteur (7E0 / 7E8),
+         * boîte (7E1 / 7E9), sinon « Calculateur » suivi de son adresse d'émission ([tx], ou réception − 8 pour 7E9 à 7EF).
+         */
+        fun ecuLabel(tx: Int?, rx: Int): String = when {
+            rx == 0x7E8 || tx == 0x7E0 -> "Moteur"
+            rx == 0x7E9 || tx == 0x7E1 -> "Boîte de vitesses"
+            tx != null -> "Calculateur %03X".format(tx)
+            rx in 0x7EA..0x7EF -> "Calculateur %03X".format(rx - 8)
+            else -> "Calculateur %03X".format(rx)
+        }
+
         /** Masque ATCM qui laisse passer tous les identifiants de [ids] (et quelques voisins). */
         fun busMask(ids: List<Int>): Int = 0x7FF and ids.fold(0) { acc, i -> acc or (i xor ids[0]) }.inv()
 

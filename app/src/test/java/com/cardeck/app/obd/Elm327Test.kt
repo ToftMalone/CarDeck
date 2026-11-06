@@ -32,7 +32,11 @@ private class BusFake(private val ecus: Map<String, Map<String, String>>) : ObdT
         val cmd = String(data).trim()
         sent += cmd
         if (cmd.startsWith("ATSH")) header = cmd.removePrefix("ATSH")
-        val r = if (cmd.startsWith("AT")) "OK" else ecus[header]?.get(cmd) ?: "NO DATA"
+        val r = when {
+            cmd == "ATDPN" -> "A6"
+            cmd.startsWith("AT") -> "OK"
+            else -> ecus[header]?.get(cmd) ?: "NO DATA"
+        }
         incoming.trySend("$r\r\r>".toByteArray())
     }
     override fun close() {}
@@ -378,7 +382,7 @@ class Elm327Test {
         e.trace = null
         assertTrue(log.contains("> ATZ"))
         assertTrue(log.contains("> 03\n7E8 06 43 02 05 15 0A 5A"))
-        assertTrue(log.contains("# 03 (diffusé) : P0515, P0A5A"))
+        assertTrue(log.contains("# 03 (diffusé) : P0515 (Moteur), P0A5A (Moteur)"))
     }
 
     @Test fun codesKwpMemorisesFiltresParEtat() = runBlocking {
@@ -386,5 +390,124 @@ class Elm327Test {
         val bus = BusFake(mapOf("7E0" to mapOf("1800FF00" to "58 02 05 15 E0 0A 5A 00")))
         val codes = Elm327(bus).ecuDtcs(0x7E0, 0x7E8, "Moteur")!!
         assertEquals(listOf("P0515"), codes.map { it.code })
+    }
+
+    // ------------------------------------------------------------------ Diagnostic : tous protocoles
+
+    private fun proto(num: String, extra: Map<String, String>): Pair<Elm327, FakeElm> {
+        val f = FakeElm(base + mapOf("ATDPN" to num, "01001" to "NO DATA") + extra)
+        return Elm327(f) to f
+    }
+
+    @Test fun codesKLineSansEnTeteCan() = runBlocking {
+        // ISO 9141-2 (K-Line) : en-tête 48 6B 10, trois codes par trame, octet de contrôle final.
+        val (e, f) = proto("A3", mapOf("03" to "48 6B 10 43 01 33 05 15 00 00 7A"))
+        e.init(); assertTrue(e.probe())
+        val (codes, ecus) = e.readDtcs("03")
+        assertEquals(listOf("P0133", "P0515"), codes.map { it.code })
+        assertTrue(codes.all { it.ecu == "Moteur" })
+        assertEquals(setOf("10"), ecus)
+        // Jamais d'en-tête CAN 11 bits sur un protocole K-Line.
+        assertTrue(f.sent.none { it.startsWith("ATSH") || it.startsWith("ATCRA") })
+        // Pas d'adressage direct, pas de balayage CAN, pas d'interrogation UDS/KWP.
+        assertTrue(e.readDtcs("03", 0x7E0, 0x7E8).first.isEmpty())
+        assertTrue(e.findEcus().isEmpty())
+        assertNull(e.ecuDtcs(0x7E0, 0x7E8, "Moteur"))
+        assertTrue(f.sent.none { it.startsWith("ATSH") || it == "3E00" || it.startsWith("19") })
+    }
+
+    @Test fun codesKLineSansNomDeCalculateur() = runBlocking {
+        // Boîtier qui ignore ATH1 sur K-Line : réponse sans en-tête.
+        val (e, _) = proto("A4", mapOf("07" to "47 03 00 00 00 00 00"))
+        e.init(); e.probe()
+        val (codes, _) = e.readDtcs("07")
+        assertEquals(listOf("P0300"), codes.map { it.code })
+        assertEquals("Moteur", codes[0].ecu)
+    }
+
+    @Test fun codesCan29Bits() = runBlocking {
+        val r = "18 DA F1 10 06 43 02 01 33 05 15\r18 DA F1 18 02 43 00"
+        val (e, f) = proto("A7", mapOf("03" to r))
+        e.init(); e.probe()
+        val (codes, ecus) = e.readDtcs("03")
+        assertEquals(listOf("P0133", "P0515"), codes.map { it.code })
+        assertEquals("Moteur", codes[0].ecu)
+        assertEquals(setOf("18DAF110", "18DAF118"), ecus)
+        assertTrue(f.sent.none { it.startsWith("ATSH") })
+        assertTrue(e.findEcus().isEmpty())
+    }
+
+    @Test fun memeCodeDansPlusieursCalculateurs() = runBlocking {
+        val (e, _) = proto("A6", mapOf("03" to "7E8 04 43 01 C1 00\r7E9 04 43 01 C1 00\r7EA 04 43 01 C1 00"))
+        e.init(); e.probe()
+        val codes = e.readDtcs("03").first
+        assertEquals(listOf("Moteur", "Boîte de vitesses", "Calculateur 7E2"), codes.map { it.ecu })
+        assertTrue(codes.all { it.code == "U0100" })
+    }
+
+    @Test fun nomsDesCalculateursIdentiques() {
+        // Même nom, que le calculateur réponde à une demande diffusée (réception seule) ou adressée (émission connue).
+        assertEquals(Elm327.ecuLabel(null, 0x7E8), Elm327.ecuLabel(0x7E0, 0x7E8))
+        assertEquals(Elm327.ecuLabel(null, 0x7E9), Elm327.ecuLabel(0x7E1, 0x7E9))
+        assertEquals(Elm327.ecuLabel(null, 0x7EA), Elm327.ecuLabel(0x7E2, 0x7EA))
+        assertEquals("Calculateur 79B", Elm327.ecuLabel(0x79B, 0x7AB))
+    }
+
+    @Test fun controleDeFluxVersLeCalculateurInterroge() = runBlocking {
+        // Réponse à 7AB (pas 79B + 8) : le contrôle de flux doit partir vers 79B, puis le boîtier revient au mode automatique.
+        val r = "00F\r0: 59 02 FF 90 01 23 09\r1: C1 23 00 08 81 11 22\r2: 40 00 00"
+        val bus = BusFake(mapOf("79B" to mapOf("1902FF" to r)))
+        val e = Elm327(bus)
+        e.init(); e.probe()
+        e.ecuDtcs(0x79B, 0x7AB, "Calculateur 79B")
+        val i = bus.sent.indexOf("1902FF")
+        assertTrue(bus.sent.subList(0, i).containsAll(listOf("ATFCSH79B", "ATFCSD300000", "ATFCSM1", "ATCRA7AB")))
+        assertEquals("ATFCSM0", bus.sent.last { it.startsWith("ATFCSM") })
+    }
+
+    @Test fun controleDeFluxSwiftConserve() = runBlocking {
+        // Swift : réglages du modèle (FCSD300005, FCSM1 vers 7E0) rejoués après chaque calculateur.
+        val swift = com.cardeck.app.data.SWIFT_SPORT_ZC33S
+        val bus = BusFake(mapOf("7B0" to mapOf("1902FF" to "59 02 FF")))
+        val e = Elm327(bus)
+        e.readOnly = true
+        e.init(swift.elmProtocol, swift.elmInit)
+        e.probe()
+        assertTrue(e.ecuDtcs(0x7B0, 0x7B8, "Calculateur 7B0")!!.isEmpty())
+        assertTrue("ATFCSD300005" in bus.sent && "ATFCSD300000" !in bus.sent)
+        assertEquals(swift.elmInit, bus.sent.takeLast(3))
+    }
+
+    @Test fun scanSwiftLectureSeule() = runBlocking {
+        // Scan complet en lecture seule : aucune commande hors liste blanche n'est envoyée.
+        val swift = com.cardeck.app.data.SWIFT_SPORT_ZC33S
+        val bus = BusFake(mapOf(
+            "7DF" to mapOf("0100" to "41 00 BE 3F A8 13", "03" to "NO DATA", "07" to "NO DATA"),
+            "7E0" to mapOf("03" to "7E8 02 43 00", "3E00" to "7E8 03 7F 3E 11", "1800FF00" to "58 02 05 15 E0 0A 5A 20"),
+        ))
+        val e = Elm327(bus)
+        e.readOnly = true
+        e.init(swift.elmProtocol, swift.elmInit)
+        assertTrue(e.reset())
+        e.readDtcs("03"); e.readDtcs("07"); e.readDtcs("0A")
+        e.readDtcs("03", 0x7E0, 0x7E8)
+        e.freezeFrame()
+        val found = e.findEcus()
+        assertEquals(listOf(0x7E0 to 0x7E8), found)
+        val codes = e.ecuDtcs(0x7E0, 0x7E8, Elm327.ecuLabel(0x7E0, 0x7E8))!!
+        assertEquals(listOf("P0515", "P0A5A"), codes.map { it.code })
+        assertTrue(codes.all { it.ecu == "Moteur" })
+        val services = bus.sent.filter { !it.startsWith("AT") }.map { it.take(2) }.toSet()
+        assertTrue("Services envoyés : $services", services.all { it in setOf("01", "02", "03", "07", "0A", "10", "18", "19", "3E") })
+        assertTrue(bus.sent.none { it == "04" || it.startsWith("14") || it.startsWith("2E") || it.startsWith("31") || it == "1003" })
+        assertTrue(bus.sent.none { it == "ATSH7F1" || it == "ATCRA7F9" })
+    }
+
+    @Test fun ficheDuCodeBatterie() {
+        val d = com.cardeck.app.data.DtcCatalog.info("P0515")
+        assertTrue(d.known)
+        assertEquals("Code spécifique au constructeur", com.cardeck.app.data.DtcCatalog.info("B1234").title)
+        assertEquals("Code spécifique au constructeur", com.cardeck.app.data.DtcCatalog.info("U2100").title)
+        assertEquals("Code non répertorié dans la base", com.cardeck.app.data.DtcCatalog.info("B0001").title)
     }
 }
