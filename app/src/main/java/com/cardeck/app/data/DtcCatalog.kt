@@ -274,6 +274,22 @@ object DtcCatalog {
         d("U0155", "Perte de communication avec le combiné d'instruments", DtcSystem.Network)
     }
 
+    // Codes génériques P0xxx de la norme SAE J2012 (src/main/resources/dtc_p0.txt, généré par tools/dtc/gen_p0.py) :
+    // ils complètent les fiches détaillées ci-dessus, qui restent prioritaires.
+    init {
+        parseGeneric(DtcCatalog::class.java.classLoader?.getResourceAsStream("dtc_p0.txt")?.bufferedReader(Charsets.UTF_8)?.readText().orEmpty())
+            .forEach { if (it.code !in map) map[it.code] = it }
+    }
+
+    /** Lignes « CODE|Titre|Système|Gravité » (gravité C / M / L) ; les lignes invalides sont ignorées. */
+    internal fun parseGeneric(text: String): List<DtcInfo> = text.lineSequence().mapNotNull { line ->
+        val p = line.trim().split('|')
+        if (p.size < 4) return@mapNotNull null
+        val sys = DtcSystem.entries.find { it.name == p[2] } ?: return@mapNotNull null
+        val sev = when (p[3]) { "C" -> Severity.Crit; "L" -> Severity.Low; else -> Severity.Mid }
+        DtcInfo(p[0], p[1], sys, sev)
+    }.toList()
+
     val all: Collection<DtcInfo> get() = map.values
 
     /** Informations sur un code ; renvoie une fiche générique si le code n'est pas répertorié. */

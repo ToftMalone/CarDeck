@@ -65,7 +65,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** @return true si le retour a été consommé. */
     fun back(): Boolean {
-        if (stack.size > 1) { stack.removeAt(stack.lastIndex); return true }
+        if (stack.size > 1) {
+            // On quitte la création d'un profil : la lecture du VIN n'a plus d'objet.
+            if (stack.last() == Screen.AddVehicle) clearVin()
+            stack.removeAt(stack.lastIndex)
+            return true
+        }
         return false
     }
 
@@ -154,6 +159,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val id = repo.addVehicle(templateId, nickname, plate, year)
         repo.select(id)
         pairVehicleId = id
+        // Boîtier déjà utilisé pour lire le VIN : inutile de l'appairer une deuxième fois.
+        val adapter = vinAdapter
+        if (adapter != null) {
+            val vin = vinResult?.vin
+            clearVin()
+            finishPairing(adapter, vin)
+            return
+        }
         // Hors onboarding, le retour depuis l'appairage ne doit pas recréer le profil.
         if (onboarded) stack.remove(Screen.AddVehicle)
         go(Screen.Pair)
@@ -193,6 +206,76 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         pairVehicleId?.let { repo.deleteVehicle(it) }
         pairVehicleId = null
         back()
+    }
+
+    // ---- Reconnaissance du véhicule par son VIN ----
+    /** L'écran d'appairage sert à lire le VIN (avant la création du profil). */
+    var vinPairing by mutableStateOf(false)
+        private set
+
+    /** Boîtier utilisé pour lire le VIN : il sera associé au nouveau profil. */
+    private var vinAdapter: AdapterConfig? = null
+
+    /** Résultat de la lecture : null tant qu'elle n'a pas eu lieu. */
+    var vinResult by mutableStateOf<com.cardeck.app.data.VinInfo?>(null)
+        private set
+
+    /** Lecture faite mais aucun VIN exploitable (contact coupé, VIN absent ou illisible). */
+    var vinFailed by mutableStateOf(false)
+        private set
+
+    var vinBusy by mutableStateOf(false)
+        private set
+
+    /** Profil déjà au garage portant ce VIN, s'il existe. */
+    val vinExisting: com.cardeck.app.data.VehicleProfile?
+        get() = vinResult?.let { r -> repo.vehicles.value.firstOrNull { it.vin.equals(r.vin, ignoreCase = true) } }
+
+    /**
+     * « Je ne connais pas le modèle de ma voiture » : lit le VIN avec le boîtier. Si un boîtier est déjà connecté on
+     * l'utilise tout de suite, sinon on ouvre l'appairage (le profil n'existe pas encore).
+     */
+    fun detectVin() {
+        if (vinBusy) return
+        val connected = (obd.state.value as? com.cardeck.app.obd.ObdState.Connected)?.adapter
+        if (connected == null) {
+            vinPairing = true
+            pairVehicleId = null
+            go(Screen.Pair)
+            return
+        }
+        vinBusy = true
+        viewModelScope.launch {
+            val vin = withContext(Dispatchers.IO) { obd.use { e -> if (e.probe()) e.vin() else null } }
+            vinAdapter = connected
+            applyVin(vin)
+            vinBusy = false
+        }
+    }
+
+    private fun applyVin(raw: String?) {
+        val info = raw?.let { com.cardeck.app.data.Vin.decode(it) }
+        vinResult = info
+        vinFailed = info == null
+    }
+
+    /** Fin de l'appairage en mode VIN : retour à la liste des véhicules avec le résultat. */
+    fun finishVinPairing(adapter: AdapterConfig?, vin: String?) {
+        obd.pairing = false
+        vinPairing = false
+        vinAdapter = adapter
+        applyVin(vin)
+        stack.removeAll { it == Screen.Pair }
+    }
+
+    fun cancelVinPairing() {
+        obd.pairing = false
+        vinPairing = false
+        back()
+    }
+
+    fun clearVin() {
+        vinResult = null; vinFailed = false; vinAdapter = null; vinBusy = false
     }
 
     fun deleteVehicle(id: Long) {

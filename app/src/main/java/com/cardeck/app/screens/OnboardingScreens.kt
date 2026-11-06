@@ -165,7 +165,7 @@ fun PairScreen(vm: AppViewModel) {
         if (i >= 0) found[i] = f else found.add(f)
     }
 
-    val goBack: () -> Unit = { if (!vm.onboarded) vm.cancelOnboardingPair() else { vm.obd.pairing = false; vm.back() } }
+    val goBack: () -> Unit = { if (vm.vinPairing) vm.cancelVinPairing() else if (!vm.onboarded) vm.cancelOnboardingPair() else { vm.obd.pairing = false; vm.back() } }
     BackHandler { goBack() }
     DisposableEffect(Unit) {
         vm.obd.pairing = true
@@ -262,11 +262,11 @@ fun PairScreen(vm: AppViewModel) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        StepBar(2, goBack, !vm.onboarded)
+        StepBar(2, goBack, !vm.onboarded && !vm.vinPairing)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 16.dp)) {
             T("Associer un boîtier OBD2", 28, lineHeight = 36, modifier = Modifier.padding(bottom = 8.dp))
             T(
-                (vehicle?.let { "Pour « ${it.nickname} ». " } ?: "") + "Branchez le boîtier sur la prise diagnostic (sous le volant), mettez le contact, puis sélectionnez-le.",
+                (if (vm.vinPairing) "Le boîtier va lire le numéro de série (VIN) de la voiture pour la reconnaître. " else vehicle?.let { "Pour « ${it.nickname} ». " } ?: "") + "Branchez le boîtier sur la prise diagnostic (sous le volant), mettez le contact, puis sélectionnez-le.",
                 14, c.onv, modifier = Modifier.padding(bottom = 20.dp), lineHeight = 20,
             )
             Segmented(
@@ -340,8 +340,9 @@ fun PairScreen(vm: AppViewModel) {
             }
         }
         Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            FilledBtn("Continuer", { vm.finishPairing(connected, vin) }, enabled = connected != null && !connecting)
-            if (!vm.onboarded) TextBtn("Plus tard", { vm.finishPairing(null, null) })
+            FilledBtn(if (vm.vinPairing) "Lire le VIN" else "Continuer", { if (vm.vinPairing) vm.finishVinPairing(connected, vin) else vm.finishPairing(connected, vin) }, enabled = connected != null && !connecting)
+            if (vm.vinPairing) TextBtn("Annuler", { vm.cancelVinPairing() })
+            else if (!vm.onboarded) TextBtn("Plus tard", { vm.finishPairing(null, null) })
         }
     }
 }

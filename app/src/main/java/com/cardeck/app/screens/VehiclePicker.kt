@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Verified
@@ -36,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +55,7 @@ import com.cardeck.app.data.CatalogGeneration
 import com.cardeck.app.data.CatalogModel
 import com.cardeck.app.data.OTHER
 import com.cardeck.app.data.VehicleTemplate
+import com.cardeck.app.data.Vin
 import com.cardeck.app.data.searchCatalog
 import com.cardeck.app.data.templateById
 import com.cardeck.app.ui.Cd
@@ -60,6 +63,7 @@ import com.cardeck.app.ui.FilledBtn
 import com.cardeck.app.ui.Field
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
+import com.cardeck.app.ui.Spinner
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.TextBtn
 
@@ -79,6 +83,15 @@ fun AddVehicleScreen(vm: AppViewModel) {
     val tpl = tplId?.let { templateById(it) }
     val brand = CATALOG.find { it.name == brandName }
     val model = brand?.models?.find { it.name == modelName }
+
+    // VIN lu : motorisation identifiée avec certitude → fiche directe ; sinon marque pré-sélectionnée.
+    val vin = vm.vinResult
+    LaunchedEffect(vin) {
+        if (vin == null) return@LaunchedEffect
+        if (vin.templateId != null) tplId = vin.templateId
+        else vin.brand?.let { brandName = it; modelName = null }
+    }
+    val vinYear = vin?.takeIf { it.brand != null && it.brand == brand?.name }?.year
 
     // Retour : on remonte d'un niveau avant de quitter l'écran.
     BackHandler(enabled = tpl != null || brand != null || query.isNotEmpty()) {
@@ -117,6 +130,7 @@ fun AddVehicleScreen(vm: AppViewModel) {
             T("Votre véhicule", 28, lineHeight = 36, modifier = Modifier.padding(bottom = 8.dp))
             T("Choisissez la marque, le modèle puis la version et la motorisation, ou cherchez directement.", 14, c.onv, lineHeight = 20, modifier = Modifier.padding(bottom = 16.dp))
             SearchField(query) { query = it }
+            if (query.isBlank()) VinCard(vm, atRoot = brand == null)
             if (query.isBlank()) Breadcrumb(brand, model, onRoot = { brandName = null; modelName = null }, onBrand = { modelName = null })
         }
         AnimatedContent(
@@ -137,11 +151,15 @@ fun AddVehicleScreen(vm: AppViewModel) {
                             brandName = b.name; modelName = null
                         }
                     }
-                    level == Level.Models && brand != null -> brand.models.forEach { m ->
-                        val years = m.generations.mapNotNull { it.years.takeIf(String::isNotBlank) }
-                        PickRow(m.name, generationsLabel(m), initial = null, sub2 = yearsRange(years)) { modelName = m.name }
+                    level == Level.Models && brand != null -> {
+                        val matching = if (vinYear != null) Vin.candidates(brand, vinYear).map { it.first.name }.toSet() else emptySet()
+                        brand.models.sortedByDescending { it.name in matching }.forEach { m ->
+                            val years = m.generations.mapNotNull { it.years.takeIf(String::isNotBlank) }
+                            PickRow(m.name, generationsLabel(m), initial = null, sub2 = yearsRange(years), tag = if (m.name in matching) "Correspond à $vinYear" else null) { modelName = m.name }
+                        }
                     }
-                    model != null && brand != null -> model.generations.forEach { g -> GenerationBlock(brand, model, g) { tplId = it.id } }
+                    model != null && brand != null -> model.generations.sortedByDescending { vinYear != null && Vin.matches(it, vinYear) }
+                        .forEach { g -> GenerationBlock(brand, model, g, highlight = vinYear != null && Vin.matches(g, vinYear)) { tplId = it.id } }
                 }
             }
         }
@@ -207,7 +225,7 @@ private fun Crumb(label: String, link: Boolean, onClick: () -> Unit) {
 
 /** Ligne de liste (marque ou modèle). */
 @Composable
-private fun PickRow(title: String, sub: String, initial: String?, sub2: String? = null, onClick: () -> Unit) {
+private fun PickRow(title: String, sub: String, initial: String?, sub2: String? = null, tag: String? = null, onClick: () -> Unit) {
     val c = Cd.c
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
@@ -220,18 +238,20 @@ private fun PickRow(title: String, sub: String, initial: String?, sub2: String? 
             T(title, 16, weight = 500, lineHeight = 22, maxLines = 1)
             T(listOfNotNull(sub, sub2).joinToString(" · "), 12, c.onv, lineHeight = 16, maxLines = 1)
         }
+        if (tag != null) Box(Modifier.clip(RoundedCornerShape(10.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp)) { T(tag, 11, c.op, 600) }
         Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.onv)
     }
 }
 
 /** Une génération et ses motorisations. */
 @Composable
-private fun GenerationBlock(brand: CatalogBrand, model: CatalogModel, g: CatalogGeneration, onPick: (VehicleTemplate) -> Unit) {
+private fun GenerationBlock(brand: CatalogBrand, model: CatalogModel, g: CatalogGeneration, highlight: Boolean = false, onPick: (VehicleTemplate) -> Unit) {
     val c = Cd.c
     val title = if (brand.name == OTHER) g.name else "${model.name} ${g.name}"
     Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         T(title, 14, c.p, 600)
         if (g.years.isNotBlank()) T(g.years, 12, c.onv)
+        if (highlight) Box(Modifier.clip(RoundedCornerShape(10.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 2.dp)) { T("Correspond à votre VIN", 11, c.op, 600) }
     }
     g.variants.forEach { t -> VariantRow(t, null, onPick) }
 }
@@ -306,10 +326,11 @@ private fun VehicleDetails(vm: AppViewModel, tpl: VehicleTemplate, onChange: () 
                 }
                 IconBtn(Icons.Rounded.Edit, onChange, c.opc)
             }
+            val fromVin = vm.vinResult?.takeIf { it.templateId == tpl.id }
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Ico(if (tpl.dedicated) Icons.Rounded.Verified else Icons.Rounded.Info, 20, c.onv)
                 T(
-                    if (tpl.dedicated) "Profil dédié : données constructeur en plus des données OBD2 standard. ${tpl.protocol}."
+                    (if (fromVin != null) "Reconnue grâce au VIN ${fromVin.vin}. " else "") + if (tpl.dedicated) "Profil dédié : données constructeur en plus des données OBD2 standard. ${tpl.protocol}."
                     else "Données OBD2 standard : régime, vitesse, températures, pressions, diagnostic… Le protocole est détecté automatiquement à la connexion.",
                     13, c.onv, lineHeight = 18,
                 )
@@ -325,6 +346,55 @@ private fun VehicleDetails(vm: AppViewModel, tpl: VehicleTemplate, onChange: () 
         }
         Box(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 16.dp)) {
             FilledBtn("Continuer", { vm.createVehicle(tpl.id, nickname.trim(), plate.trim(), year.trim()) }, enabled = nickname.isNotBlank())
+        }
+    }
+}
+
+/**
+ * Bouton bien visible « Je ne connais pas le modèle de ma voiture » (lecture du VIN avec le boîtier OBD2), puis résumé de la lecture.
+ * Hors de la racine de la liste, seul le résultat est rappelé.
+ */
+@Composable
+private fun VinCard(vm: AppViewModel, atRoot: Boolean) {
+    val c = Cd.c
+    val r = vm.vinResult
+    when {
+        vm.vinBusy -> Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(20.dp)).background(c.pc).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) { Spinner(24.dp, 3.dp, c.opc); T("Lecture du numéro de série (VIN)…", 14, c.opc, 500) }
+        r != null -> {
+            val existing = vm.vinExisting
+            Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(20.dp)).background(c.pc).padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 6.dp)) {
+                T("VIN lu : ${r.vin}", 13, c.opc, 600, mono = true)
+                T(
+                    when {
+                        r.templateId != null -> "Modèle reconnu : ${templateById(r.templateId).fullName}."
+                        r.brand != null -> "Constructeur : ${r.maker}" + (r.year?.let { " · année modèle ≈ $it" } ?: "") + ". Choisissez le modèle dans la liste${if (r.year != null) " (ceux de cette année sont en premier)" else ""}."
+                        r.maker != null -> "Constructeur : ${r.maker}, absent de la liste. Choisissez « $OTHER » : les données OBD2 standard fonctionneront."
+                        else -> "Constructeur non reconnu (code ${r.wmi}). Choisissez dans la liste ou « $OTHER »."
+                    },
+                    13, c.opc, lineHeight = 18, modifier = Modifier.padding(top = 2.dp),
+                )
+                if (existing != null) T("Déjà dans votre garage : ${existing.nickname}.", 13, c.opc, 600, modifier = Modifier.padding(top = 4.dp))
+                TextBtn("Relire le VIN", { vm.detectVin() }, color = c.opc)
+            }
+        }
+        vm.vinFailed -> Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(20.dp)).background(c.ec).padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 6.dp)) {
+            T("VIN illisible", 14, c.oec, 600)
+            T("La voiture n'a pas donné son numéro de série : mettez le contact (moteur tournant de préférence). Les voitures d'avant 2005 ne le fournissent pas toujours.", 13, c.oec, lineHeight = 18, modifier = Modifier.padding(top = 2.dp))
+            TextBtn("Réessayer", { vm.detectVin() }, color = c.oec)
+        }
+        atRoot -> Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(20.dp)).background(c.pc).clickable { vm.detectVin() }.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(Modifier.size(44.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.HelpOutline, 24, c.op) }
+            Column(Modifier.weight(1f)) {
+                T("Je ne connais pas le modèle de ma voiture", 15, c.opc, 600, lineHeight = 20)
+                T("Le boîtier OBD2 lit le numéro de série (VIN) et trouve la marque et l'année.", 12, c.opc, lineHeight = 16, modifier = Modifier.padding(top = 2.dp))
+            }
+            Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.opc)
         }
     }
 }

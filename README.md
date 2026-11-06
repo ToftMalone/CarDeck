@@ -37,8 +37,9 @@ et la consommation et le coût d'un trajet sont **calculés** à partir de ces m
   **cartes moteur**) et toutes les données brutes, à partager en un fichier.
 
 ### 🩺 Diagnostic
-Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français** :
-description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.
+Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français**, intégrée à l'appli
+(donc disponible hors ligne) : près de **1 000 codes génériques P0xxx** de la norme SAE J2012 (moteur, carburant, allumage, antipollution,
+électrique, transmission…) avec leur gravité, dont les plus courants détaillés avec description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.
 
 **Diagnostic complet** : le boîtier est d'abord remis à zéro, puis CarDeck lit les codes OBD2 de tous les calculateurs, interroge aussi
 le calculateur moteur directement, recherche tous les calculateurs du réseau CAN (moteur, ABS…) et lit les codes défaut de chacun
@@ -75,6 +76,11 @@ sait relire, puis restaurées depuis **Paramètres → Sauvegarde**.
 ### 🏠 Un garage pour plusieurs voitures
 Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Pour le créer, tu choisis ton véhicule **en trois listes** : la **marque**, le **modèle**, puis la **génération et la motorisation**.
 Par exemple Suzuki › Swift › Sport ZC33S › K14C 1.4 BoosterJet. Un champ de recherche permet d'aller plus vite (« Clio V 1.0 TCe », « Golf GTI »…).
+
+**Tu ne connais pas le modèle de ta voiture ?** Touche **« Je ne connais pas le modèle de ma voiture »** en haut de la liste : le boîtier OBD2 lit le
+numéro de série (VIN) de la voiture et CarDeck en déduit, **sans connexion internet**, le constructeur et l'année. Il pré-sélectionne alors la marque
+et met en premier les modèles produits cette année-là ; quand le code du modèle est connu (la Swift Sport, par exemple), le véhicule est reconnu
+directement. Le VIN ne donne pas le modèle exact de façon universelle : tu confirmes donc dans la liste.
 Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lancement t'accueille avec un message différent.
 
 ## Véhicules pris en charge
