@@ -51,6 +51,9 @@ class Elm327(private val t: ObdTransport) {
      */
     val is11bit get() = protocolNum.lastOrNull().let { it == null || it == '6' || it == '8' }
 
+    /** Noms des calculateurs connus du modèle, par en-tête de réponse (« 18DAF115 » → « Moteur »). */
+    var ecuNames: Map<String, String> = emptyMap()
+
     /** Journal des échanges (commande puis réponse brute), activé pendant un diagnostic. */
     var trace: StringBuilder? = null
 
@@ -436,12 +439,23 @@ class Elm327(private val t: ObdTransport) {
      * (10 81 KWP, 10 01 UDS) et recommence. Null si le calculateur ne répond à aucune de ces demandes.
      * Seuls les codes présents ou mémorisés sont gardés (octet d'état non nul sur les bits de défaut).
      */
-    suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String): List<FoundCode>? {
-        if (!is11bit) return null
-        raw("ATH0"); raw("ATCAF1"); raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx)); raw("ATST96")
+    suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String, wide: Boolean = false): List<FoundCode>? {
+        if (!isCan) return null
+        // Calculateur dans l'autre format d'adresses que l'OBD de la voiture (ex. 11 bits sur une voiture OBD en 29 bits) :
+        // protocole CAN de même débit le temps de l'interroger.
+        val switched = wide != !is11bit
+        if (switched) raw("ATSP" + canProtocol(wide))
+        raw("ATH0"); raw("ATCAF1")
+        if (wide) {
+            raw("ATCP%02X".format((tx ushr 24) and 0x1F)); raw("ATSH%06X".format(tx and 0xFFFFFF)); raw("ATCRA%08X".format(rx))
+        } else {
+            raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx))
+        }
+        raw("ATST96")
         // Contrôle de flux envoyé au calculateur interrogé : par défaut le boîtier l'envoie à « réception − 8 », ce qui ne
         // convient pas aux calculateurs dont la réponse n'est pas à émission + 8 (réponses en plusieurs trames perdues).
-        raw("ATFCSH%03X".format(tx)); raw(extraInit.firstOrNull { it.startsWith("ATFCSD") } ?: "ATFCSD300000"); raw("ATFCSM1")
+        raw(if (wide) "ATFCSH%08X".format(tx) else "ATFCSH%03X".format(tx))
+        raw(extraInit.firstOrNull { it.startsWith("ATFCSD") } ?: "ATFCSD300000"); raw("ATFCSM1")
         fun final(r: String, service: Int): IntArray? = if (isError(r)) null
             else udsMessages(r).lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }?.takeIf { it.isNotEmpty() && it[0] == service + 0x40 }
         suspend fun attempt(): List<FoundCode>? {
@@ -467,12 +481,25 @@ class Elm327(private val t: ObdTransport) {
                 raw("1081"); raw("1001")
                 attempt()
             }
-            note("Calculateur %03X : ".format(tx) + (codes?.joinToString { it.code }?.ifEmpty { "aucun code" } ?: "pas de réponse aux demandes de codes"))
+            note("Calculateur ${if (wide) "%08X".format(tx) else "%03X".format(tx)} : " + (codes?.joinToString { it.code }?.ifEmpty { "aucun code" } ?: "pas de réponse aux demandes de codes"))
             return codes
         } finally {
-            raw("ATCRA"); raw("ATSH7DF"); raw("ATST32"); raw("ATFCSM0")
+            raw("ATCRA"); raw("ATST32"); raw("ATFCSM0")
+            if (switched) protocolNum.lastOrNull()?.let { raw("ATSP$it") }
+            restoreObdHeader()
             extraInit.forEach { raw(it) }
         }
+    }
+
+    /** Protocole CAN au même débit que celui de la voiture : 6 / 7 (500 kb/s) ou 8 / 9 (250 kb/s), en 11 ou 29 bits. */
+    private fun canProtocol(wide: Boolean): String {
+        val slow = protocolNum.lastOrNull().let { it == '8' || it == '9' }
+        return if (slow) (if (wide) "9" else "8") else (if (wide) "7" else "6")
+    }
+
+    /** En-tête de diffusion OBD de la voiture : 7DF en 11 bits, 18 DB 33 F1 en 29 bits. */
+    private suspend fun restoreObdHeader() {
+        if (is11bit) raw("ATSH7DF") else { raw("ATCP18"); raw("ATSHDB33F1") }
     }
 
     /** Réassemblage ISO-TP des réponses CAN (en-têtes affichés via ATH1), regroupées par calculateur. */
@@ -508,6 +535,7 @@ class Elm327(private val t: ObdTransport) {
     /** Nom d'un calculateur d'après l'en-tête de sa réponse (CAN 11 / 29 bits, ou adresse source K-Line / J1850). */
     private fun ecuName(hdr: String): String {
         val h = hdr.uppercase()
+        ecuNames[h]?.let { return it }
         return when {
             h.length == 3 -> h.toIntOrNull(16)?.let { ecuLabel(null, it) } ?: "Calculateur $h"
             h == "18DAF110" -> "Moteur"

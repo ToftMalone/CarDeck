@@ -79,7 +79,8 @@ private fun brand(name: String, block: BrandBuilder.() -> Unit): CatalogBrand {
     return CatalogBrand(
         b.name,
         b.models.map { m ->
-            CatalogModel(m.name, m.gens.map { g -> CatalogGeneration(g.name, g.years, g.dedicated + g.engines.map { generic(b.name, m.name, g, it) }) })
+            // Une motorisation qui a un profil dédié (même identifiant) est remplacée par lui, à la même place dans la liste.
+            CatalogModel(m.name, m.gens.map { g -> CatalogGeneration(g.name, g.years, g.dedicated + g.engines.map { generic(b.name, m.name, g, it) }.map { t -> DEDICATED.firstOrNull { it.id == t.id } ?: t }) })
         },
     )
 }

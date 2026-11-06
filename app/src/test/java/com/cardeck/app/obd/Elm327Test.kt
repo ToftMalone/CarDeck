@@ -510,4 +510,54 @@ class Elm327Test {
         assertEquals("Code spécifique au constructeur", com.cardeck.app.data.DtcCatalog.info("U2100").title)
         assertEquals("Code non répertorié dans la base", com.cardeck.app.data.DtcCatalog.info("B0001").title)
     }
+
+    @Test fun calculateursClioV29Bits() = runBlocking {
+        // Voiture OBD en CAN 29 bits (Clio V) : ABS en 18DA2DF1 (réponse en plusieurs trames), calculateur 11 bits 714.
+        val bus = object : ObdTransport {
+            override val incoming = Channel<ByteArray>(Channel.UNLIMITED)
+            override suspend fun open() {}
+            val sent = mutableListOf<String>()
+            var header = ""
+            override suspend fun send(data: ByteArray) {
+                val cmd = String(data).trim()
+                sent += cmd
+                if (cmd.startsWith("ATSH")) header = cmd.removePrefix("ATSH")
+                val r = when {
+                    cmd == "ATDPN" -> "A7"
+                    cmd.startsWith("AT") -> "OK"
+                    cmd == "0100" -> "41 00 BE 3F A8 13"
+                    header == "DA2DF1" && cmd == "1902FF" -> "00B\r0: 59 02 09 50 6E 54\r1: 08 E1 54 87 08"
+                    header == "714" && cmd == "1902FF" -> "59 02 39 9F 34 87 28"
+                    else -> "NO DATA"
+                }
+                incoming.trySend("$r\r\r>".toByteArray())
+            }
+            override fun close() {}
+        }
+        val e = Elm327(bus)
+        e.init(); e.probe()
+        val clio = com.cardeck.app.data.CLIO_V_TCE90
+        e.ecuNames = clio.ecuNames
+        val abs = clio.ecus.first { it.name == "ABS / ESP" }
+        val codes = e.ecuDtcs(abs.tx, abs.rx, abs.label, abs.wide)!!
+        assertEquals(listOf("C106E", "U2154"), codes.map { it.code })
+        assertTrue(codes.all { it.ecu == "ABS / ESP" && it.status == DtcStatus.Stored })
+        // En-têtes 29 bits, sans changer de protocole, puis retour à l'en-tête de diffusion OBD 29 bits.
+        assertTrue(bus.sent.containsAll(listOf("ATCP18", "ATSHDA2DF1", "ATCRA18DAF12D", "ATFCSH18DA2DF1")))
+        assertTrue(bus.sent.none { it.startsWith("ATSP6") || it == "ATSH7DF" })
+        assertEquals("ATSHDB33F1", bus.sent.last { it.startsWith("ATSH") })
+        // Calculateur 11 bits sur cette voiture : passage en CAN 11 bits (même débit) puis retour au 29 bits.
+        bus.sent.clear()
+        val c714 = clio.ecus.first { it.tx == 0x714 }
+        assertEquals(listOf("B1F34"), e.ecuDtcs(c714.tx, c714.rx, c714.label, c714.wide)!!.map { it.code })
+        assertEquals(listOf("ATSP6", "ATSP7"), bus.sent.filter { it.startsWith("ATSP") })
+        assertTrue(bus.sent.indexOf("ATSP6") < bus.sent.indexOf("ATSH714"))
+        assertEquals("ATSHDB33F1", bus.sent.last { it.startsWith("ATSH") })
+        // Codes OBD diffusés : le moteur 18DAF115 porte son nom.
+        val fake = FakeElm(base + mapOf("ATDPN" to "A7", "03" to "18 DA F1 15 04 43 01 01 33"))
+        val e2 = Elm327(fake)
+        e2.init(); e2.probe()
+        e2.ecuNames = clio.ecuNames
+        assertEquals(listOf("Moteur"), e2.readDtcs("03").first.map { it.ecu })
+    }
 }

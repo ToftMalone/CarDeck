@@ -49,6 +49,16 @@ data class PidDef(
  * Calculateur interrogé pour l'identification (références, logiciels, VIN), en lecture seule.
  * [rx] : adresse de réponse ; [uds] : UDS (22 xxxx, session 10 01) sinon KWP2000 (1A xx, session 10 81).
  */
+/**
+ * Calculateur connu d'un modèle (relevé avec l'explorateur) : adresses de requête [tx] et de réponse [rx],
+ * en CAN 29 bits si [wide]. [name] n'est renseigné que si le calculateur est identifié avec certitude.
+ */
+data class KnownEcu(val tx: Int, val rx: Int, val wide: Boolean = false, val name: String? = null) {
+    /** En-tête de réponse tel que l'affiche le boîtier (« 734 », « 18DAF115 »). */
+    val header get() = if (wide) "%08X".format(rx) else "%03X".format(rx)
+    val label get() = name ?: "Calculateur " + if (wide) "%08X".format(tx) else "%03X".format(tx)
+}
+
 /** Modèle de véhicule : caractéristiques + fonctionnalités dédiées (PIDs…). Un profil est créé à partir d'un modèle. */
 data class VehicleTemplate(
     val id: String,
@@ -79,12 +89,17 @@ data class VehicleTemplate(
     val comingSoon: Boolean = false,
     /** Données du modèle ajoutées au tableau de bord Sport. */
     val dashSport: List<String> = emptyList(),
+    /** Calculateurs connus du modèle : le diagnostic les interroge tous, y compris hors du protocole OBD de la voiture. */
+    val ecus: List<KnownEcu> = emptyList(),
 ) {
+    /** Noms des calculateurs identifiés, par en-tête de réponse. */
+    val ecuNames: Map<String, String> get() = ecus.filter { it.name != null }.associate { it.header to it.name!! }
+
     val fullName get() = "$brand $model $code".trim()
     val specs get() = listOf(engine, power, fuel).filter { it.isNotBlank() }.joinToString(" · ")
 
     /** Profil dédié : données propres au modèle en plus des données OBD2 standard. */
-    val dedicated get() = pids.isNotEmpty() || elmProtocol != null
+    val dedicated get() = pids.isNotEmpty() || elmProtocol != null || ecus.isNotEmpty()
 }
 
 private fun u16(d: IntArray, i: Int) = (d[i] * 256 + d[i + 1]).toDouble()
@@ -143,8 +158,34 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     codings = emptyList(),
 )
 
-/** Modèles avec un profil dédié (données constructeur, protocole connu…). */
-val DEDICATED = listOf(SWIFT_SPORT_ZC33S)
+/**
+ * Renault Clio V 1.0 TCe 90 : relevé de l'explorateur (balayage à l'arrêt, novembre 2026). OBD en CAN 29 bits.
+ * Identifiés avec certitude : le moteur (18DA15F1, « ECM - EngineControl », Continental) et l'ABS / ESP
+ * (18DA2DF1, Bosch, référence Renault 47660…). Les autres calculateurs répondent mais leur rôle n'est pas établi.
+ */
+val CLIO_V_TCE90 = VehicleTemplate(
+    id = "renault-clio-v-1-0-tce-90ch-essence", // identifiant de la motorisation du catalogue : les profils existants en profitent
+    brand = "Renault",
+    model = "Clio",
+    code = "V",
+    engine = "1.0 TCe",
+    power = "90 ch",
+    fuel = "Essence",
+    defaultFuel = FuelType.E10,
+    protocol = "OBD2 en CAN 29 bits · protocole détecté automatiquement",
+    pids = emptyList(),
+    ecus = listOf(
+        KnownEcu(0x18DA15F1, 0x18DAF115, wide = true, name = "Moteur"),
+        KnownEcu(0x18DA2DF1, 0x18DAF12D, wide = true, name = "ABS / ESP"),
+        KnownEcu(0x18DAD2F1, 0x18DAF1D2, wide = true),
+        KnownEcu(0x714, 0x734), KnownEcu(0x723, 0x735), KnownEcu(0x742, 0x762), KnownEcu(0x743, 0x763),
+        KnownEcu(0x744, 0x764), KnownEcu(0x745, 0x765), KnownEcu(0x747, 0x767), KnownEcu(0x74D, 0x76D),
+        KnownEcu(0x74E, 0x76E), KnownEcu(0x752, 0x772), KnownEcu(0x7CA, 0x7DA), KnownEcu(0x7DC, 0x7DD),
+    ),
+)
+
+/** Modèles avec un profil dédié (données constructeur, protocole connu, calculateurs relevés…). */
+val DEDICATED = listOf(SWIFT_SPORT_ZC33S, CLIO_V_TCE90)
 
 /** Tous les modèles : profils dédiés et motorisations du catalogue (données OBD2 standard). */
 val TEMPLATES: List<VehicleTemplate> by lazy { DEDICATED + CATALOG_TEMPLATES.filter { t -> DEDICATED.none { it.id == t.id } } }

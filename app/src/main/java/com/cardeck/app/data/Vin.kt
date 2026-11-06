@@ -14,13 +14,16 @@ data class VinInfo(
     val maker: String?,
     /** Nom de la marque dans le catalogue, si elle y figure. */
     val brand: String?,
-    /** Année modèle (approximative, selon les constructeurs). */
+    /** Année modèle, seulement pour les constructeurs qui la codent au 10e caractère (sinon null). */
     val year: Int?,
     val wmi: String,
-    /** Code du modèle (caractères 4 à 8), pour les modèles dont il est connu. */
+    /** Code du modèle (caractères 4 et suivants), pour les modèles dont il est connu. */
     val modelCode: String?,
     /** Motorisation identifiée avec certitude par le code du modèle (identifiant de profil). */
     val templateId: String?,
+    /** Modèle et génération du catalogue identifiés par le code du modèle (la motorisation reste à choisir). */
+    val model: String? = null,
+    val generation: String? = null,
 )
 
 object Vin {
@@ -90,11 +93,24 @@ object Vin {
     /** Toutes les marques du catalogue citées par la table (contrôlé par un test). */
     val catalogBrands: Set<String> get() = WMI.values.mapNotNull { it.second }.toSet()
 
-    /** Codes de modèle connus (caractères 4 à 8 du VIN) par constructeur : (marque, modèle, génération). */
-    private val MODEL_CODES: Map<String, Triple<String, String, String>> = mapOf(
-        "Suzuki:ZC33S" to Triple("Suzuki", "Swift", "Sport ZC33S"),
-        "Suzuki:ZC32S" to Triple("Suzuki", "Swift", "Sport ZC32S"),
+    /** Code de modèle connu : début des caractères 4 et suivants du VIN, chez un constructeur donné. */
+    private class ModelCode(val maker: String, val prefix: String, val brand: String, val model: String, val generation: String)
+
+    /** Codes relevés sur de vraies voitures (VIN lus par CarDeck). */
+    private val MODEL_CODES = listOf(
+        ModelCode("Suzuki", "ZC33S", "Suzuki", "Swift", "Sport ZC33S"),
+        ModelCode("Suzuki", "ZC32S", "Suzuki", "Swift", "Sport ZC32S"),
+        ModelCode("Renault", "RJA", "Renault", "Clio", "V"),
     )
+
+    /**
+     * Constructeurs dont le 10e caractère du VIN est bien l'année modèle. Ce n'est pas le cas chez tous les constructeurs
+     * européens (Renault, PSA, Fiat, Mercedes, BMW…), où ce caractère a un autre sens : on n'en déduit alors pas d'année.
+     */
+    private val YEAR_MAKERS = setOf("Volkswagen", "Audi", "Skoda", "Seat", "Hyundai", "Kia", "Volvo", "Tesla", "Subaru", "Chevrolet", "Chrysler", "Dodge", "Cadillac", "Jeep")
+
+    /** L'année modèle est fiable : VIN nord-américain (1 à 5) ou coréen (K), ou constructeur qui la code partout. */
+    fun yearReliable(wmi: String, maker: String?): Boolean = wmi.first() in '1'..'5' || wmi.first() == 'K' || maker in YEAR_MAKERS
 
     /** Année modèle d'après le 10e caractère (cycle de 30 ans : on prend la plus plausible, jamais dans le futur lointain). */
     fun modelYear(vin: String, currentYear: Int = Calendar.getInstance().get(Calendar.YEAR)): Int? {
@@ -112,10 +128,11 @@ object Vin {
         val vin = normalize(raw) ?: return null
         val wmi = vin.take(3)
         val m = maker(wmi)
-        val code = vin.substring(3, 8)
-        val hint = m?.first?.let { MODEL_CODES["$it:$code"] }
-        val tpl = hint?.let { (b, model, gen) -> templateFor(b, model, gen) }
-        return VinInfo(vin, m?.first, m?.second, modelYear(vin, currentYear), wmi, code.takeIf { hint != null }, tpl)
+        val rest = vin.substring(3)
+        val hint = m?.first?.let { maker -> MODEL_CODES.firstOrNull { it.maker == maker && rest.startsWith(it.prefix) } }
+        val tpl = hint?.let { templateFor(it.brand, it.model, it.generation) }
+        val year = if (yearReliable(wmi, m?.first)) modelYear(vin, currentYear) else null
+        return VinInfo(vin, m?.first, m?.second, year, wmi, hint?.prefix, tpl, hint?.model, hint?.generation)
     }
 
     /** Motorisation unique d'une génération du catalogue, si elle n'en a qu'une (sinon null). */

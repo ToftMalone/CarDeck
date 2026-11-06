@@ -78,9 +78,10 @@ Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Pour le crée
 Par exemple Suzuki › Swift › Sport ZC33S › K14C 1.4 BoosterJet. Un champ de recherche permet d'aller plus vite (« Clio V 1.0 TCe », « Golf GTI »…).
 
 **Tu ne connais pas le modèle de ta voiture ?** Touche **« Je ne connais pas le modèle de ma voiture »** en haut de la liste : le boîtier OBD2 lit le
-numéro de série (VIN) de la voiture et CarDeck en déduit, **sans connexion internet**, le constructeur et l'année. Il pré-sélectionne alors la marque
-et met en premier les modèles produits cette année-là ; quand le code du modèle est connu (la Swift Sport, par exemple), le véhicule est reconnu
-directement. Le VIN ne donne pas le modèle exact de façon universelle : tu confirmes donc dans la liste.
+numéro de série (VIN) de la voiture et CarDeck en déduit, **sans connexion internet**, le constructeur et l'année (pour les constructeurs qui la
+codent dans le VIN, ce que ne font pas Renault, PSA ou Mercedes, par exemple). Il pré-sélectionne alors la marque
+et met en premier les modèles produits cette année-là ; quand le code du modèle est connu, le véhicule est reconnu
+directement (Swift Sport) ou au moins le modèle et la génération (Clio V). Le VIN ne donne pas le modèle exact de façon universelle : tu confirmes donc dans la liste.
 Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lancement t'accueille avec un message différent.
 
 ## Véhicules pris en charge
@@ -93,6 +94,7 @@ Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lanc
 | Modèle | Profil dédié |
 |---|---|
 | Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Lecture seule, huile, carburant, kilométrage |
+| Renault Clio V 1.0 TCe 90 ch | ✅ Les 15 calculateurs relevés (OBD en CAN 29 bits), interrogés par le diagnostic ; moteur et ABS / ESP identifiés |
 
 La liste est un point de départ : elle n'a pas été testée sur chaque voiture, seule la Swift Sport l'a été.
 

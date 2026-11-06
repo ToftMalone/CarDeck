@@ -355,10 +355,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         if (e.is11bit && found.none { it.first == 0x7E0 }) found.add(0, 0x7E0 to 0x7E8)
                         scanStep = 7
                         var answered = 0
-                        val more = found.flatMap { (tx, rx) ->
-                            val name = com.cardeck.app.obd.Elm327.ecuLabel(tx, rx)
+                        // Calculateurs connus du modèle (relevés par l'explorateur), y compris en CAN 29 bits ou hors du protocole OBD.
+                        val known = v.template.ecus
+                        val targets = found.map { (tx, rx) -> com.cardeck.app.data.KnownEcu(tx, rx, name = known.firstOrNull { k -> !k.wide && k.tx == tx }?.name) } +
+                            known.filter { k -> found.none { it.first == k.tx && !k.wide } }
+                        val more = targets.flatMap { k ->
+                            val name = k.name ?: if (k.wide) k.label else com.cardeck.app.obd.Elm327.ecuLabel(k.tx, k.rx)
                             scanDetail = name
-                            e.ecuDtcs(tx, rx, name)?.also { answered++ }.orEmpty()
+                            e.ecuDtcs(k.tx, k.rx, name, k.wide)?.also { answered++ }.orEmpty()
                         }
                         scanDetail = null
                         val all = (stored + pending + permanent + engine + more).distinctBy { it.code to it.ecu }

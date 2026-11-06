@@ -89,9 +89,11 @@ fun AddVehicleScreen(vm: AppViewModel) {
     LaunchedEffect(vin) {
         if (vin == null) return@LaunchedEffect
         if (vin.templateId != null) tplId = vin.templateId
-        else vin.brand?.let { brandName = it; modelName = null }
+        else vin.brand?.let { brandName = it; modelName = vin.model }
     }
     val vinYear = vin?.takeIf { it.brand != null && it.brand == brand?.name }?.year
+    // Génération reconnue par le code du modèle (ex. Clio V) : mise en avant dans la liste des motorisations.
+    val vinGen = vin?.takeIf { it.brand == brand?.name && it.model == model?.name }?.generation
 
     // Retour : on remonte d'un niveau avant de quitter l'écran.
     BackHandler(enabled = tpl != null || brand != null || query.isNotEmpty()) {
@@ -158,8 +160,10 @@ fun AddVehicleScreen(vm: AppViewModel) {
                             PickRow(m.name, generationsLabel(m), initial = null, sub2 = yearsRange(years), tag = if (m.name in matching) "Correspond à $vinYear" else null) { modelName = m.name }
                         }
                     }
-                    model != null && brand != null -> model.generations.sortedByDescending { vinYear != null && Vin.matches(it, vinYear) }
-                        .forEach { g -> GenerationBlock(brand, model, g, highlight = vinYear != null && Vin.matches(g, vinYear)) { tplId = it.id } }
+                    model != null && brand != null -> {
+                        fun hit(g: com.cardeck.app.data.CatalogGeneration) = if (vinGen != null) g.name == vinGen else vinYear != null && Vin.matches(g, vinYear)
+                        model.generations.sortedByDescending { hit(it) }.forEach { g -> GenerationBlock(brand, model, g, highlight = hit(g)) { tplId = it.id } }
+                    }
                 }
             }
         }
@@ -370,6 +374,7 @@ private fun VinCard(vm: AppViewModel, atRoot: Boolean) {
                 T(
                     when {
                         r.templateId != null -> "Modèle reconnu : ${templateById(r.templateId).fullName}."
+                        r.model != null -> "Modèle reconnu : ${r.brand} ${r.model} ${r.generation}. Choisissez la motorisation."
                         r.brand != null -> "Constructeur : ${r.maker}" + (r.year?.let { " · année modèle ≈ $it" } ?: "") + ". Choisissez le modèle dans la liste${if (r.year != null) " (ceux de cette année sont en premier)" else ""}."
                         r.maker != null -> "Constructeur : ${r.maker}, absent de la liste. Choisissez « $OTHER » : les données OBD2 standard fonctionneront."
                         else -> "Constructeur non reconnu (code ${r.wmi}). Choisissez dans la liste ou « $OTHER »."

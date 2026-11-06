@@ -63,11 +63,14 @@ class CatalogTest {
 
     @Test
     fun vinConstructeurEtAnnee() {
-        // Renault, 10e caractère « K » = 2019.
+        // Renault ne code pas l'année au 10e caractère : aucune année n'est déduite.
         val renault = com.cardeck.app.data.Vin.decode("VF15RJ000K0000001", currentYear = 2026)!!
         assertEquals("Renault", renault.brand)
-        assertEquals(2019, renault.year)
+        assertNull(renault.year)
         assertNull(renault.templateId)
+        // Constructeurs qui la codent : Volkswagen (ci-dessous), Kia, Hyundai, VIN nord-américains.
+        assertEquals(2019, com.cardeck.app.data.Vin.decode("KNADB512AK6123456", 2026)!!.year)
+        assertEquals(2019, com.cardeck.app.data.Vin.decode("1FADP3F20KL123456", 2026)!!.year)
         assertEquals("Peugeot", com.cardeck.app.data.Vin.decode("VF3ABCDEFK1234567", 2026)!!.brand)
         assertEquals("Citroën", com.cardeck.app.data.Vin.decode("VF7ABCDEFK1234567", 2026)!!.brand)
         assertEquals("Volkswagen", com.cardeck.app.data.Vin.decode("WVWZZZ1KZ6W123456", 2026)!!.brand)
@@ -100,7 +103,7 @@ class CatalogTest {
         val zc33 = com.cardeck.app.data.Vin.decode("TSMZC33S0K0123456", 2026)!!
         assertEquals("Suzuki", zc33.brand)
         assertEquals(com.cardeck.app.data.SWIFT_SPORT_ZC33S.id, zc33.templateId)
-        assertEquals(2019, zc33.year)
+        assertNull(zc33.year) // Suzuki Hongrie : pas d'année au 10e caractère
         val zc32 = com.cardeck.app.data.Vin.decode("TSMZC32S0E0123456", 2026)!!
         assertTrue(templateById(zc32.templateId!!).fullName.contains("ZC32S"))
         // Autre code de modèle chez Suzuki : on garde la marque, sans deviner le modèle.
@@ -163,5 +166,33 @@ class CatalogTest {
         assertTrue(parsed.all { it.code.matches(Regex("P0[0-9A-F]{3}")) && it.title.length > 8 })
         // Les numéros suivent la norme : chiffres décimaux uniquement dans P00xx à P09xx.
         assertTrue(parsed.filter { it.code[2] in '0'..'9' && it.code[3] in '0'..'9' }.all { it.code.drop(1).all(Char::isDigit) })
+    }
+
+    // ------------------------------------------------------------ Clio V (relevé de l'explorateur)
+
+    @Test
+    fun vinClioV() {
+        // VIN fictif au format relevé sur une Clio V (VF1 RJA …) ; le 10e caractère n'est pas une année chez Renault.
+        val v = com.cardeck.app.data.Vin.decode("VF1RJA00512345678", 2026)!!
+        assertEquals("Renault", v.brand)
+        assertEquals("Clio", v.model)
+        assertEquals("V", v.generation)
+        assertNull(v.templateId) // plusieurs motorisations : on laisse choisir
+        assertNull(v.year)
+        assertNull(com.cardeck.app.data.Vin.decode("VF1RJB00512345678", 2026)!!.model) // autre code : pas deviné
+    }
+
+    @Test
+    fun profilClioV() {
+        val clio = com.cardeck.app.data.CLIO_V_TCE90
+        // Même identifiant que la motorisation du catalogue : le profil dédié la remplace, à sa place.
+        val gen = CATALOG.first { it.name == "Renault" }.models.first { it.name == "Clio" }.generations.first { it.name == "V" }
+        assertTrue(clio in gen.variants)
+        assertEquals(gen.variants.size, gen.variants.map { it.id }.toSet().size)
+        assertEquals(clio, templateById("renault-clio-v-1-0-tce-90ch-essence"))
+        assertTrue(clio.dedicated)
+        assertEquals(mapOf("18DAF115" to "Moteur", "18DAF12D" to "ABS / ESP"), clio.ecuNames)
+        assertEquals(15, clio.ecus.size)
+        assertEquals(1, TEMPLATES.count { it.id == clio.id })
     }
 }
