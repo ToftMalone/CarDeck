@@ -47,6 +47,9 @@ class ObdManager(private val ctx: Context) {
         awaitCancellation()
     }
 
+    /** Pendant une exploration (balayage ou enregistrement), le service de trajets laisse la main à l'explorateur. */
+    @Volatile var exploring = false
+
     /** Pendant l'appairage, le service de trajets laisse la main à l'écran d'appairage. */
     @Volatile var pairing = false
 

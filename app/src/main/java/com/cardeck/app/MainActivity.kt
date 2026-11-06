@@ -113,6 +113,7 @@ private fun CarDeckRoot(vm: AppViewModel) {
                 Screen.ObdData -> ObdDataScreen(vm)
                 Screen.Changelog -> ChangelogScreen(vm)
                 Screen.About -> AboutScreen(vm)
+                Screen.Explorer -> com.cardeck.app.screens.ExplorerScreen(vm)
             }
         }
         Snack(vm.snack, Modifier.align(Alignment.BottomCenter))

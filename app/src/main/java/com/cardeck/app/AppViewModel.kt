@@ -16,6 +16,7 @@ import com.cardeck.app.obd.Elm327
 import com.cardeck.app.obd.UdsError
 import com.cardeck.app.data.FoundCode
 import com.cardeck.app.data.Prefs
+import com.cardeck.app.explorer.ExplorerUi
 import com.cardeck.app.service.TripService
 import com.cardeck.app.ui.Palette
 import com.cardeck.app.ui.ThemeMode
@@ -40,6 +41,7 @@ sealed interface Screen {
     data object ObdData : Screen
     data object Changelog : Screen
     data object About : Screen
+    data object Explorer : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -234,6 +236,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startScan() {
         if (scanning) return
+        if (obd.exploring) { showSnack("Exploration en cours : arrêtez-la avant de lancer un diagnostic"); return }
         val v = repo.active ?: return
         scanning = true
         scanStep = 0
@@ -297,6 +300,93 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             scanDetail = null
             scanning = false
         }
+    }
+
+    // ---- Explorateur (balayage à l'arrêt / enregistrement en roulant) ----
+    val explorer = ExplorerUi()
+
+    private var explorerJob: Job? = null
+
+    /** Dossier des découvertes d'un véhicule. */
+    fun explorerDir(vehicleId: Long) = java.io.File(ctx.filesDir, "explorateur/$vehicleId")
+
+    /**
+     * Lance l'exploration du véhicule actif : enregistrement en roulant si la voiture roule à cet instant,
+     * balayage à l'arrêt sinon. Tout en lecture seule, quel que soit le modèle.
+     */
+    fun startExplore() {
+        if (explorer.running) return
+        val v = repo.active ?: return
+        val dir = explorerDir(v.id)
+        explorer.reset()
+        explorer.running = true
+        explorerJob = viewModelScope.launch(Dispatchers.IO) {
+            obd.exploring = true
+            try {
+                val r = obd.use { e ->
+                    val wasReadOnly = e.readOnly
+                    e.readOnly = true
+                    val data = com.cardeck.app.explorer.ExplorerData.load(java.io.File(dir, "decouvertes.json"))
+                    val ex = com.cardeck.app.explorer.Explorer(e, data, dir, explorer)
+                    try {
+                        explorer.step(0, 1, "Préparation du boîtier")
+                        if (!ex.prepare()) return@use "Aucun calculateur ne répond : mettez le contact (moteur tournant de préférence)."
+                        val speed = ex.speed()
+                        val name = "${v.nickname} (${v.template.fullName})"
+                        if (speed != null && speed >= 3) {
+                            explorer.mode = "Enregistrement en roulant"
+                            explorer.line("🚗 La voiture roule (${speed.toInt()} km/h) : enregistrement en roulant")
+                            ex.drive(BuildConfig.VERSION_NAME, name)
+                        } else {
+                            explorer.mode = "Balayage à l'arrêt"
+                            explorer.line("🅿️ La voiture est à l'arrêt : balayage complet")
+                            ex.stationary(BuildConfig.VERSION_NAME, name)
+                        }
+                        null
+                    } finally {
+                        withContext(kotlinx.coroutines.NonCancellable) {
+                            e.trace = null
+                            e.readOnly = wasReadOnly
+                            runCatching { e.reset() }
+                        }
+                    }
+                }
+                explorer.done = r ?: if (obd.state.value is com.cardeck.app.obd.ObdState.Connected) "Exploration terminée" else "Liaison avec le boîtier perdue : reconnectez-le et relancez, l'exploration reprendra où elle s'est arrêtée."
+            } catch (c: kotlinx.coroutines.CancellationException) {
+                explorer.done = "Exploration arrêtée : relancez pour reprendre où elle s'est arrêtée."
+                throw c
+            } finally {
+                obd.exploring = false
+                explorer.running = false
+                explorer.refresh++
+            }
+        }
+    }
+
+    fun stopExplore() { explorerJob?.cancel() }
+
+    /** Résultats de l'exploration à partager (dossier zippé, avec le rapport). */
+    fun explorerZip(vehicleId: Long): java.io.File? {
+        val dir = explorerDir(vehicleId)
+        if (!dir.exists()) return null
+        val v = repo.vehicles.value.find { it.id == vehicleId }
+        val data = com.cardeck.app.explorer.ExplorerData.load(java.io.File(dir, "decouvertes.json"))
+        runCatching { java.io.File(dir, "RAPPORT.md").writeText(data.report(v?.let { "${it.nickname} (${it.template.fullName})" } ?: "Véhicule", BuildConfig.VERSION_NAME)) }
+        val out = java.io.File(java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }, "CarDeck_exploration_${v?.nickname?.replace(Regex("[^A-Za-z0-9]+"), "_") ?: vehicleId}.zip")
+        java.util.zip.ZipOutputStream(java.io.FileOutputStream(out)).use { zip ->
+            dir.walkTopDown().filter { it.isFile && !it.name.endsWith(".tmp") }.forEach { f ->
+                zip.putNextEntry(java.util.zip.ZipEntry(f.relativeTo(dir).path))
+                f.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+        }
+        return out
+    }
+
+    fun clearExplorer(vehicleId: Long) {
+        explorerDir(vehicleId).deleteRecursively()
+        explorer.reset()
+        explorer.refresh++
     }
 
     fun clearFaults() {

@@ -26,6 +26,16 @@ La liste reste affichée même boîtier déconnecté (les valeurs apparaissent d
 Seules ces données sont lues, et seulement si ta voiture les fournit. La consommation instantanée, la pression du collecteur en bar
 et la consommation et le coût d'un trajet sont **calculés** à partir de ces mesures.
 
+**Explorateur** (dans Données OBD2) : un seul bouton, qui s'adapte à la voiture au moment où tu le lances, pour **toutes les voitures** et
+**en lecture seule** (seuls les services de lecture partent, jamais d'effacement, d'écriture, de pilotage ni de déverrouillage) :
+- 🅿️ **à l'arrêt, balayage complet** : recherche de tous les calculateurs en CAN 11 bits (de 0x600 à 0x7FF, quelle que soit leur adresse de réponse),
+  en CAN 29 bits et sur la ligne K ; identification (références, noms de système), blocs de données constructeur KWP `21xx`, identifiants UDS `22xxxx`
+  par tranches de 10 000, lecture mémoire, carte du bus CAN, codes défaut avant / après. Interrompu, il reprend là où il s'était arrêté ;
+- 🚗 **en roulant, enregistrement** : mesures OBD, blocs constructeur (et nouveaux blocs découverts en route) et trafic du bus, horodatés ensemble.
+  Il s'arrête quand tu le demandes ou au contact coupé.
+- Résultat : un **rapport** (calculateurs, blocs vivants, réponses en clair, identifiants qui refusent, **pistes de décodage par corrélation**,
+  **cartes moteur**) et toutes les données brutes, à partager en un fichier.
+
 ### 🩺 Diagnostic
 Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français** :
 description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.

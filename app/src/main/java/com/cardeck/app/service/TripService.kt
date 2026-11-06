@@ -103,6 +103,13 @@ class TripService : Service() {
         var cycle = 0
         while (scope.isActive) {
             if (sleeping) { sleep(); return }
+            // Explorateur en cours : il a le boîtier pour lui (le trajet en cours n'est pas clos).
+            if (obd.exploring) {
+                idleSince = 0L
+                status("Exploration en cours…")
+                delay(2000)
+                continue
+            }
             // Lancé (ou réveillé) sans rouler : veille après 5 minutes sans trajet, une fois CarDeck quittée.
             if (recorder != null) idleSince = 0L
             else if (idleTooLong() && !appVisible()) { sleep(); return }

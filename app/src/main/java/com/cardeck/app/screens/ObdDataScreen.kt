@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import com.cardeck.app.ui.ArcGauge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -71,6 +74,19 @@ fun ObdDataScreen(vm: AppViewModel) {
             ConnChip(connLabel, connKind)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
+            // Explorateur : découverte de tous les calculateurs et de leurs données.
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.pc)
+                    .clickable { vm.go(com.cardeck.app.Screen.Explorer) }.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(Modifier.size(44.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.TravelExplore, 24, c.op) }
+                Column(Modifier.weight(1f)) {
+                    T("Explorateur", 16, c.opc, 600)
+                    T(if (vm.explorer.running) "En cours · ${vm.explorer.mode ?: "préparation"}" else "Tous les calculateurs et leurs données · à l'arrêt ou en roulant", 12, c.opc, lineHeight = 16)
+                }
+                Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.opc)
+            }
             // Liaison
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
                 T("Liaison OBD2", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))

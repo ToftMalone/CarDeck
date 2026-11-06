@@ -58,7 +58,7 @@ class Elm327(private val t: ObdTransport) {
     fun note(s: String) { trace?.append("# ")?.append(s)?.append('\n') }
 
     /** Envoie une commande et renvoie la réponse nettoyée (lignes non vides, sans écho ni « SEARCHING… »). */
-    suspend fun raw(cmd: String, timeoutMs: Long = 8000): String {
+    suspend fun raw(cmd: String, timeoutMs: Long = 8000, keepInit: Boolean = false): String {
         if (!allowed(cmd)) { trace?.append("> ")?.append(cmd)?.append("\nBLOQUÉ (lecture seule)\n"); return BLOCKED }
         while (t.incoming.tryReceive().isSuccess) { /* purge */ }
         buf.clear()
@@ -77,7 +77,7 @@ class Elm327(private val t: ObdTransport) {
         trace?.takeIf { it.length < 2_000_000 }?.append("> ")?.append(cmd)?.append('\n')
             ?.append(text.replace('\r', '\n').lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n").ifEmpty { "(vide)" })?.append('\n')
         return text.replace('\r', '\n').lines().map { it.trim() }
-            .filter { it.isNotEmpty() && !it.equals(cmd, ignoreCase = true) && !it.startsWith("SEARCHING") && !it.startsWith("BUS INIT") }
+            .filter { it.isNotEmpty() && !it.equals(cmd, ignoreCase = true) && !it.startsWith("SEARCHING") && (keepInit || !it.startsWith("BUS INIT")) }
             .joinToString("\n")
     }
 
@@ -569,7 +569,7 @@ class Elm327(private val t: ObdTransport) {
      * Découpe une réponse (en-têtes masqués) en messages : trames simples ou messages multi-trames
      * affichés par l'ELM327 sous la forme « 00E » puis « 0: … », « 1: … ».
      */
-    private fun udsMessages(r: String): List<IntArray> {
+    internal fun udsMessages(r: String): List<IntArray> {
         val out = mutableListOf<IntArray>()
         var multi: MutableList<Int>? = null
         var len = 0
