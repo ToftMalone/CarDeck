@@ -252,8 +252,9 @@ class Elm327Test {
         val fake = FakeElm(base + mapOf("04" to "44"))
         val e = Elm327(fake)
         e.readOnly = true
-        assertTrue(!e.clearDtcs())
-        assertTrue("04" !in fake.sent)
+        // Effacement envoyé de lui-même : bloqué. Seul l'effacement demandé (clearDtcs / clearEcu) peut partir.
+        e.raw("04"); e.raw("14FFFFFF")
+        assertTrue(fake.sent.none { it == "04" || it.startsWith("14") })
         e.raw("2EB00101")
         e.raw("1003")
         assertTrue(fake.sent.none { it.startsWith("2E") || it == "1003" })
@@ -559,5 +560,43 @@ class Elm327Test {
         e2.init(); e2.probe()
         e2.ecuNames = clio.ecuNames
         assertEquals(listOf("Moteur"), e2.readDtcs("03").first.map { it.ecu })
+    }
+
+    @Test fun effacementDemandeSurModeleEnLectureSeule() = runBlocking {
+        // Swift (lecture seule) : l'effacement demandé passe, puis la liste blanche se referme.
+        val fake = FakeElm(base + mapOf("04" to "44"))
+        val e = Elm327(fake)
+        e.readOnly = true
+        e.init(); e.probe()
+        assertTrue(e.clearDtcs())
+        assertTrue("04" in fake.sent)
+        fake.sent.clear()
+        e.raw("04"); e.raw("14FFFFFF"); e.raw("2EB00101"); e.raw("3101FF00")
+        assertTrue(fake.sent.isEmpty())
+    }
+
+    @Test fun effacementParCalculateur() = runBlocking {
+        val bus = BusFake(mapOf(
+            "79B" to mapOf("14FFFFFF" to "54"),                                // UDS
+            "7E0" to mapOf("14FFFFFF" to "7F 14 11", "14FF00" to "54 FF 00"),  // KWP2000 (format UDS refusé)
+            "776" to mapOf("14FFFFFF" to "7F 14 22"),                          // conditions non remplies
+        ))
+        val e = Elm327(bus)
+        e.readOnly = true
+        e.init(); e.probe()
+        assertEquals(ClearOutcome(ClearResult.Cleared), e.clearEcu(0x79B, 0x7AB))
+        assertEquals(ClearOutcome(ClearResult.Cleared), e.clearEcu(0x7E0, 0x7E8))
+        assertEquals(ClearOutcome(ClearResult.Refused, 0x22), e.clearEcu(0x776, 0x786))
+        assertEquals(ClearOutcome(ClearResult.NoAnswer), e.clearEcu(0x7B0, 0x7B8))
+        // Format KWP essayé après un refus de format (7E0) ou un silence (7B0), jamais après un refus définitif (776).
+        val i776 = bus.sent.indexOf("ATSH776")
+        val after776 = bus.sent.subList(i776, bus.sent.indexOf("ATSH7B0"))
+        assertTrue("14FFFFFF" in after776 && "14FF00" !in after776)
+        assertEquals(2, bus.sent.count { it == "14FF00" })
+        // Retour à la diffusion OBD, liste blanche refermée.
+        assertEquals("ATSH7DF", bus.sent.last { it.startsWith("ATSH") })
+        bus.sent.clear()
+        e.raw("14FFFFFF")
+        assertTrue(bus.sent.isEmpty())
     }
 }

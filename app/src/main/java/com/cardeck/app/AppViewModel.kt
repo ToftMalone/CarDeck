@@ -359,11 +359,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         val known = v.template.ecus
                         val targets = found.map { (tx, rx) -> com.cardeck.app.data.KnownEcu(tx, rx, name = known.firstOrNull { k -> !k.wide && k.tx == tx }?.name) } +
                             known.filter { k -> found.none { it.first == k.tx && !k.wide } }
+                        val withCodes = mutableListOf<com.cardeck.app.data.KnownEcu>()
                         val more = targets.flatMap { k ->
                             val name = k.name ?: if (k.wide) k.label else com.cardeck.app.obd.Elm327.ecuLabel(k.tx, k.rx)
                             scanDetail = name
-                            e.ecuDtcs(k.tx, k.rx, name, k.wide)?.also { answered++ }.orEmpty()
+                            val c = e.ecuDtcs(k.tx, k.rx, name, k.wide)
+                            if (c != null) answered++
+                            if (!c.isNullOrEmpty()) withCodes += k.copy(name = name)
+                            c.orEmpty()
                         }
+                        scanEcus = withCodes
                         scanDetail = null
                         val all = (stored + pending + permanent + engine + more).distinctBy { it.code to it.ecu }
                         e.note("Résultat : ${all.size} code(s) ${all.joinToString { "${it.code} (${it.ecu}, ${it.status.label})" }}")
@@ -476,14 +481,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         explorer.refresh++
     }
 
+    /** Calculateurs qui avaient des codes au dernier scan (ils seront effacés un par un). */
+    private var scanEcus: List<com.cardeck.app.data.KnownEcu> = emptyList()
+
+    var clearing by mutableStateOf(false)
+        private set
+
+    /**
+     * Efface les codes défaut : OBD (service 04, moteur et voyant) puis chaque calculateur qui en avait au dernier scan
+     * (UDS 14 / KWP 14) ; à défaut, les calculateurs connus du modèle. Un nouveau scan vérifie ensuite le résultat.
+     */
     fun clearFaults() {
+        if (clearing || scanning) return
+        val v = repo.active ?: return
+        val targets = scanEcus.ifEmpty { v.template.ecus }
+        clearing = true
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { obd.use { it.clearDtcs() } } == true
-            if (ok) {
-                showSnack("Codes défaut effacés")
-                startScan()
+            val r = withContext(Dispatchers.IO) {
+                obd.use { e ->
+                    val obdOk = e.clearDtcs()
+                    obdOk to targets.map { it.label to e.clearEcu(it.tx, it.rx, it.wide) }
+                }
+            }
+            clearing = false
+            if (r == null) { showSnack("Boîtier non connecté ou liaison perdue : reconnectez-le et réessayez"); return@launch }
+            val (obdOk, per) = r
+            val done = per.filter { it.second.result == com.cardeck.app.obd.ClearResult.Cleared }.map { it.first }
+            val refused = per.filter { it.second.result == com.cardeck.app.obd.ClearResult.Refused }
+            val parts = mutableListOf<String>()
+            val cleared = (if (obdOk) listOf("moteur (OBD)") else emptyList()) + done
+            if (cleared.isNotEmpty()) parts += "Codes effacés : " + cleared.joinToString(", ")
+            if (refused.isNotEmpty()) parts += "Refusé par " + refused.joinToString(", ") { (n, o) -> n + (o.nrc?.let { " (" + com.cardeck.app.data.nrcLabel(it).lowercase() + ")" } ?: "") }
+            if (cleared.isEmpty()) {
+                showSnack(if (parts.isEmpty()) "Effacement refusé : mettez le contact, moteur arrêté" else parts.joinToString(" · ") + " · contact mis, moteur arrêté")
             } else {
-                showSnack("Effacement refusé : mettez le contact, moteur arrêté")
+                showSnack(parts.joinToString(" · "))
+                startScan()
             }
         }
     }

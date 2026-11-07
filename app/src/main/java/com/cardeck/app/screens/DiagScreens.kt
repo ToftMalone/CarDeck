@@ -201,13 +201,16 @@ fun DiagScreen(vm: AppViewModel) {
                         Modifier.weight(1f).height(48.dp).alpha(if (connected) 1f else .38f).clip(RoundedCornerShape(24.dp)).border(1.dp, c.ol, RoundedCornerShape(24.dp)).clickable(enabled = connected) { vm.startScan() },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
                     ) { Ico(Icons.Rounded.Refresh, 18, c.p); T("  Nouveau scan", 14, c.p, 500) }
-                    // Modèle en lecture seule : rien n'est jamais écrit dans la voiture, pas même l'effacement des défauts.
-                    if (!v.template.readOnly) Row(
-                        Modifier.weight(1f).height(48.dp).alpha(if (connected) 1f else .38f).clip(RoundedCornerShape(24.dp)).background(c.e).clickable(enabled = connected) { dialog = true },
+                    Row(
+                        Modifier.weight(1f).height(48.dp).alpha(if (connected && !vm.clearing) 1f else .38f).clip(RoundedCornerShape(24.dp)).background(c.e).clickable(enabled = connected && !vm.clearing) { dialog = true },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
-                    ) { Ico(Icons.Rounded.DeleteSweep, 18, c.oe); T("  Effacer les défauts", 14, c.oe, 500) }
+                    ) {
+                        if (vm.clearing) com.cardeck.app.ui.Spinner(18.dp, 2.dp, c.oe) else Ico(Icons.Rounded.DeleteSweep, 18, c.oe)
+                        T(if (vm.clearing) "  Effacement…" else "  Effacer les défauts", 14, c.oe, 500)
+                    }
                 }
-                if (v.template.readOnly) T("${v.template.model} : lecture seule, les défauts ne sont pas effacés par CarDeck.", 12, c.onv, modifier = Modifier.padding(top = 8.dp), lineHeight = 16)
+                // Modèle en lecture seule : rien n'est écrit dans la voiture, à part l'effacement des codes demandé ici.
+                if (v.template.readOnly) T("${v.template.model} : lecture seule, sauf l'effacement des codes défaut quand vous le demandez.", 12, c.onv, modifier = Modifier.padding(top = 8.dp), lineHeight = 16)
                 if (!connected) ConnectAction(vm, v.adapter != null)
             }
 
@@ -230,7 +233,15 @@ fun DiagScreen(vm: AppViewModel) {
             containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv, iconContentColor = c.e,
             icon = { Ico(Icons.Rounded.DeleteSweep, 24, c.e) },
             title = { T("Effacer les défauts ?", 24, lineHeight = 32, align = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
-            text = { T("${if (n > 1) "Les $n codes" else "Le code"} et les données figées seront supprimés de la mémoire des calculateurs, et le voyant moteur s'éteindra. Un défaut non réparé réapparaîtra. Contact mis, moteur arrêté.", 14, c.onv, lineHeight = 20) },
+            text = {
+                val ecus = scan?.codes?.map { it.ecu }?.distinct().orEmpty()
+                T(
+                    "${if (n > 1) "Les $n codes" else "Le code"} et les données figées seront supprimés de la mémoire " +
+                        (if (ecus.size > 1) "des calculateurs concernés (${ecus.joinToString(", ")})" else "du calculateur") +
+                        ", et le voyant moteur s'éteindra. Un défaut non réparé réapparaîtra. Contact mis, moteur arrêté. Un nouveau scan vérifie ensuite le résultat.",
+                    14, c.onv, lineHeight = 20,
+                )
+            },
             confirmButton = { TextButton({ dialog = false; vm.clearFaults() }) { T("Effacer", 14, c.e, 600) } },
             dismissButton = { TextButton({ dialog = false }) { T("Annuler", 14, c.p, 500) } },
         )

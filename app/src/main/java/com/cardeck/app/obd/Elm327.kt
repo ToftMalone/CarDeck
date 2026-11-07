@@ -7,6 +7,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import kotlinx.coroutines.delay
 
+enum class ClearResult { Cleared, Refused, NoAnswer }
+
+/** Issue de l'effacement d'un calculateur ; [nrc] = code de refus éventuel (0x22 : conditions non remplies…). */
+data class ClearOutcome(val result: ClearResult, val nrc: Int? = null)
+
 /** Refus ou absence de réponse d'un calculateur en UDS (la liaison avec le boîtier reste valide). */
 class UdsError(message: String) : Exception(message)
 
@@ -439,25 +444,42 @@ class Elm327(private val t: ObdTransport) {
      * (10 81 KWP, 10 01 UDS) et recommence. Null si le calculateur ne répond à aucune de ces demandes.
      * Seuls les codes présents ou mémorisés sont gardés (octet d'état non nul sur les bits de défaut).
      */
-    suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String, wide: Boolean = false): List<FoundCode>? {
+    /**
+     * Dialogue avec un calculateur précis ([tx] → [rx], CAN 29 bits si [wide]), puis retour à l'état OBD de la voiture.
+     * Calculateur dans l'autre format d'adresses que l'OBD (ex. 11 bits sur une voiture OBD en 29 bits) : protocole CAN
+     * de même débit le temps du dialogue. Null hors CAN.
+     */
+    private suspend fun <T> addressed(tx: Int, rx: Int, wide: Boolean, block: suspend () -> T): T? {
         if (!isCan) return null
-        // Calculateur dans l'autre format d'adresses que l'OBD de la voiture (ex. 11 bits sur une voiture OBD en 29 bits) :
-        // protocole CAN de même débit le temps de l'interroger.
         val switched = wide != !is11bit
         if (switched) raw("ATSP" + canProtocol(wide))
-        raw("ATH0"); raw("ATCAF1")
-        if (wide) {
-            raw("ATCP%02X".format((tx ushr 24) and 0x1F)); raw("ATSH%06X".format(tx and 0xFFFFFF)); raw("ATCRA%08X".format(rx))
-        } else {
-            raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx))
+        try {
+            raw("ATH0"); raw("ATCAF1")
+            if (wide) {
+                raw("ATCP%02X".format((tx ushr 24) and 0x1F)); raw("ATSH%06X".format(tx and 0xFFFFFF)); raw("ATCRA%08X".format(rx))
+            } else {
+                raw("ATSH%03X".format(tx)); raw("ATCRA%03X".format(rx))
+            }
+            raw("ATST96")
+            // Contrôle de flux envoyé au calculateur interrogé : par défaut le boîtier l'envoie à « réception − 8 », ce qui ne
+            // convient pas aux calculateurs dont la réponse n'est pas à émission + 8 (réponses en plusieurs trames perdues).
+            raw(if (wide) "ATFCSH%08X".format(tx) else "ATFCSH%03X".format(tx))
+            raw(extraInit.firstOrNull { it.startsWith("ATFCSD") } ?: "ATFCSD300000"); raw("ATFCSM1")
+            return block()
+        } finally {
+            raw("ATCRA"); raw("ATST32"); raw("ATFCSM0")
+            if (switched) protocolNum.lastOrNull()?.let { raw("ATSP$it") }
+            restoreObdHeader()
+            extraInit.forEach { raw(it) }
         }
-        raw("ATST96")
-        // Contrôle de flux envoyé au calculateur interrogé : par défaut le boîtier l'envoie à « réception − 8 », ce qui ne
-        // convient pas aux calculateurs dont la réponse n'est pas à émission + 8 (réponses en plusieurs trames perdues).
-        raw(if (wide) "ATFCSH%08X".format(tx) else "ATFCSH%03X".format(tx))
-        raw(extraInit.firstOrNull { it.startsWith("ATFCSD") } ?: "ATFCSD300000"); raw("ATFCSM1")
-        fun final(r: String, service: Int): IntArray? = if (isError(r)) null
-            else udsMessages(r).lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }?.takeIf { it.isNotEmpty() && it[0] == service + 0x40 }
+    }
+
+    /** Réponse définitive (après d'éventuels « 7F xx 78 » d'attente) d'un calculateur interrogé directement. */
+    private fun finalAnswer(r: String): IntArray? = if (isError(r)) null
+        else udsMessages(r).lastOrNull { !(it.size >= 3 && it[0] == 0x7F && it[2] == 0x78) }?.takeIf { it.isNotEmpty() }
+
+    suspend fun ecuDtcs(tx: Int, rx: Int, ecu: String, wide: Boolean = false): List<FoundCode>? = addressed(tx, rx, wide) {
+        fun final(r: String, service: Int): IntArray? = finalAnswer(r)?.takeIf { it[0] == service + 0x40 }
         suspend fun attempt(): List<FoundCode>? {
             for (req in listOf("1902FF", "19020D")) {
                 final(raw(req, 10000), 0x19)?.let { m ->
@@ -476,19 +498,43 @@ class Elm327(private val t: ObdTransport) {
             }
             return null
         }
-        try {
-            val codes = attempt() ?: run {
-                raw("1081"); raw("1001")
-                attempt()
-            }
-            note("Calculateur ${if (wide) "%08X".format(tx) else "%03X".format(tx)} : " + (codes?.joinToString { it.code }?.ifEmpty { "aucun code" } ?: "pas de réponse aux demandes de codes"))
-            return codes
-        } finally {
-            raw("ATCRA"); raw("ATST32"); raw("ATFCSM0")
-            if (switched) protocolNum.lastOrNull()?.let { raw("ATSP$it") }
-            restoreObdHeader()
-            extraInit.forEach { raw(it) }
+        val codes = attempt() ?: run {
+            raw("1081"); raw("1001")
+            attempt()
         }
+        note("Calculateur ${if (wide) "%08X".format(tx) else "%03X".format(tx)} : " + (codes?.joinToString { it.code }?.ifEmpty { "aucun code" } ?: "pas de réponse aux demandes de codes"))
+        codes
+    }
+
+    /**
+     * Efface les codes défaut d'un calculateur précis : UDS « 14 FF FF FF » (tous les groupes), sinon KWP2000 « 14 FF 00 ».
+     * Seul service d'écriture autorisé, et seulement pendant cet appel (voir [clearing]).
+     */
+    suspend fun clearEcu(tx: Int, rx: Int, wide: Boolean = false): ClearOutcome = clearing {
+        addressed(tx, rx, wide) {
+            var refused: Int? = null
+            for (req in listOf("14FFFFFF", "14FF00")) {
+                val m = finalAnswer(raw(req, 12000)) ?: continue
+                if (m[0] == 0x54) {
+                    note("Effacement %s : fait".format(if (wide) "%08X".format(tx) else "%03X".format(tx)))
+                    return@addressed ClearOutcome(ClearResult.Cleared)
+                }
+                // Format refusé (service ou longueur inconnus) : on essaie l'autre ; tout autre refus est définitif.
+                val nrc = if (m[0] == 0x7F && m.size >= 3) m[2] else null
+                refused = nrc
+                if (nrc != 0x11 && nrc != 0x12 && nrc != 0x13) break
+            }
+            note("Effacement %s : %s".format(if (wide) "%08X".format(tx) else "%03X".format(tx), refused?.let { "refusé (%02X)".format(it) } ?: "pas de réponse"))
+            if (refused != null) ClearOutcome(ClearResult.Refused, refused) else ClearOutcome(ClearResult.NoAnswer)
+        } ?: ClearOutcome(ClearResult.NoAnswer)
+    }
+
+    /** Pendant un effacement demandé, la liste blanche des modèles en lecture seule accepte aussi les services 04 et 14. */
+    private var clearingNow = false
+
+    private suspend fun <T> clearing(block: suspend () -> T): T {
+        clearingNow = true
+        try { return block() } finally { clearingNow = false }
     }
 
     /** Protocole CAN au même débit que celui de la voiture : 6 / 7 (500 kb/s) ou 8 / 9 (250 kb/s), en 11 ou 29 bits. */
@@ -571,8 +617,11 @@ class Elm327(private val t: ObdTransport) {
         return if (i >= 0) tk.drop(i + 3).map { it.toInt(16) }.toIntArray() else null
     }
 
-    /** Effacement des codes défaut et du voyant moteur (service 04). */
-    suspend fun clearDtcs(): Boolean = tokens(raw("04", 12000)).contains("44")
+    /** Effacement des codes défaut OBD et du voyant moteur (service 04, diffusé). */
+    suspend fun clearDtcs(): Boolean = clearing {
+        if (isCan) restoreObdHeader()
+        tokens(raw("04", 12000)).contains("44").also { note("Effacement OBD (04) : " + if (it) "fait" else "refusé ou pas de réponse") }
+    }
 
     // ---------------------------------------------------------------- UDS (codage)
 
@@ -698,6 +747,8 @@ class Elm327(private val t: ObdTransport) {
         if (!readOnly) return true
         return when (val svc = c.take(2)) {
             "10" -> c.startsWith("1001") || c.startsWith("1081")
+            // Effacement des codes défaut : seulement pendant un effacement demandé par l'utilisateur.
+            "04", "14" -> clearingNow
             else -> svc in READ_SERVICES
         }
     }

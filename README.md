@@ -39,7 +39,10 @@ et la consommation et le coût d'un trajet sont **calculés** à partir de ces m
 ### 🩺 Diagnostic
 Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français**, intégrée à l'appli
 (donc disponible hors ligne) : près de **1 000 codes génériques P0xxx** de la norme SAE J2012 (moteur, carburant, allumage, antipollution,
-électrique, transmission…) avec leur gravité, dont les plus courants détaillés avec description, causes possibles et recommandations. Recherche d'un code, effacement des défauts quand le modèle l'autorise.
+électrique, transmission…) avec leur gravité, dont les plus courants détaillés avec description, causes possibles et recommandations. Recherche d'un code.
+
+**Effacement des défauts** après un diagnostic : les codes OBD du moteur (et le voyant) **et** ceux de chaque calculateur qui en avait
+(ABS, carrosserie…), puis un nouveau scan vérifie le résultat. Si un calculateur refuse (moteur tournant, par exemple), CarDeck dit lequel et pourquoi.
 
 **Diagnostic complet** : le boîtier est d'abord remis à zéro, puis CarDeck lit les codes OBD2 de tous les calculateurs, interroge aussi
 le calculateur moteur directement, recherche tous les calculateurs du réseau CAN (moteur, ABS…) et lit les codes défaut de chacun
@@ -93,7 +96,7 @@ Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lanc
 
 | Modèle | Profil dédié |
 |---|---|
-| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Lecture seule, huile, carburant, kilométrage |
+| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Lecture seule (sauf l'effacement des codes que tu demandes), huile, carburant, kilométrage |
 | Renault Clio V 1.0 TCe 90 ch | ✅ Les 15 calculateurs relevés (OBD en CAN 29 bits), interrogés par le diagnostic ; moteur et ABS / ESP identifiés |
 
 La liste est un point de départ : elle n'a pas été testée sur chaque voiture, seule la Swift Sport l'a été.
@@ -105,7 +108,8 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
 
 ## Respect de ta voiture et de tes données
 
-- 🔒 Sur la Swift Sport, CarDeck est en **lecture seule** : il regarde, il n'écrit rien dans la voiture.
+- 🔒 Sur la Swift Sport, CarDeck est en **lecture seule** : il regarde, il n'écrit rien dans la voiture, à part l'effacement des codes défaut
+  quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
 - 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
   d'arrivée du trajet), les cartes OpenStreetMap et la recherche de mises à jour.
 - 🔐 Tes sauvegardes sont **chiffrées** : seule CarDeck sait les relire.

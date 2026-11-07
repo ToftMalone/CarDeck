@@ -79,7 +79,7 @@ data class VehicleTemplate(
     val securityKey: ((Int, IntArray) -> IntArray)? = null,
     /** Protocole imposé à l'ELM327 (ATSP), connu pour ce modèle : évite la recherche automatique. */
     val elmProtocol: String? = null,
-    /** Lecture seule : seuls les services de lecture sont envoyés (ni effacement des défauts, ni écriture). */
+    /** Lecture seule : seuls les services de lecture sont envoyés, plus l'effacement des codes défaut quand l'utilisateur le demande (jamais d'écriture). */
     val readOnly: Boolean = false,
     /** Commandes AT propres au modèle, envoyées après l'initialisation (contrôle de flux…). */
     val elmInit: List<String> = emptyList(),
@@ -139,7 +139,7 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     defaultFuel = FuelType.SP98,
     protocol = "ISO 15765-4 CAN 11 bits 500 kb/s",
     elmProtocol = "6",
-    // Rétro-ingénierie ZC33S : lecture seule (liste blanche des services de lecture).
+    // Rétro-ingénierie ZC33S : lecture seule (liste blanche des services de lecture), sauf l'effacement des codes défaut demandé.
     readOnly = true,
     codingImpossible = "Le BCM (calculateur d'habitacle : vitres, verrouillage, clé) et le combiné d'instruments ne répondent à aucune demande " +
         "de diagnostic, ni sur le CAN ni sur la ligne K (balayage complet du 19/10). Sans eux, impossible de lire ou modifier une option " +
