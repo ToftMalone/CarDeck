@@ -1,0 +1,205 @@
+package com.cardeck.app.screens
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import com.cardeck.app.ui.ArcGauge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.HourglassEmpty
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.cardeck.app.AppViewModel
+import com.cardeck.app.data.PidDef
+import com.cardeck.app.data.StdPids
+import com.cardeck.app.obd.ObdState
+import com.cardeck.app.ui.Cd
+import com.cardeck.app.ui.Ico
+import com.cardeck.app.ui.IconBtn
+import com.cardeck.app.ui.T
+import com.cardeck.app.ui.TextBtn
+
+/** Liaison OBD2 + toutes les valeurs envoyées par le véhicule. */
+@Composable
+fun ObdDataScreen(vm: AppViewModel) {
+    val c = Cd.c
+    val v = rememberActiveVehicle(vm) ?: return
+    val tpl = v.template
+    val (connLabel, connKind) = connStatus(vm, v)
+    val st by vm.obd.state.collectAsState()
+    val ecu by vm.obd.ecuOnline.collectAsState()
+    val protocol by vm.obd.protocol.collectAsState()
+    val connected = connKind == ConnKind.Ok
+    // Toutes les données sont lues en permanence par le service de suivi : l'écran affiche ses dernières mesures.
+    val values by vm.obd.live.collectAsState()
+    val supported by vm.obd.supported.collectAsState()
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            IconBtn(Icons.AutoMirrored.Rounded.ArrowBack, { vm.back() })
+            Box(Modifier.size(40.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 22, c.opc) }
+            Column(Modifier.weight(1f)) {
+                T(v.nickname, 16, weight = 500, lineHeight = 22, maxLines = 1)
+                T("Données OBD2 · " + v.plate.ifBlank { tpl.code }, 12, c.onv, lineHeight = 16, maxLines = 1)
+            }
+            ConnChip(connLabel, connKind)
+        }
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
+            // Explorateur : découverte de tous les calculateurs et de leurs données.
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.pc)
+                    .clickable { vm.go(com.cardeck.app.Screen.Explorer) }.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(Modifier.size(44.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.TravelExplore, 24, c.op) }
+                Column(Modifier.weight(1f)) {
+                    T("Explorateur", 16, c.opc, 600)
+                    T(if (vm.explorer.running) "En cours · ${vm.explorer.mode ?: "préparation"}" else "Tous les calculateurs et leurs données · à l'arrêt ou en roulant", 12, c.opc, lineHeight = 16)
+                }
+                Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.opc)
+            }
+            // Liaison
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
+                T("Liaison OBD2", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
+                val a = v.adapter
+                if (a == null) {
+                    T("Aucun boîtier n'est associé à ce véhicule.", 14, c.onv)
+                    TextBtn("Associer un boîtier", { vm.pairActive() })
+                } else {
+                    InfoRow("Boîtier", "${a.name} · ${a.transport.label}")
+                    InfoRow("Interface", (st as? ObdState.Connected)?.version ?: "—")
+                    InfoRow("Protocole", if (connected) protocol ?: "—" else "—")
+                    InfoRow("Véhicule", if (!connected) "—" else if (ecu) "Calculateur moteur joignable" else "Contact coupé")
+                    InfoRow("VIN", v.vin ?: "Non lu")
+                    (st as? ObdState.Failed)?.takeIf { it.adapter.address == a.address }?.let {
+                        T(it.message, 13, c.e, modifier = Modifier.padding(top = 8.dp), lineHeight = 18)
+                    }
+                    if (connKind == ConnKind.Off) TextBtn("Se connecter", { vm.connectNow() })
+                }
+            }
+            // Toujours affichées, même boîtier déconnecté : données déclarées par le véhicule (dernière connexion),
+            // ou toute la liste lue par CarDeck tant que le véhicule n'a jamais été interrogé.
+            val cached = remember(v.id, supported) { vm.repo.supportedPids(v.id) }
+            val known = supported ?: cached
+            val std = known?.let { StdPids.forSupported(it) } ?: StdPids.all
+            T("Toutes les valeurs du véhicule", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
+            when {
+                !connected -> T("Boîtier non connecté : les valeurs s'afficheront dès la connexion.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
+                supported == null -> T("Mets le contact : CarDeck interroge le véhicule pour savoir quelles données il fournit.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
+            }
+            if (std.isEmpty()) EmptyNote(Icons.Rounded.HourglassEmpty, "Aucune donnée standard", "Ce véhicule ne déclare aucun PID OBD2 standard.")
+            StdPids.CATEGORIES.forEach { cat ->
+                val inCat = std.filter { it.category == cat }
+                if (inCat.isNotEmpty()) PidSection(cat, inCat, values)
+            }
+            tpl.pids.groupBy { it.category }.forEach { (cat, list) -> PidSection("$cat · ${tpl.model}", list, values) }
+            T(
+                if (known != null) "${std.size + tpl.pids.size} valeurs fournies par le véhicule" else "${std.size + tpl.pids.size} valeurs lues par CarDeck (le véhicule n'a pas encore été interrogé)",
+                12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            )
+        }
+    }
+}
+
+/** Titre de catégorie + cartes des données correspondantes. */
+@Composable
+private fun PidSection(title: String, pids: List<PidDef>, values: Map<String, Double>) {
+    T(title, 14, Cd.c.p, 500, Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        pids.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun EmptyNote(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, text: String) {
+    val c = Cd.c
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).border(1.dp, c.olv, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.size(56.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Ico(icon, 28, c.onv) }
+        T(title, 16, weight = 500, modifier = Modifier.padding(top = 14.dp))
+        T(text, 14, c.onv, align = TextAlign.Center, lineHeight = 20, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+@Composable
+private fun PidCard(p: PidDef, value: Double?, modifier: Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(20.dp)).border(1.dp, c.olv, RoundedCornerShape(20.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(c.sc), contentAlignment = Alignment.Center) { Ico(p.icon, 18, c.osc) }
+            T(p.label, 12, c.onv, lineHeight = 16, modifier = Modifier.weight(1f))
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            T(value?.let { p.text(it) } ?: "—", 24, weight = 500, lineHeight = 32)
+            T(p.unit, 12, c.onv, modifier = Modifier.padding(bottom = 4.dp))
+        }
+        val pct by animateFloatAsState(value?.let { ((it - p.min) / (p.max - p.min)).toFloat().coerceIn(0f, 1f) } ?: 0f, tween(500), label = "pid")
+        Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.sf4)) {
+            Box(Modifier.fillMaxWidth(pct).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(c.p))
+        }
+    }
+}
+
+@Composable
+internal fun GaugeCard(p: PidDef, value: Double?, modifier: Modifier, note: String? = null) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Ico(p.icon, 18, c.p)
+            T(p.label, 12, c.onv, 500)
+        }
+        Box(Modifier.padding(top = 4.dp).size(138.dp), contentAlignment = Alignment.Center) {
+            ArcGauge(value?.let { ((it - p.min) / (p.max - p.min)).toFloat() } ?: 0f, c.p, 8f, Modifier.fillMaxSize())
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                T(value?.let { p.text(it) } ?: "—", 30, weight = 500, lineHeight = 36, spacing = -.5f)
+                T(p.unit, 12, c.onv)
+            }
+        }
+        if (note != null) T(note, 12, c.onv, align = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    val c = Cd.c
+    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        T(label, 14, c.onv, modifier = Modifier.weight(1f))
+        T(value, 14, weight = 500, align = TextAlign.End, modifier = Modifier.weight(1.6f))
+    }
+}

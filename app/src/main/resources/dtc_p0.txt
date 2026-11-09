@@ -1,0 +1,995 @@
+P0001|Régulateur de volume de carburant : défaut de circuit / circuit ouvert|Fuel|M
+P0002|Régulateur de volume de carburant : plage / performances|Fuel|M
+P0003|Régulateur de volume de carburant : signal bas|Fuel|M
+P0004|Régulateur de volume de carburant : signal haut|Fuel|M
+P0005|Électrovanne de coupure de carburant A : défaut de circuit / circuit ouvert|Fuel|M
+P0006|Électrovanne de coupure de carburant A : signal bas|Fuel|M
+P0007|Électrovanne de coupure de carburant A : signal haut|Fuel|M
+P0008|Position du moteur (calage) : performances, banc 1|Timing|M
+P0009|Position du moteur (calage) : performances, banc 2|Timing|M
+P0010|Actionneur d'arbre à cames A (admission) : défaut de circuit, banc 1|Timing|M
+P0011|Calage de l'arbre à cames A (admission) trop avancé ou performances, banc 1|Timing|M
+P0012|Calage de l'arbre à cames A (admission) trop retardé, banc 1|Timing|M
+P0013|Actionneur d'arbre à cames B (échappement) : défaut de circuit, banc 1|Timing|M
+P0014|Calage de l'arbre à cames B (échappement) trop avancé ou performances, banc 1|Timing|M
+P0015|Calage de l'arbre à cames B (échappement) trop retardé, banc 1|Timing|M
+P0016|Corrélation vilebrequin / arbre à cames A, banc 1|Timing|M
+P0017|Corrélation vilebrequin / arbre à cames B, banc 1|Timing|M
+P0018|Corrélation vilebrequin / arbre à cames A, banc 2|Timing|M
+P0019|Corrélation vilebrequin / arbre à cames B, banc 2|Timing|M
+P0020|Actionneur d'arbre à cames A (admission) : défaut de circuit, banc 2|Timing|M
+P0021|Calage de l'arbre à cames A (admission) trop avancé ou performances, banc 2|Timing|M
+P0022|Calage de l'arbre à cames A (admission) trop retardé, banc 2|Timing|M
+P0023|Actionneur d'arbre à cames B (échappement) : défaut de circuit, banc 2|Timing|M
+P0024|Calage de l'arbre à cames B (échappement) trop avancé ou performances, banc 2|Timing|M
+P0025|Calage de l'arbre à cames B (échappement) trop retardé, banc 2|Timing|M
+P0026|Électrovanne de commande des soupapes d'admission : plage / performances, banc 1|Timing|M
+P0027|Électrovanne de commande des soupapes d'échappement : plage / performances, banc 1|Timing|M
+P0028|Électrovanne de commande des soupapes d'admission : plage / performances, banc 2|Timing|M
+P0029|Électrovanne de commande des soupapes d'échappement : plage / performances, banc 2|Timing|M
+P0030|Chauffage de la sonde lambda (banc 1, sonde 1) : défaut du circuit de commande|Exhaust|M
+P0031|Chauffage de la sonde lambda (banc 1, sonde 1) : circuit de commande bas|Exhaust|M
+P0032|Chauffage de la sonde lambda (banc 1, sonde 1) : circuit de commande haut|Exhaust|M
+P0033|Vanne de décharge (bypass) du turbo / compresseur : défaut du circuit de commande|Boost|M
+P0034|Vanne de décharge (bypass) du turbo / compresseur : circuit de commande bas|Boost|M
+P0035|Vanne de décharge (bypass) du turbo / compresseur : circuit de commande haut|Boost|M
+P0036|Chauffage de la sonde lambda (banc 1, sonde 2) : défaut du circuit de commande|Exhaust|M
+P0037|Chauffage de la sonde lambda (banc 1, sonde 2) : circuit de commande bas|Exhaust|M
+P0038|Chauffage de la sonde lambda (banc 1, sonde 2) : circuit de commande haut|Exhaust|M
+P0039|Vanne de décharge (bypass) du turbo / compresseur : plage / performances|Boost|M
+P0040|Signaux des sondes lambda inversés (banc 1 sonde 1 / banc 2 sonde 1)|Exhaust|M
+P0041|Signaux des sondes lambda inversés (banc 1 sonde 2 / banc 2 sonde 2)|Exhaust|M
+P0042|Chauffage de la sonde lambda (banc 1, sonde 3) : défaut du circuit de commande|Exhaust|M
+P0043|Chauffage de la sonde lambda (banc 1, sonde 3) : circuit de commande bas|Exhaust|M
+P0044|Chauffage de la sonde lambda (banc 1, sonde 3) : circuit de commande haut|Exhaust|M
+P0045|Électrovanne de pression de suralimentation (turbo / compresseur) : défaut de circuit / circuit ouvert|Boost|M
+P0046|Électrovanne de pression de suralimentation (turbo / compresseur) : plage / performances|Boost|M
+P0047|Électrovanne de pression de suralimentation (turbo / compresseur) : signal bas|Boost|M
+P0048|Électrovanne de pression de suralimentation (turbo / compresseur) : signal haut|Boost|M
+P0049|Turbo / compresseur : survitesse de la turbine|Boost|C
+P0050|Chauffage de la sonde lambda (banc 2, sonde 1) : défaut du circuit de commande|Exhaust|M
+P0051|Chauffage de la sonde lambda (banc 2, sonde 1) : circuit de commande bas|Exhaust|M
+P0052|Chauffage de la sonde lambda (banc 2, sonde 1) : circuit de commande haut|Exhaust|M
+P0053|Résistance du chauffage de la sonde lambda (banc 1, sonde 1)|Exhaust|M
+P0054|Résistance du chauffage de la sonde lambda (banc 1, sonde 2)|Exhaust|M
+P0055|Résistance du chauffage de la sonde lambda (banc 1, sonde 3)|Exhaust|M
+P0056|Chauffage de la sonde lambda (banc 2, sonde 2) : défaut du circuit de commande|Exhaust|M
+P0057|Chauffage de la sonde lambda (banc 2, sonde 2) : circuit de commande bas|Exhaust|M
+P0058|Chauffage de la sonde lambda (banc 2, sonde 2) : circuit de commande haut|Exhaust|M
+P0059|Résistance du chauffage de la sonde lambda (banc 2, sonde 1)|Exhaust|M
+P0060|Résistance du chauffage de la sonde lambda (banc 2, sonde 2)|Exhaust|M
+P0061|Résistance du chauffage de la sonde lambda (banc 2, sonde 3)|Exhaust|M
+P0062|Chauffage de la sonde lambda (banc 2, sonde 3) : défaut du circuit de commande|Exhaust|M
+P0063|Chauffage de la sonde lambda (banc 2, sonde 3) : circuit de commande bas|Exhaust|M
+P0064|Chauffage de la sonde lambda (banc 2, sonde 3) : circuit de commande haut|Exhaust|M
+P0065|Injecteur d'air assisté : plage / performances|Fuel|M
+P0066|Injecteur d'air assisté : circuit bas ou ouvert|Fuel|M
+P0067|Injecteur d'air assisté : circuit haut|Fuel|M
+P0068|Corrélation pression du collecteur (MAP) / débit d'air (MAF) / position du papillon|Intake|M
+P0069|Corrélation pression du collecteur (MAP) / pression atmosphérique|Intake|M
+P0070|Capteur de température d'air ambiant : défaut de circuit|Sensors|M
+P0071|Capteur de température d'air ambiant : plage / performances|Sensors|M
+P0072|Capteur de température d'air ambiant : signal bas|Sensors|M
+P0073|Capteur de température d'air ambiant : signal haut|Sensors|M
+P0074|Capteur de température d'air ambiant : signal intermittent|Sensors|L
+P0075|Électrovanne des soupapes d'admission (banc 1) : défaut de circuit|Timing|M
+P0076|Électrovanne des soupapes d'admission (banc 1) : circuit bas|Timing|M
+P0077|Électrovanne des soupapes d'admission (banc 1) : circuit haut|Timing|M
+P0078|Électrovanne des soupapes d'échappement (banc 1) : défaut de circuit|Timing|M
+P0079|Électrovanne des soupapes d'échappement (banc 1) : circuit bas|Timing|M
+P0080|Électrovanne des soupapes d'échappement (banc 1) : circuit haut|Timing|M
+P0081|Électrovanne des soupapes d'admission (banc 2) : défaut de circuit|Timing|M
+P0082|Électrovanne des soupapes d'admission (banc 2) : circuit bas|Timing|M
+P0083|Électrovanne des soupapes d'admission (banc 2) : circuit haut|Timing|M
+P0084|Électrovanne des soupapes d'échappement (banc 2) : défaut de circuit|Timing|M
+P0085|Électrovanne des soupapes d'échappement (banc 2) : circuit bas|Timing|M
+P0086|Électrovanne des soupapes d'échappement (banc 2) : circuit haut|Timing|M
+P0087|Pression de rampe / du circuit de carburant trop basse|Fuel|M
+P0088|Pression de rampe / du circuit de carburant trop haute|Fuel|M
+P0089|Régulateur de pression de carburant 1 : performances|Fuel|M
+P0090|Régulateur de pression de carburant 1 : défaut du circuit de commande|Fuel|M
+P0091|Régulateur de pression de carburant 1 : circuit de commande bas|Fuel|M
+P0092|Régulateur de pression de carburant 1 : circuit de commande haut|Fuel|M
+P0093|Fuite dans le circuit de carburant : fuite importante|Fuel|C
+P0094|Fuite dans le circuit de carburant : fuite faible|Fuel|L
+P0095|Capteur de température d'air d'admission 2 : défaut de circuit|Intake|M
+P0096|Capteur de température d'air d'admission 2 : plage / performances|Intake|M
+P0097|Capteur de température d'air d'admission 2 : signal bas|Intake|M
+P0098|Capteur de température d'air d'admission 2 : signal haut|Intake|M
+P0099|Capteur de température d'air d'admission 2 : signal intermittent|Intake|L
+P0100|Débitmètre d'air massique (MAF) : défaut de circuit|Intake|M
+P0101|Débitmètre d'air massique (MAF) : plage / performances|Intake|M
+P0102|Débitmètre d'air massique (MAF) : signal bas|Intake|M
+P0103|Débitmètre d'air massique (MAF) : signal haut|Intake|M
+P0104|Débitmètre d'air massique (MAF) : signal intermittent|Intake|L
+P0105|Capteur de pression du collecteur / pression atmosphérique (MAP) : défaut de circuit|Intake|M
+P0106|Capteur de pression du collecteur / pression atmosphérique (MAP) : plage / performances|Intake|M
+P0107|Capteur de pression du collecteur / pression atmosphérique (MAP) : signal bas|Intake|M
+P0108|Capteur de pression du collecteur / pression atmosphérique (MAP) : signal haut|Intake|M
+P0109|Capteur de pression du collecteur / pression atmosphérique (MAP) : signal intermittent|Intake|L
+P0110|Capteur de température d'air d'admission (IAT) : défaut de circuit|Intake|M
+P0111|Capteur de température d'air d'admission (IAT) : plage / performances|Intake|M
+P0112|Capteur de température d'air d'admission (IAT) : signal bas|Intake|M
+P0113|Capteur de température d'air d'admission (IAT) : signal haut|Intake|M
+P0114|Capteur de température d'air d'admission (IAT) : signal intermittent|Intake|L
+P0115|Capteur de température du liquide de refroidissement (ECT) : défaut de circuit|Cooling|M
+P0116|Capteur de température du liquide de refroidissement (ECT) : plage / performances|Cooling|M
+P0117|Capteur de température du liquide de refroidissement (ECT) : signal bas|Cooling|M
+P0118|Capteur de température du liquide de refroidissement (ECT) : signal haut|Cooling|M
+P0119|Capteur de température du liquide de refroidissement (ECT) : signal intermittent|Cooling|L
+P0120|Capteur de position de la pédale / du papillon A : défaut de circuit|Intake|M
+P0121|Capteur de position de la pédale / du papillon A : plage / performances|Intake|M
+P0122|Capteur de position de la pédale / du papillon A : signal bas|Intake|M
+P0123|Capteur de position de la pédale / du papillon A : signal haut|Intake|M
+P0124|Capteur de position de la pédale / du papillon A : signal intermittent|Intake|L
+P0125|Température du liquide de refroidissement trop basse pour la régulation en boucle fermée|Cooling|M
+P0126|Température du liquide de refroidissement insuffisante pour un fonctionnement stable|Cooling|M
+P0127|Température d'air d'admission trop élevée|Intake|M
+P0128|Thermostat : température du liquide inférieure à la température de régulation|Cooling|M
+P0129|Pression atmosphérique trop basse|Sensors|M
+P0130|Sonde lambda (banc 1, sonde 1) : défaut de circuit|Exhaust|M
+P0131|Sonde lambda (banc 1, sonde 1) : tension basse|Exhaust|M
+P0132|Sonde lambda (banc 1, sonde 1) : tension haute|Exhaust|M
+P0133|Sonde lambda (banc 1, sonde 1) : réponse lente|Exhaust|M
+P0134|Sonde lambda (banc 1, sonde 1) : aucune activité détectée|Exhaust|M
+P0135|Sonde lambda (banc 1, sonde 1) : défaut du circuit de chauffage|Exhaust|M
+P0136|Sonde lambda (banc 1, sonde 2) : défaut de circuit|Exhaust|M
+P0137|Sonde lambda (banc 1, sonde 2) : tension basse|Exhaust|M
+P0138|Sonde lambda (banc 1, sonde 2) : tension haute|Exhaust|M
+P0139|Sonde lambda (banc 1, sonde 2) : réponse lente|Exhaust|M
+P0140|Sonde lambda (banc 1, sonde 2) : aucune activité détectée|Exhaust|M
+P0141|Sonde lambda (banc 1, sonde 2) : défaut du circuit de chauffage|Exhaust|M
+P0142|Sonde lambda (banc 1, sonde 3) : défaut de circuit|Exhaust|M
+P0143|Sonde lambda (banc 1, sonde 3) : tension basse|Exhaust|M
+P0144|Sonde lambda (banc 1, sonde 3) : tension haute|Exhaust|M
+P0145|Sonde lambda (banc 1, sonde 3) : réponse lente|Exhaust|M
+P0146|Sonde lambda (banc 1, sonde 3) : aucune activité détectée|Exhaust|M
+P0147|Sonde lambda (banc 1, sonde 3) : défaut du circuit de chauffage|Exhaust|M
+P0148|Erreur de quantité de carburant injectée|Fuel|M
+P0149|Erreur de calage de l'injection|Fuel|M
+P0150|Sonde lambda (banc 2, sonde 1) : défaut de circuit|Exhaust|M
+P0151|Sonde lambda (banc 2, sonde 1) : tension basse|Exhaust|M
+P0152|Sonde lambda (banc 2, sonde 1) : tension haute|Exhaust|M
+P0153|Sonde lambda (banc 2, sonde 1) : réponse lente|Exhaust|M
+P0154|Sonde lambda (banc 2, sonde 1) : aucune activité détectée|Exhaust|M
+P0155|Sonde lambda (banc 2, sonde 1) : défaut du circuit de chauffage|Exhaust|M
+P0156|Sonde lambda (banc 2, sonde 2) : défaut de circuit|Exhaust|M
+P0157|Sonde lambda (banc 2, sonde 2) : tension basse|Exhaust|M
+P0158|Sonde lambda (banc 2, sonde 2) : tension haute|Exhaust|M
+P0159|Sonde lambda (banc 2, sonde 2) : réponse lente|Exhaust|M
+P0160|Sonde lambda (banc 2, sonde 2) : aucune activité détectée|Exhaust|M
+P0161|Sonde lambda (banc 2, sonde 2) : défaut du circuit de chauffage|Exhaust|M
+P0162|Sonde lambda (banc 2, sonde 3) : défaut de circuit|Exhaust|M
+P0163|Sonde lambda (banc 2, sonde 3) : tension basse|Exhaust|M
+P0164|Sonde lambda (banc 2, sonde 3) : tension haute|Exhaust|M
+P0165|Sonde lambda (banc 2, sonde 3) : réponse lente|Exhaust|M
+P0166|Sonde lambda (banc 2, sonde 3) : aucune activité détectée|Exhaust|M
+P0167|Sonde lambda (banc 2, sonde 3) : défaut du circuit de chauffage|Exhaust|M
+P0168|Température du carburant trop élevée|Fuel|M
+P0169|Composition du carburant incorrecte|Fuel|M
+P0170|Correction carburant : défaut, banc 1|Fuel|M
+P0171|Mélange trop pauvre, banc 1|Fuel|M
+P0172|Mélange trop riche, banc 1|Fuel|M
+P0173|Correction carburant : défaut, banc 2|Fuel|M
+P0174|Mélange trop pauvre, banc 2|Fuel|M
+P0175|Mélange trop riche, banc 2|Fuel|M
+P0176|Capteur de composition du carburant : défaut de circuit|Fuel|M
+P0177|Capteur de composition du carburant : plage / performances|Fuel|M
+P0178|Capteur de composition du carburant : signal bas|Fuel|M
+P0179|Capteur de composition du carburant : signal haut|Fuel|M
+P0180|Capteur de température du carburant A : défaut de circuit|Fuel|M
+P0181|Capteur de température du carburant A : plage / performances|Fuel|M
+P0182|Capteur de température du carburant A : signal bas|Fuel|M
+P0183|Capteur de température du carburant A : signal haut|Fuel|M
+P0184|Capteur de température du carburant A : signal intermittent|Fuel|L
+P0185|Capteur de température du carburant B : défaut de circuit|Fuel|M
+P0186|Capteur de température du carburant B : plage / performances|Fuel|M
+P0187|Capteur de température du carburant B : signal bas|Fuel|M
+P0188|Capteur de température du carburant B : signal haut|Fuel|M
+P0189|Capteur de température du carburant B : signal intermittent|Fuel|L
+P0190|Capteur de pression de rampe de carburant : défaut de circuit|Fuel|M
+P0191|Capteur de pression de rampe de carburant : plage / performances|Fuel|M
+P0192|Capteur de pression de rampe de carburant : signal bas|Fuel|M
+P0193|Capteur de pression de rampe de carburant : signal haut|Fuel|M
+P0194|Capteur de pression de rampe de carburant : signal intermittent|Fuel|L
+P0195|Capteur de température d'huile moteur : défaut de circuit|Sensors|M
+P0196|Capteur de température d'huile moteur : plage / performances|Sensors|M
+P0197|Capteur de température d'huile moteur : signal bas|Sensors|M
+P0198|Capteur de température d'huile moteur : signal haut|Sensors|M
+P0199|Capteur de température d'huile moteur : signal intermittent|Sensors|L
+P0200|Injecteur : défaut de circuit|Fuel|M
+P0201|Injecteur du cylindre 1 : défaut de circuit|Fuel|M
+P0202|Injecteur du cylindre 2 : défaut de circuit|Fuel|M
+P0203|Injecteur du cylindre 3 : défaut de circuit|Fuel|M
+P0204|Injecteur du cylindre 4 : défaut de circuit|Fuel|M
+P0205|Injecteur du cylindre 5 : défaut de circuit|Fuel|M
+P0206|Injecteur du cylindre 6 : défaut de circuit|Fuel|M
+P0207|Injecteur du cylindre 7 : défaut de circuit|Fuel|M
+P0208|Injecteur du cylindre 8 : défaut de circuit|Fuel|M
+P0209|Injecteur du cylindre 9 : défaut de circuit|Fuel|M
+P0210|Injecteur du cylindre 10 : défaut de circuit|Fuel|M
+P0211|Injecteur du cylindre 11 : défaut de circuit|Fuel|M
+P0212|Injecteur du cylindre 12 : défaut de circuit|Fuel|M
+P0213|Injecteur de démarrage à froid 1 : défaut|Fuel|M
+P0214|Injecteur de démarrage à froid 2 : défaut|Fuel|M
+P0215|Électrovanne de coupure du moteur : défaut|Ecu|M
+P0216|Commande du calage de l'injection : défaut de circuit|Fuel|M
+P0217|Surchauffe du moteur|Cooling|C
+P0218|Surchauffe de la boîte de vitesses|Transmission|C
+P0219|Survitesse du moteur (surrégime)|Ecu|C
+P0220|Capteur de position de la pédale / du papillon B : défaut de circuit|Intake|M
+P0221|Capteur de position de la pédale / du papillon B : plage / performances|Intake|M
+P0222|Capteur de position de la pédale / du papillon B : signal bas|Intake|M
+P0223|Capteur de position de la pédale / du papillon B : signal haut|Intake|M
+P0224|Capteur de position de la pédale / du papillon B : signal intermittent|Intake|L
+P0225|Capteur de position de la pédale / du papillon C : défaut de circuit|Intake|M
+P0226|Capteur de position de la pédale / du papillon C : plage / performances|Intake|M
+P0227|Capteur de position de la pédale / du papillon C : signal bas|Intake|M
+P0228|Capteur de position de la pédale / du papillon C : signal haut|Intake|M
+P0229|Capteur de position de la pédale / du papillon C : signal intermittent|Intake|L
+P0230|Pompe à carburant : défaut du circuit primaire|Fuel|M
+P0231|Pompe à carburant : circuit secondaire bas|Fuel|M
+P0232|Pompe à carburant : circuit secondaire haut|Fuel|M
+P0233|Pompe à carburant : circuit secondaire intermittent|Fuel|L
+P0234|Turbo / compresseur : surpression (overboost)|Boost|C
+P0235|Capteur de pression de suralimentation A : défaut de circuit|Boost|M
+P0236|Capteur de pression de suralimentation A : plage / performances|Boost|M
+P0237|Capteur de pression de suralimentation A : signal bas|Boost|M
+P0238|Capteur de pression de suralimentation A : signal haut|Boost|M
+P0239|Capteur de pression de suralimentation B : défaut de circuit|Boost|M
+P0240|Capteur de pression de suralimentation B : plage / performances|Boost|M
+P0241|Capteur de pression de suralimentation B : signal bas|Boost|M
+P0242|Capteur de pression de suralimentation B : signal haut|Boost|M
+P0243|Électrovanne de wastegate A : défaut de circuit|Boost|M
+P0244|Électrovanne de wastegate A : plage / performances|Boost|M
+P0245|Électrovanne de wastegate A : signal bas|Boost|M
+P0246|Électrovanne de wastegate A : signal haut|Boost|M
+P0247|Électrovanne de wastegate B : défaut de circuit|Boost|M
+P0248|Électrovanne de wastegate B : plage / performances|Boost|M
+P0249|Électrovanne de wastegate B : signal bas|Boost|M
+P0250|Électrovanne de wastegate B : signal haut|Boost|M
+P0251|Pompe d'injection : dosage du carburant A (came / rotor / injecteur) : défaut de circuit|Fuel|M
+P0252|Pompe d'injection : dosage du carburant A (came / rotor / injecteur) : plage / performances|Fuel|M
+P0253|Pompe d'injection : dosage du carburant A (came / rotor / injecteur) : signal bas|Fuel|M
+P0254|Pompe d'injection : dosage du carburant A (came / rotor / injecteur) : signal haut|Fuel|M
+P0255|Pompe d'injection : dosage du carburant A (came / rotor / injecteur) : signal intermittent|Fuel|L
+P0256|Pompe d'injection : dosage du carburant B (came / rotor / injecteur) : défaut de circuit|Fuel|M
+P0257|Pompe d'injection : dosage du carburant B (came / rotor / injecteur) : plage / performances|Fuel|M
+P0258|Pompe d'injection : dosage du carburant B (came / rotor / injecteur) : signal bas|Fuel|M
+P0259|Pompe d'injection : dosage du carburant B (came / rotor / injecteur) : signal haut|Fuel|M
+P0260|Pompe d'injection : dosage du carburant B (came / rotor / injecteur) : signal intermittent|Fuel|L
+P0261|Injecteur du cylindre 1 : circuit bas|Fuel|M
+P0262|Injecteur du cylindre 1 : circuit haut|Fuel|M
+P0263|Injecteur du cylindre 1 : contribution / équilibre défectueux|Fuel|M
+P0264|Injecteur du cylindre 2 : circuit bas|Fuel|M
+P0265|Injecteur du cylindre 2 : circuit haut|Fuel|M
+P0266|Injecteur du cylindre 2 : contribution / équilibre défectueux|Fuel|M
+P0267|Injecteur du cylindre 3 : circuit bas|Fuel|M
+P0268|Injecteur du cylindre 3 : circuit haut|Fuel|M
+P0269|Injecteur du cylindre 3 : contribution / équilibre défectueux|Fuel|M
+P0270|Injecteur du cylindre 4 : circuit bas|Fuel|M
+P0271|Injecteur du cylindre 4 : circuit haut|Fuel|M
+P0272|Injecteur du cylindre 4 : contribution / équilibre défectueux|Fuel|M
+P0273|Injecteur du cylindre 5 : circuit bas|Fuel|M
+P0274|Injecteur du cylindre 5 : circuit haut|Fuel|M
+P0275|Injecteur du cylindre 5 : contribution / équilibre défectueux|Fuel|M
+P0276|Injecteur du cylindre 6 : circuit bas|Fuel|M
+P0277|Injecteur du cylindre 6 : circuit haut|Fuel|M
+P0278|Injecteur du cylindre 6 : contribution / équilibre défectueux|Fuel|M
+P0279|Injecteur du cylindre 7 : circuit bas|Fuel|M
+P0280|Injecteur du cylindre 7 : circuit haut|Fuel|M
+P0281|Injecteur du cylindre 7 : contribution / équilibre défectueux|Fuel|M
+P0282|Injecteur du cylindre 8 : circuit bas|Fuel|M
+P0283|Injecteur du cylindre 8 : circuit haut|Fuel|M
+P0284|Injecteur du cylindre 8 : contribution / équilibre défectueux|Fuel|M
+P0285|Injecteur du cylindre 9 : circuit bas|Fuel|M
+P0286|Injecteur du cylindre 9 : circuit haut|Fuel|M
+P0287|Injecteur du cylindre 9 : contribution / équilibre défectueux|Fuel|M
+P0288|Injecteur du cylindre 10 : circuit bas|Fuel|M
+P0289|Injecteur du cylindre 10 : circuit haut|Fuel|M
+P0290|Injecteur du cylindre 10 : contribution / équilibre défectueux|Fuel|M
+P0291|Injecteur du cylindre 11 : circuit bas|Fuel|M
+P0292|Injecteur du cylindre 11 : circuit haut|Fuel|M
+P0293|Injecteur du cylindre 11 : contribution / équilibre défectueux|Fuel|M
+P0294|Injecteur du cylindre 12 : circuit bas|Fuel|M
+P0295|Injecteur du cylindre 12 : circuit haut|Fuel|M
+P0296|Injecteur du cylindre 12 : contribution / équilibre défectueux|Fuel|M
+P0297|Vitesse du véhicule excessive|Sensors|M
+P0298|Surchauffe de l'huile moteur|Cooling|C
+P0299|Turbo / compresseur : sous-pression (underboost)|Boost|M
+P0300|Ratés d'allumage aléatoires / multiples détectés|Ignition|C
+P0301|Raté d'allumage détecté, cylindre 1|Ignition|C
+P0302|Raté d'allumage détecté, cylindre 2|Ignition|C
+P0303|Raté d'allumage détecté, cylindre 3|Ignition|C
+P0304|Raté d'allumage détecté, cylindre 4|Ignition|C
+P0305|Raté d'allumage détecté, cylindre 5|Ignition|C
+P0306|Raté d'allumage détecté, cylindre 6|Ignition|C
+P0307|Raté d'allumage détecté, cylindre 7|Ignition|C
+P0308|Raté d'allumage détecté, cylindre 8|Ignition|C
+P0309|Raté d'allumage détecté, cylindre 9|Ignition|C
+P0310|Raté d'allumage détecté, cylindre 10|Ignition|C
+P0311|Raté d'allumage détecté, cylindre 11|Ignition|C
+P0312|Raté d'allumage détecté, cylindre 12|Ignition|C
+P0313|Ratés d'allumage détectés avec un niveau de carburant bas|Ignition|M
+P0314|Raté d'allumage sur un cylindre (cylindre non précisé)|Ignition|C
+P0315|Variation du système de position du vilebrequin non apprise|Sensors|M
+P0316|Ratés d'allumage détectés dans les 1 000 premiers tours du moteur|Ignition|M
+P0317|Capteur de route accidentée : matériel absent|Sensors|M
+P0318|Capteur de route accidentée A : défaut de circuit|Sensors|M
+P0319|Capteur de route accidentée B : défaut de circuit|Sensors|M
+P0320|Capteur de régime moteur (allumage / distributeur) : défaut de circuit|Sensors|M
+P0321|Capteur de régime moteur (allumage / distributeur) : plage / performances|Sensors|M
+P0322|Capteur de régime moteur (allumage / distributeur) : aucun signal|Sensors|M
+P0323|Capteur de régime moteur (allumage / distributeur) : signal intermittent|Sensors|L
+P0324|Système de contrôle du cliquetis : erreur|Sensors|M
+P0325|Capteur de cliquetis 1 (banc 1) : défaut de circuit|Sensors|M
+P0326|Capteur de cliquetis 1 (banc 1) : plage / performances|Sensors|M
+P0327|Capteur de cliquetis 1 (banc 1) : signal bas|Sensors|M
+P0328|Capteur de cliquetis 1 (banc 1) : signal haut|Sensors|M
+P0329|Capteur de cliquetis 1 (banc 1) : signal intermittent|Sensors|L
+P0330|Capteur de cliquetis 2 (banc 2) : défaut de circuit|Sensors|M
+P0331|Capteur de cliquetis 2 (banc 2) : plage / performances|Sensors|M
+P0332|Capteur de cliquetis 2 (banc 2) : signal bas|Sensors|M
+P0333|Capteur de cliquetis 2 (banc 2) : signal haut|Sensors|M
+P0334|Capteur de cliquetis 2 (banc 2) : signal intermittent|Sensors|L
+P0335|Capteur de position du vilebrequin A : défaut de circuit|Sensors|M
+P0336|Capteur de position du vilebrequin A : plage / performances|Sensors|M
+P0337|Capteur de position du vilebrequin A : signal bas|Sensors|M
+P0338|Capteur de position du vilebrequin A : signal haut|Sensors|M
+P0339|Capteur de position du vilebrequin A : signal intermittent|Sensors|L
+P0340|Capteur de position de l'arbre à cames A (banc 1) : défaut de circuit|Sensors|M
+P0341|Capteur de position de l'arbre à cames A (banc 1) : plage / performances|Sensors|M
+P0342|Capteur de position de l'arbre à cames A (banc 1) : signal bas|Sensors|M
+P0343|Capteur de position de l'arbre à cames A (banc 1) : signal haut|Sensors|M
+P0344|Capteur de position de l'arbre à cames A (banc 1) : signal intermittent|Sensors|L
+P0345|Capteur de position de l'arbre à cames A (banc 2) : défaut de circuit|Sensors|M
+P0346|Capteur de position de l'arbre à cames A (banc 2) : plage / performances|Sensors|M
+P0347|Capteur de position de l'arbre à cames A (banc 2) : signal bas|Sensors|M
+P0348|Capteur de position de l'arbre à cames A (banc 2) : signal haut|Sensors|M
+P0349|Capteur de position de l'arbre à cames A (banc 2) : signal intermittent|Sensors|L
+P0350|Bobine d'allumage : défaut du circuit primaire / secondaire|Ignition|M
+P0351|Bobine d'allumage A : défaut du circuit primaire / secondaire|Ignition|M
+P0352|Bobine d'allumage B : défaut du circuit primaire / secondaire|Ignition|M
+P0353|Bobine d'allumage C : défaut du circuit primaire / secondaire|Ignition|M
+P0354|Bobine d'allumage D : défaut du circuit primaire / secondaire|Ignition|M
+P0355|Bobine d'allumage E : défaut du circuit primaire / secondaire|Ignition|M
+P0356|Bobine d'allumage F : défaut du circuit primaire / secondaire|Ignition|M
+P0357|Bobine d'allumage G : défaut du circuit primaire / secondaire|Ignition|M
+P0358|Bobine d'allumage H : défaut du circuit primaire / secondaire|Ignition|M
+P0359|Bobine d'allumage I : défaut du circuit primaire / secondaire|Ignition|M
+P0360|Bobine d'allumage J : défaut du circuit primaire / secondaire|Ignition|M
+P0361|Bobine d'allumage K : défaut du circuit primaire / secondaire|Ignition|M
+P0362|Bobine d'allumage L : défaut du circuit primaire / secondaire|Ignition|M
+P0363|Ratés d'allumage détectés : injection coupée|Ignition|M
+P0365|Capteur de position de l'arbre à cames B (banc 1) : défaut de circuit|Sensors|M
+P0366|Capteur de position de l'arbre à cames B (banc 1) : plage / performances|Sensors|M
+P0367|Capteur de position de l'arbre à cames B (banc 1) : signal bas|Sensors|M
+P0368|Capteur de position de l'arbre à cames B (banc 1) : signal haut|Sensors|M
+P0369|Capteur de position de l'arbre à cames B (banc 1) : signal intermittent|Sensors|L
+P0370|Signal de référence de calage A (haute résolution) : défaut|Sensors|M
+P0371|Signal de référence de calage A : trop d'impulsions|Sensors|M
+P0372|Signal de référence de calage A : pas assez d'impulsions|Sensors|M
+P0373|Signal de référence de calage A : impulsions intermittentes / erratiques|Sensors|L
+P0374|Signal de référence de calage A : aucune impulsion|Sensors|M
+P0375|Signal de référence de calage B (haute résolution) : défaut|Sensors|M
+P0376|Signal de référence de calage B : trop d'impulsions|Sensors|M
+P0377|Signal de référence de calage B : pas assez d'impulsions|Sensors|M
+P0378|Signal de référence de calage B : impulsions intermittentes / erratiques|Sensors|L
+P0379|Signal de référence de calage B : aucune impulsion|Sensors|M
+P0380|Bougie de préchauffage / réchauffeur A : défaut de circuit|Ignition|M
+P0381|Témoin de préchauffage : défaut de circuit|Ignition|L
+P0382|Bougie de préchauffage / réchauffeur B : défaut de circuit|Ignition|M
+P0385|Capteur de position du vilebrequin B : défaut de circuit|Sensors|M
+P0386|Capteur de position du vilebrequin B : plage / performances|Sensors|M
+P0387|Capteur de position du vilebrequin B : signal bas|Sensors|M
+P0388|Capteur de position du vilebrequin B : signal haut|Sensors|M
+P0389|Capteur de position du vilebrequin B : signal intermittent|Sensors|L
+P0390|Capteur de position de l'arbre à cames B (banc 2) : défaut de circuit|Sensors|M
+P0391|Capteur de position de l'arbre à cames B (banc 2) : plage / performances|Sensors|M
+P0392|Capteur de position de l'arbre à cames B (banc 2) : signal bas|Sensors|M
+P0393|Capteur de position de l'arbre à cames B (banc 2) : signal haut|Sensors|M
+P0394|Capteur de position de l'arbre à cames B (banc 2) : signal intermittent|Sensors|L
+P0400|Recirculation des gaz d'échappement (EGR) : défaut de débit|Exhaust|M
+P0401|EGR : débit insuffisant|Exhaust|M
+P0402|EGR : débit excessif|Exhaust|M
+P0403|Vanne EGR : défaut du circuit de commande|Exhaust|M
+P0404|Vanne EGR : plage / performances|Exhaust|M
+P0405|Capteur EGR A : signal bas|Exhaust|M
+P0406|Capteur EGR A : signal haut|Exhaust|M
+P0407|Capteur EGR B : signal bas|Exhaust|M
+P0408|Capteur EGR B : signal haut|Exhaust|M
+P0409|Capteur EGR A : défaut de circuit|Exhaust|M
+P0410|Système d'air secondaire : défaut|Exhaust|M
+P0411|Système d'air secondaire : débit incorrect|Exhaust|M
+P0412|Vanne de commutation d'air secondaire A : défaut de circuit|Exhaust|M
+P0413|Vanne de commutation d'air secondaire A : circuit ouvert|Exhaust|M
+P0414|Vanne de commutation d'air secondaire A : court-circuit|Exhaust|M
+P0415|Vanne de commutation d'air secondaire B : défaut de circuit|Exhaust|M
+P0416|Vanne de commutation d'air secondaire B : circuit ouvert|Exhaust|M
+P0417|Vanne de commutation d'air secondaire B : court-circuit|Exhaust|M
+P0418|Relais de pompe à air secondaire A : défaut de circuit|Exhaust|M
+P0419|Relais de pompe à air secondaire B : défaut de circuit|Exhaust|M
+P0420|Rendement du catalyseur inférieur au seuil, banc 1|Exhaust|M
+P0421|Catalyseur (montée en température) : rendement inférieur au seuil, banc 1|Exhaust|M
+P0422|Catalyseur principal : rendement inférieur au seuil, banc 1|Exhaust|M
+P0423|Catalyseur chauffé : rendement inférieur au seuil, banc 1|Exhaust|M
+P0424|Catalyseur chauffé : température inférieure au seuil, banc 1|Exhaust|M
+P0425|Capteur de température du catalyseur (banc 1, sonde 1) : défaut de circuit|Exhaust|M
+P0426|Capteur de température du catalyseur (banc 1, sonde 1) : plage / performances|Exhaust|M
+P0427|Capteur de température du catalyseur (banc 1, sonde 1) : signal bas|Exhaust|M
+P0428|Capteur de température du catalyseur (banc 1, sonde 1) : signal haut|Exhaust|M
+P0429|Chauffage du catalyseur (banc 1) : défaut du circuit de commande|Exhaust|M
+P0430|Rendement du catalyseur inférieur au seuil, banc 2|Exhaust|M
+P0431|Catalyseur (montée en température) : rendement inférieur au seuil, banc 2|Exhaust|M
+P0432|Catalyseur principal : rendement inférieur au seuil, banc 2|Exhaust|M
+P0433|Catalyseur chauffé : rendement inférieur au seuil, banc 2|Exhaust|M
+P0434|Catalyseur chauffé : température inférieure au seuil, banc 2|Exhaust|M
+P0435|Capteur de température du catalyseur (banc 2, sonde 1) : défaut de circuit|Exhaust|M
+P0436|Capteur de température du catalyseur (banc 2, sonde 1) : plage / performances|Exhaust|M
+P0437|Capteur de température du catalyseur (banc 2, sonde 1) : signal bas|Exhaust|M
+P0438|Capteur de température du catalyseur (banc 2, sonde 1) : signal haut|Exhaust|M
+P0439|Chauffage du catalyseur (banc 2) : défaut du circuit de commande|Exhaust|M
+P0440|Système EVAP (vapeurs de carburant) : défaut|Evap|M
+P0441|EVAP : débit de purge incorrect|Evap|M
+P0442|EVAP : petite fuite détectée|Evap|L
+P0443|Électrovanne de purge EVAP : défaut du circuit de commande|Evap|M
+P0444|Électrovanne de purge EVAP : circuit ouvert|Evap|M
+P0445|Électrovanne de purge EVAP : court-circuit|Evap|M
+P0446|Vanne de mise à l'air EVAP : défaut du circuit de commande|Evap|M
+P0447|Vanne de mise à l'air EVAP : circuit ouvert|Evap|M
+P0448|Vanne de mise à l'air EVAP : court-circuit|Evap|M
+P0449|Vanne / électrovanne de mise à l'air EVAP : défaut de circuit|Evap|M
+P0450|Capteur / contacteur de pression EVAP : défaut de circuit|Evap|M
+P0451|Capteur / contacteur de pression EVAP : plage / performances|Evap|M
+P0452|Capteur / contacteur de pression EVAP : signal bas|Evap|M
+P0453|Capteur / contacteur de pression EVAP : signal haut|Evap|M
+P0454|Capteur / contacteur de pression EVAP : signal intermittent|Evap|L
+P0455|EVAP : grosse fuite détectée|Evap|M
+P0456|EVAP : très petite fuite détectée|Evap|L
+P0457|EVAP : fuite détectée (bouchon de réservoir desserré ou absent)|Evap|L
+P0458|Électrovanne de purge EVAP : circuit bas|Evap|M
+P0459|Électrovanne de purge EVAP : circuit haut|Evap|M
+P0460|Capteur de niveau de carburant A : défaut de circuit|Fuel|M
+P0461|Capteur de niveau de carburant A : plage / performances|Fuel|M
+P0462|Capteur de niveau de carburant A : signal bas|Fuel|M
+P0463|Capteur de niveau de carburant A : signal haut|Fuel|M
+P0464|Capteur de niveau de carburant A : signal intermittent|Fuel|L
+P0465|Capteur de débit de purge EVAP : défaut de circuit|Evap|M
+P0466|Capteur de débit de purge EVAP : plage / performances|Evap|M
+P0467|Capteur de débit de purge EVAP : signal bas|Evap|M
+P0468|Capteur de débit de purge EVAP : signal haut|Evap|M
+P0469|Capteur de débit de purge EVAP : signal intermittent|Evap|L
+P0470|Capteur de pression d'échappement A : défaut de circuit|Exhaust|M
+P0471|Capteur de pression d'échappement A : plage / performances|Exhaust|M
+P0472|Capteur de pression d'échappement A : signal bas|Exhaust|M
+P0473|Capteur de pression d'échappement A : signal haut|Exhaust|M
+P0474|Capteur de pression d'échappement A : signal intermittent|Exhaust|L
+P0475|Vanne de régulation de pression d'échappement : défaut de circuit|Exhaust|M
+P0476|Vanne de régulation de pression d'échappement : plage / performances|Exhaust|M
+P0477|Vanne de régulation de pression d'échappement : signal bas|Exhaust|M
+P0478|Vanne de régulation de pression d'échappement : signal haut|Exhaust|M
+P0479|Vanne de régulation de pression d'échappement : signal intermittent|Exhaust|L
+P0480|Ventilateur de refroidissement 1 : défaut du circuit de commande|Cooling|M
+P0481|Ventilateur de refroidissement 2 : défaut du circuit de commande|Cooling|M
+P0482|Ventilateur de refroidissement 3 : défaut du circuit de commande|Cooling|M
+P0483|Ventilateur de refroidissement : contrôle de cohérence|Cooling|M
+P0484|Ventilateur de refroidissement : surintensité|Cooling|M
+P0485|Ventilateur de refroidissement : défaut d'alimentation / de masse|Cooling|M
+P0486|Capteur EGR B : défaut de circuit|Exhaust|M
+P0487|Papillon EGR : défaut du circuit de commande de position|Exhaust|M
+P0488|Papillon EGR : plage / performances|Exhaust|M
+P0489|Vanne EGR : circuit de commande bas|Exhaust|M
+P0490|Vanne EGR : circuit de commande haut|Exhaust|M
+P0491|Système d'air secondaire : débit insuffisant, banc 1|Exhaust|M
+P0492|Système d'air secondaire : débit insuffisant, banc 2|Exhaust|M
+P0493|Ventilateur de refroidissement : survitesse|Cooling|M
+P0494|Ventilateur de refroidissement : vitesse trop basse|Cooling|M
+P0495|Ventilateur de refroidissement : vitesse trop élevée|Cooling|M
+P0496|EVAP : débit de purge trop élevé|Evap|M
+P0497|EVAP : débit de purge trop faible|Evap|M
+P0498|Vanne de mise à l'air EVAP : circuit de commande bas|Evap|M
+P0499|Vanne de mise à l'air EVAP : circuit de commande haut|Evap|M
+P0500|Capteur de vitesse du véhicule A : défaut|Sensors|M
+P0501|Capteur de vitesse du véhicule A : plage / performances|Sensors|M
+P0502|Capteur de vitesse du véhicule A : signal bas|Sensors|M
+P0503|Capteur de vitesse du véhicule A : signal intermittent / erratique / haut|Sensors|L
+P0504|Corrélation des contacteurs de frein A / B|Sensors|M
+P0505|Régulation du ralenti : défaut|Intake|M
+P0506|Régime de ralenti inférieur à l'attendu|Intake|M
+P0507|Régime de ralenti supérieur à l'attendu|Intake|M
+P0508|Régulateur de ralenti : circuit bas|Intake|M
+P0509|Régulateur de ralenti : circuit haut|Intake|M
+P0510|Contacteur de papillon fermé : défaut|Intake|M
+P0511|Régulateur d'air de ralenti : défaut de circuit|Intake|M
+P0512|Demande de démarreur : défaut de circuit|Electrical|M
+P0513|Clé d'antidémarrage incorrecte|Ecu|M
+P0514|Capteur de température de batterie : plage / performances|Electrical|M
+P0515|Capteur de température de batterie : défaut de circuit|Electrical|M
+P0516|Capteur de température de batterie : signal bas|Electrical|M
+P0517|Capteur de température de batterie : signal haut|Electrical|M
+P0518|Régulateur d'air de ralenti : signal intermittent|Intake|L
+P0519|Régulateur d'air de ralenti : performances|Intake|M
+P0520|Capteur / contacteur de pression d'huile moteur : défaut de circuit|Sensors|M
+P0521|Capteur / contacteur de pression d'huile moteur : plage / performances|Sensors|M
+P0522|Capteur / contacteur de pression d'huile moteur : signal bas|Sensors|M
+P0523|Capteur / contacteur de pression d'huile moteur : signal haut|Sensors|M
+P0524|Pression d'huile moteur trop basse|Sensors|C
+P0525|Servo du régulateur de vitesse : plage / performances|Sensors|L
+P0526|Capteur de vitesse du ventilateur : défaut de circuit|Cooling|M
+P0527|Capteur de vitesse du ventilateur : plage / performances|Cooling|M
+P0528|Capteur de vitesse du ventilateur : aucun signal|Cooling|M
+P0529|Capteur de vitesse du ventilateur : signal intermittent|Cooling|L
+P0530|Capteur de pression de fluide frigorigène de la climatisation A : défaut de circuit|Cooling|L
+P0531|Capteur de pression de fluide frigorigène de la climatisation A : plage / performances|Cooling|L
+P0532|Capteur de pression de fluide frigorigène de la climatisation A : signal bas|Cooling|L
+P0533|Capteur de pression de fluide frigorigène de la climatisation A : signal haut|Cooling|L
+P0534|Climatisation : perte de fluide frigorigène|Cooling|L
+P0535|Capteur de température d'évaporateur de la climatisation : défaut de circuit|Cooling|L
+P0536|Capteur de température d'évaporateur de la climatisation : plage / performances|Cooling|L
+P0537|Capteur de température d'évaporateur de la climatisation : signal bas|Cooling|L
+P0538|Capteur de température d'évaporateur de la climatisation : signal haut|Cooling|L
+P0539|Capteur de température d'évaporateur de la climatisation : signal intermittent|Cooling|L
+P0540|Réchauffeur d'air d'admission A : défaut de circuit|Intake|M
+P0541|Réchauffeur d'air d'admission A : circuit bas|Intake|M
+P0542|Réchauffeur d'air d'admission A : circuit haut|Intake|M
+P0543|Réchauffeur d'air d'admission A : circuit ouvert|Intake|M
+P0544|Capteur de température des gaz d'échappement (banc 1, sonde 1) : défaut de circuit|Exhaust|M
+P0545|Capteur de température des gaz d'échappement (banc 1, sonde 1) : signal bas|Exhaust|M
+P0546|Capteur de température des gaz d'échappement (banc 1, sonde 1) : signal haut|Exhaust|M
+P0547|Capteur de température des gaz d'échappement (banc 2, sonde 1) : défaut de circuit|Exhaust|M
+P0548|Capteur de température des gaz d'échappement (banc 2, sonde 1) : signal bas|Exhaust|M
+P0549|Capteur de température des gaz d'échappement (banc 2, sonde 1) : signal haut|Exhaust|M
+P0550|Capteur de pression de direction assistée : défaut de circuit|Sensors|M
+P0551|Capteur de pression de direction assistée : plage / performances|Sensors|M
+P0552|Capteur de pression de direction assistée : signal bas|Sensors|M
+P0553|Capteur de pression de direction assistée : signal haut|Sensors|M
+P0554|Capteur de pression de direction assistée : signal intermittent|Sensors|L
+P0555|Capteur de pression du servofrein : défaut de circuit|Sensors|M
+P0556|Capteur de pression du servofrein : plage / performances|Sensors|M
+P0557|Capteur de pression du servofrein : signal bas|Sensors|M
+P0558|Capteur de pression du servofrein : signal haut|Sensors|M
+P0559|Capteur de pression du servofrein : signal intermittent|Sensors|L
+P0560|Tension du système : défaut|Electrical|M
+P0561|Tension du système : instable|Electrical|M
+P0562|Tension du système : trop basse|Electrical|M
+P0563|Tension du système : trop haute|Electrical|M
+P0564|Régulateur de vitesse : entrée multifonction A, défaut de circuit|Sensors|L
+P0565|Régulateur de vitesse : signal ON|Sensors|L
+P0566|Régulateur de vitesse : signal OFF|Sensors|L
+P0567|Régulateur de vitesse : signal RESUME (reprise)|Sensors|L
+P0568|Régulateur de vitesse : signal SET (mémorisation)|Sensors|L
+P0569|Régulateur de vitesse : signal COAST (décélération)|Sensors|L
+P0570|Régulateur de vitesse : signal ACCEL (accélération)|Sensors|L
+P0571|Régulateur de vitesse, contacteur de frein A : défaut de circuit|Sensors|L
+P0572|Régulateur de vitesse, contacteur de frein A : circuit bas|Sensors|L
+P0573|Régulateur de vitesse, contacteur de frein A : circuit haut|Sensors|L
+P0574|Régulateur de vitesse : vitesse du véhicule trop élevée|Sensors|L
+P0575|Régulateur de vitesse : défaut du circuit d'entrée|Sensors|L
+P0576|Régulateur de vitesse : circuit d'entrée bas|Sensors|L
+P0577|Régulateur de vitesse : circuit d'entrée haut|Sensors|L
+P0578|Régulateur de vitesse : entrée multifonction A bloquée|Sensors|L
+P0579|Régulateur de vitesse : entrée multifonction A, plage / performances|Sensors|L
+P0580|Régulateur de vitesse : entrée multifonction A, circuit bas|Sensors|L
+P0581|Régulateur de vitesse : entrée multifonction A, circuit haut|Sensors|L
+P0582|Régulateur de vitesse : commande du vide, défaut / circuit ouvert|Sensors|L
+P0583|Régulateur de vitesse : commande du vide, circuit bas|Sensors|L
+P0584|Régulateur de vitesse : commande du vide, circuit haut|Sensors|L
+P0585|Régulateur de vitesse : corrélation des entrées multifonction A / B|Sensors|L
+P0586|Régulateur de vitesse : commande de mise à l'air, circuit ouvert|Sensors|L
+P0587|Régulateur de vitesse : commande de mise à l'air, circuit bas|Sensors|L
+P0588|Régulateur de vitesse : commande de mise à l'air, circuit haut|Sensors|L
+P0589|Régulateur de vitesse : entrée multifonction B, défaut de circuit|Sensors|L
+P0590|Régulateur de vitesse : entrée multifonction B bloquée|Sensors|L
+P0591|Régulateur de vitesse : entrée multifonction B, plage / performances|Sensors|L
+P0592|Régulateur de vitesse : entrée multifonction B, circuit bas|Sensors|L
+P0593|Régulateur de vitesse : entrée multifonction B, circuit haut|Sensors|L
+P0594|Servo du régulateur de vitesse : défaut du circuit de commande / ouvert|Sensors|L
+P0595|Servo du régulateur de vitesse : circuit de commande bas|Sensors|L
+P0596|Servo du régulateur de vitesse : circuit de commande haut|Sensors|L
+P0597|Réchauffeur de thermostat : défaut du circuit de commande / ouvert|Cooling|M
+P0598|Réchauffeur de thermostat : circuit de commande bas|Cooling|M
+P0599|Réchauffeur de thermostat : circuit de commande haut|Cooling|M
+P0600|Liaison de communication série : défaut|Ecu|M
+P0601|Calculateur : erreur de somme de contrôle de la mémoire interne|Ecu|C
+P0602|Calculateur : erreur de programmation|Ecu|M
+P0603|Calculateur : erreur de la mémoire KAM|Ecu|L
+P0604|Calculateur : erreur de mémoire RAM|Ecu|C
+P0605|Calculateur : erreur de mémoire ROM|Ecu|C
+P0606|Calculateur : erreur du processeur|Ecu|C
+P0607|Calculateur : performances|Ecu|M
+P0608|Calculateur : sortie de vitesse véhicule A, défaut|Ecu|M
+P0609|Calculateur : sortie de vitesse véhicule B, défaut|Ecu|M
+P0610|Calculateur : erreur des options du véhicule|Ecu|M
+P0611|Module de commande des injecteurs (FICM) : performances|Ecu|M
+P0612|Module de commande des injecteurs (FICM) : défaut du relais|Ecu|M
+P0613|Calculateur de boîte (TCM) : erreur du processeur|Ecu|C
+P0614|Calculateur moteur / boîte : incompatibles|Ecu|M
+P0615|Relais de démarreur : défaut de circuit|Ecu|M
+P0616|Relais de démarreur : circuit bas|Ecu|M
+P0617|Relais de démarreur : circuit haut|Ecu|M
+P0618|Module de carburant alternatif : erreur de mémoire KAM|Ecu|L
+P0619|Module de carburant alternatif : erreur de mémoire RAM / ROM|Ecu|M
+P0620|Alternateur : défaut du circuit de commande|Electrical|M
+P0621|Alternateur : défaut du circuit du témoin L|Electrical|L
+P0622|Alternateur : défaut du circuit d'excitation F|Electrical|M
+P0623|Alternateur : défaut du circuit du témoin de charge|Electrical|L
+P0624|Témoin du bouchon de réservoir : défaut du circuit de commande|Evap|L
+P0625|Alternateur : borne d'excitation F, circuit bas|Electrical|M
+P0626|Alternateur : borne d'excitation F, circuit haut|Electrical|M
+P0627|Pompe à carburant A : défaut du circuit de commande / ouvert|Fuel|M
+P0628|Pompe à carburant A : circuit de commande bas|Fuel|M
+P0629|Pompe à carburant A : circuit de commande haut|Fuel|M
+P0630|VIN non programmé ou incompatible (calculateur moteur)|Ecu|M
+P0631|VIN non programmé ou incompatible (calculateur de boîte)|Ecu|M
+P0632|Compteur kilométrique non programmé (calculateur moteur)|Ecu|M
+P0633|Clé d'antidémarrage non programmée (calculateur moteur)|Ecu|M
+P0634|Température interne du calculateur trop élevée|Ecu|M
+P0635|Direction assistée : défaut du circuit de commande|Sensors|M
+P0636|Direction assistée : circuit de commande bas|Sensors|M
+P0637|Direction assistée : circuit de commande haut|Sensors|M
+P0638|Commande du papillon motorisé : plage / performances, banc 1|Intake|M
+P0639|Commande du papillon motorisé : plage / performances, banc 2|Intake|M
+P0640|Réchauffeur d'air d'admission : défaut du circuit de commande|Intake|M
+P0641|Tension de référence des capteurs A : défaut de circuit / ouvert|Electrical|M
+P0642|Tension de référence des capteurs A : circuit bas|Electrical|M
+P0643|Tension de référence des capteurs A : circuit haut|Electrical|M
+P0644|Afficheur conducteur : défaut de la liaison série|Network|L
+P0645|Relais d'embrayage de climatisation : défaut du circuit de commande|Cooling|L
+P0646|Relais d'embrayage de climatisation : circuit de commande bas|Cooling|L
+P0647|Relais d'embrayage de climatisation : circuit de commande haut|Cooling|L
+P0648|Témoin d'antidémarrage : défaut du circuit de commande|Ecu|L
+P0649|Témoin du régulateur de vitesse : défaut du circuit de commande|Ecu|L
+P0650|Témoin de défaut moteur (MIL) : défaut du circuit de commande|Ecu|L
+P0651|Tension de référence des capteurs B : défaut de circuit / ouvert|Electrical|M
+P0652|Tension de référence des capteurs B : circuit bas|Electrical|M
+P0653|Tension de référence des capteurs B : circuit haut|Electrical|M
+P0654|Sortie du régime moteur : défaut de circuit|Ecu|M
+P0655|Témoin de surchauffe moteur : défaut du circuit de sortie|Ecu|L
+P0656|Jauge de carburant : défaut du circuit de sortie|Fuel|M
+P0657|Tension d'alimentation de l'actionneur A : défaut de circuit / ouvert|Electrical|M
+P0658|Tension d'alimentation de l'actionneur A : circuit bas|Electrical|M
+P0659|Tension d'alimentation de l'actionneur A : circuit haut|Electrical|M
+P0660|Vanne d'admission variable du collecteur (banc 1) : défaut du circuit de commande|Intake|M
+P0661|Vanne d'admission variable du collecteur (banc 1) : circuit de commande bas|Intake|M
+P0662|Vanne d'admission variable du collecteur (banc 1) : circuit de commande haut|Intake|M
+P0663|Vanne d'admission variable du collecteur (banc 2) : défaut du circuit de commande|Intake|M
+P0664|Vanne d'admission variable du collecteur (banc 2) : circuit de commande bas|Intake|M
+P0665|Vanne d'admission variable du collecteur (banc 2) : circuit de commande haut|Intake|M
+P0666|Capteur de température interne du calculateur : défaut de circuit|Ecu|M
+P0667|Capteur de température interne du calculateur : plage / performances|Ecu|M
+P0668|Capteur de température interne du calculateur : signal bas|Ecu|M
+P0669|Capteur de température interne du calculateur : signal haut|Ecu|M
+P0670|Module de bougies de préchauffage : défaut du circuit de commande|Ignition|M
+P0671|Bougie de préchauffage du cylindre 1 : défaut de circuit|Ignition|M
+P0672|Bougie de préchauffage du cylindre 2 : défaut de circuit|Ignition|M
+P0673|Bougie de préchauffage du cylindre 3 : défaut de circuit|Ignition|M
+P0674|Bougie de préchauffage du cylindre 4 : défaut de circuit|Ignition|M
+P0675|Bougie de préchauffage du cylindre 5 : défaut de circuit|Ignition|M
+P0676|Bougie de préchauffage du cylindre 6 : défaut de circuit|Ignition|M
+P0677|Bougie de préchauffage du cylindre 7 : défaut de circuit|Ignition|M
+P0678|Bougie de préchauffage du cylindre 8 : défaut de circuit|Ignition|M
+P0679|Bougie de préchauffage du cylindre 9 : défaut de circuit|Ignition|M
+P0680|Bougie de préchauffage du cylindre 10 : défaut de circuit|Ignition|M
+P0681|Bougie de préchauffage du cylindre 11 : défaut de circuit|Ignition|M
+P0682|Bougie de préchauffage du cylindre 12 : défaut de circuit|Ignition|M
+P0683|Module de préchauffage : défaut de communication avec le calculateur moteur|Ignition|M
+P0684|Module de préchauffage : plage / performances de la communication|Ignition|M
+P0685|Relais d'alimentation du calculateur : défaut du circuit de commande / ouvert|Electrical|M
+P0686|Relais d'alimentation du calculateur : circuit de commande bas|Electrical|M
+P0687|Relais d'alimentation du calculateur : circuit de commande haut|Electrical|M
+P0688|Relais d'alimentation du calculateur : défaut du circuit de détection / ouvert|Electrical|M
+P0689|Relais d'alimentation du calculateur : circuit de détection bas|Electrical|M
+P0690|Relais d'alimentation du calculateur : circuit de détection haut|Electrical|M
+P0691|Ventilateur de refroidissement 1 : circuit de commande bas|Cooling|M
+P0692|Ventilateur de refroidissement 1 : circuit de commande haut|Cooling|M
+P0693|Ventilateur de refroidissement 2 : circuit de commande bas|Cooling|M
+P0694|Ventilateur de refroidissement 2 : circuit de commande haut|Cooling|M
+P0695|Ventilateur de refroidissement 3 : circuit de commande bas|Cooling|M
+P0696|Ventilateur de refroidissement 3 : circuit de commande haut|Cooling|M
+P0697|Tension de référence des capteurs C : défaut de circuit / ouvert|Electrical|M
+P0698|Tension de référence des capteurs C : circuit bas|Electrical|M
+P0699|Tension de référence des capteurs C : circuit haut|Electrical|M
+P0700|Système de commande de la transmission : défaut|Transmission|M
+P0701|Système de commande de la transmission : plage / performances|Transmission|M
+P0702|Système de commande de la transmission : défaut électrique|Transmission|M
+P0703|Contacteur de frein B : défaut de circuit|Transmission|M
+P0704|Contacteur d'embrayage : défaut du circuit d'entrée|Transmission|M
+P0705|Capteur de plage de la boîte de vitesses (entrée PRNDL) : défaut de circuit|Transmission|M
+P0706|Capteur de plage de la boîte de vitesses (entrée PRNDL) : plage / performances|Transmission|M
+P0707|Capteur de plage de la boîte de vitesses (entrée PRNDL) : signal bas|Transmission|M
+P0708|Capteur de plage de la boîte de vitesses (entrée PRNDL) : signal haut|Transmission|M
+P0709|Capteur de plage de la boîte de vitesses (entrée PRNDL) : signal intermittent|Transmission|L
+P0710|Capteur de température du liquide de boîte A : défaut de circuit|Transmission|M
+P0711|Capteur de température du liquide de boîte A : plage / performances|Transmission|M
+P0712|Capteur de température du liquide de boîte A : signal bas|Transmission|M
+P0713|Capteur de température du liquide de boîte A : signal haut|Transmission|M
+P0714|Capteur de température du liquide de boîte A : signal intermittent|Transmission|L
+P0715|Capteur de vitesse d'entrée / de turbine A : défaut de circuit|Transmission|M
+P0716|Capteur de vitesse d'entrée / de turbine A : plage / performances|Transmission|M
+P0717|Capteur de vitesse d'entrée / de turbine A : aucun signal|Transmission|M
+P0718|Capteur de vitesse d'entrée / de turbine A : signal intermittent|Transmission|L
+P0719|Contacteur de frein B : signal bas|Transmission|M
+P0720|Capteur de vitesse de sortie de boîte : défaut de circuit|Transmission|M
+P0721|Capteur de vitesse de sortie de boîte : plage / performances|Transmission|M
+P0722|Capteur de vitesse de sortie de boîte : aucun signal|Transmission|M
+P0723|Capteur de vitesse de sortie de boîte : signal intermittent|Transmission|L
+P0724|Contacteur de frein B : signal haut|Transmission|M
+P0725|Circuit d'entrée du régime moteur : défaut|Transmission|M
+P0726|Circuit d'entrée du régime moteur : plage / performances|Transmission|M
+P0727|Circuit d'entrée du régime moteur : aucun signal|Transmission|M
+P0728|Circuit d'entrée du régime moteur : signal intermittent|Transmission|L
+P0729|Rapport 6 incorrect|Transmission|M
+P0730|Rapport de transmission incorrect|Transmission|M
+P0731|Rapport 1 incorrect|Transmission|M
+P0732|Rapport 2 incorrect|Transmission|M
+P0733|Rapport 3 incorrect|Transmission|M
+P0734|Rapport 4 incorrect|Transmission|M
+P0735|Rapport 5 incorrect|Transmission|M
+P0736|Marche arrière : rapport incorrect|Transmission|M
+P0737|Circuit de sortie du régime moteur du calculateur de boîte : défaut|Transmission|M
+P0738|Circuit de sortie du régime moteur du calculateur de boîte : signal bas|Transmission|M
+P0739|Circuit de sortie du régime moteur du calculateur de boîte : signal haut|Transmission|M
+P0740|Embrayage de convertisseur de couple (verrouillage) : défaut de circuit|Transmission|M
+P0741|Embrayage de convertisseur de couple (verrouillage) : performances ou bloquée ouverte|Transmission|M
+P0742|Embrayage de convertisseur de couple (verrouillage) : bloquée fermée|Transmission|M
+P0743|Embrayage de convertisseur de couple (verrouillage) : défaut électrique|Transmission|M
+P0744|Embrayage de convertisseur de couple (verrouillage) : signal intermittent|Transmission|L
+P0745|Électrovanne de pression A : défaut de circuit|Transmission|M
+P0746|Électrovanne de pression A : performances ou bloquée ouverte|Transmission|M
+P0747|Électrovanne de pression A : bloquée fermée|Transmission|M
+P0748|Électrovanne de pression A : défaut électrique|Transmission|M
+P0749|Électrovanne de pression A : signal intermittent|Transmission|L
+P0750|Électrovanne de passage A : défaut de circuit|Transmission|M
+P0751|Électrovanne de passage A : performances ou bloquée ouverte|Transmission|M
+P0752|Électrovanne de passage A : bloquée fermée|Transmission|M
+P0753|Électrovanne de passage A : défaut électrique|Transmission|M
+P0754|Électrovanne de passage A : signal intermittent|Transmission|L
+P0755|Électrovanne de passage B : défaut de circuit|Transmission|M
+P0756|Électrovanne de passage B : performances ou bloquée ouverte|Transmission|M
+P0757|Électrovanne de passage B : bloquée fermée|Transmission|M
+P0758|Électrovanne de passage B : défaut électrique|Transmission|M
+P0759|Électrovanne de passage B : signal intermittent|Transmission|L
+P0760|Électrovanne de passage C : défaut de circuit|Transmission|M
+P0761|Électrovanne de passage C : performances ou bloquée ouverte|Transmission|M
+P0762|Électrovanne de passage C : bloquée fermée|Transmission|M
+P0763|Électrovanne de passage C : défaut électrique|Transmission|M
+P0764|Électrovanne de passage C : signal intermittent|Transmission|L
+P0765|Électrovanne de passage D : défaut de circuit|Transmission|M
+P0766|Électrovanne de passage D : performances ou bloquée ouverte|Transmission|M
+P0767|Électrovanne de passage D : bloquée fermée|Transmission|M
+P0768|Électrovanne de passage D : défaut électrique|Transmission|M
+P0769|Électrovanne de passage D : signal intermittent|Transmission|L
+P0770|Électrovanne de passage E : défaut de circuit|Transmission|M
+P0771|Électrovanne de passage E : performances ou bloquée ouverte|Transmission|M
+P0772|Électrovanne de passage E : bloquée fermée|Transmission|M
+P0773|Électrovanne de passage E : défaut électrique|Transmission|M
+P0774|Électrovanne de passage E : signal intermittent|Transmission|L
+P0775|Électrovanne de pression B : défaut de circuit|Transmission|M
+P0776|Électrovanne de pression B : performances ou bloquée ouverte|Transmission|M
+P0777|Électrovanne de pression B : bloquée fermée|Transmission|M
+P0778|Électrovanne de pression B : défaut électrique|Transmission|M
+P0779|Électrovanne de pression B : signal intermittent|Transmission|L
+P0780|Défaut de passage de vitesse|Transmission|M
+P0781|Défaut de passage 1-2|Transmission|M
+P0782|Défaut de passage 2-3|Transmission|M
+P0783|Défaut de passage 3-4|Transmission|M
+P0784|Défaut de passage 4-5|Transmission|M
+P0785|Électrovanne de passage / de temporisation : défaut de circuit|Transmission|M
+P0786|Électrovanne de passage / de temporisation : plage / performances|Transmission|M
+P0787|Électrovanne de passage / de temporisation : signal bas|Transmission|M
+P0788|Électrovanne de passage / de temporisation : signal haut|Transmission|M
+P0789|Électrovanne de passage / de temporisation : signal intermittent|Transmission|L
+P0790|Contacteur de mode normal / performance : défaut de circuit|Transmission|M
+P0791|Capteur de vitesse d'arbre intermédiaire A : défaut de circuit|Transmission|M
+P0792|Capteur de vitesse d'arbre intermédiaire A : plage / performances|Transmission|M
+P0793|Capteur de vitesse d'arbre intermédiaire A : aucun signal|Transmission|M
+P0794|Capteur de vitesse d'arbre intermédiaire A : signal intermittent|Transmission|L
+P0795|Électrovanne de pression C : défaut de circuit|Transmission|M
+P0796|Électrovanne de pression C : performances ou bloquée ouverte|Transmission|M
+P0797|Électrovanne de pression C : bloquée fermée|Transmission|M
+P0798|Électrovanne de pression C : défaut électrique|Transmission|M
+P0799|Électrovanne de pression C : signal intermittent|Transmission|L
+P0800|Boîte de transfert (4x4) : demande de voyant de défaut|Transmission|M
+P0801|Inhibition de la marche arrière : défaut du circuit de commande|Transmission|M
+P0802|Demande de voyant de défaut moteur (boîte) : défaut de circuit|Transmission|M
+P0803|Électrovanne de passage 1-4 (saut de rapport) : défaut du circuit de commande|Transmission|M
+P0804|Témoin de passage 1-4 : défaut du circuit de commande|Transmission|L
+P0805|Capteur de position d'embrayage : défaut de circuit|Transmission|M
+P0806|Capteur de position d'embrayage : plage / performances|Transmission|M
+P0807|Capteur de position d'embrayage : signal bas|Transmission|M
+P0808|Capteur de position d'embrayage : signal haut|Transmission|M
+P0809|Capteur de position d'embrayage : signal intermittent|Transmission|L
+P0810|Position de l'embrayage : erreur de commande|Transmission|M
+P0811|Glissement excessif de l'embrayage|Transmission|M
+P0812|Entrée de marche arrière : défaut de circuit|Transmission|M
+P0813|Sortie de marche arrière : défaut de circuit|Transmission|M
+P0814|Affichage de la plage de boîte : défaut de circuit|Transmission|M
+P0815|Contacteur de passage au rapport supérieur : défaut de circuit|Transmission|M
+P0816|Contacteur de passage au rapport inférieur : défaut de circuit|Transmission|M
+P0817|Interdiction de démarrage : défaut de circuit|Transmission|M
+P0818|Contacteur de déconnexion de la transmission : défaut du circuit d'entrée|Transmission|M
+P0819|Corrélation des contacteurs montée / descente avec la plage de boîte|Transmission|M
+P0820|Capteur de position X-Y du levier de vitesses : défaut de circuit|Transmission|M
+P0821|Capteur de position X du levier de vitesses : défaut de circuit|Transmission|M
+P0822|Capteur de position Y du levier de vitesses : défaut de circuit|Transmission|M
+P0823|Capteur de position X du levier de vitesses : signal intermittent|Transmission|L
+P0824|Capteur de position Y du levier de vitesses : signal intermittent|Transmission|L
+P0825|Contacteur de levier de vitesses (poussé / tiré) : défaut|Transmission|M
+P0826|Contacteur de montée / descente de rapports : défaut de circuit|Transmission|M
+P0827|Contacteur de montée / descente de rapports : circuit bas|Transmission|M
+P0828|Contacteur de montée / descente de rapports : circuit haut|Transmission|M
+P0829|Passage 5-6 : défaut|Transmission|M
+P0830|Contacteur de pédale d'embrayage A : défaut de circuit|Transmission|M
+P0831|Contacteur de pédale d'embrayage A : circuit bas|Transmission|M
+P0832|Contacteur de pédale d'embrayage A : circuit haut|Transmission|M
+P0833|Contacteur de pédale d'embrayage B : défaut de circuit|Transmission|M
+P0834|Contacteur de pédale d'embrayage B : circuit bas|Transmission|M
+P0835|Contacteur de pédale d'embrayage B : circuit haut|Transmission|M
+P0836|Contacteur de quatre roues motrices : défaut de circuit|Transmission|M
+P0837|Contacteur de quatre roues motrices : plage / performances|Transmission|M
+P0838|Contacteur de quatre roues motrices : circuit bas|Transmission|M
+P0839|Contacteur de quatre roues motrices : circuit haut|Transmission|M
+P0840|Capteur / contacteur de pression du liquide de boîte A : défaut de circuit|Transmission|M
+P0841|Capteur / contacteur de pression du liquide de boîte A : plage / performances|Transmission|M
+P0842|Capteur / contacteur de pression du liquide de boîte A : signal bas|Transmission|M
+P0843|Capteur / contacteur de pression du liquide de boîte A : signal haut|Transmission|M
+P0844|Capteur / contacteur de pression du liquide de boîte A : signal intermittent|Transmission|L
+P0845|Capteur / contacteur de pression du liquide de boîte B : défaut de circuit|Transmission|M
+P0846|Capteur / contacteur de pression du liquide de boîte B : plage / performances|Transmission|M
+P0847|Capteur / contacteur de pression du liquide de boîte B : signal bas|Transmission|M
+P0848|Capteur / contacteur de pression du liquide de boîte B : signal haut|Transmission|M
+P0849|Capteur / contacteur de pression du liquide de boîte B : signal intermittent|Transmission|L
+P0850|Contacteur point mort / stationnement : défaut du circuit d'entrée|Transmission|M
+P0851|Contacteur point mort / stationnement : circuit d'entrée bas|Transmission|M
+P0852|Contacteur point mort / stationnement : circuit d'entrée haut|Transmission|M
+P0853|Contacteur de position Drive : défaut du circuit d'entrée|Transmission|M
+P0854|Contacteur de position Drive : circuit d'entrée bas|Transmission|M
+P0855|Contacteur de position Drive : circuit d'entrée haut|Transmission|M
+P0856|Anti-patinage : défaut du signal d'entrée|Transmission|M
+P0857|Anti-patinage : plage / performances du signal d'entrée|Transmission|M
+P0858|Anti-patinage : signal d'entrée bas|Transmission|M
+P0859|Anti-patinage : signal d'entrée haut|Transmission|M
+P0860|Module de passage des rapports : défaut du circuit de communication|Transmission|M
+P0861|Module de passage des rapports : circuit de communication bas|Transmission|M
+P0862|Module de passage des rapports : circuit de communication haut|Transmission|M
+P0863|Calculateur de boîte (TCM) : défaut du circuit de communication|Transmission|M
+P0864|Calculateur de boîte (TCM) : plage / performances de la communication|Transmission|M
+P0865|Calculateur de boîte (TCM) : circuit de communication bas|Transmission|M
+P0866|Calculateur de boîte (TCM) : circuit de communication haut|Transmission|M
+P0867|Pression du liquide de boîte : défaut|Transmission|M
+P0868|Pression du liquide de boîte : trop basse|Transmission|M
+P0869|Pression du liquide de boîte : trop haute|Transmission|M
+P0870|Capteur / contacteur de pression du liquide de boîte C : défaut de circuit|Transmission|M
+P0871|Capteur / contacteur de pression du liquide de boîte C : plage / performances|Transmission|M
+P0872|Capteur / contacteur de pression du liquide de boîte C : signal bas|Transmission|M
+P0873|Capteur / contacteur de pression du liquide de boîte C : signal haut|Transmission|M
+P0874|Capteur / contacteur de pression du liquide de boîte C : signal intermittent|Transmission|L
+P0875|Capteur / contacteur de pression du liquide de boîte D : défaut de circuit|Transmission|M
+P0876|Capteur / contacteur de pression du liquide de boîte D : plage / performances|Transmission|M
+P0877|Capteur / contacteur de pression du liquide de boîte D : signal bas|Transmission|M
+P0878|Capteur / contacteur de pression du liquide de boîte D : signal haut|Transmission|M
+P0879|Capteur / contacteur de pression du liquide de boîte D : signal intermittent|Transmission|L
+P0880|Alimentation du calculateur de boîte (TCM) : défaut du signal d'entrée|Transmission|M
+P0881|Alimentation du calculateur de boîte (TCM) : plage / performances|Transmission|M
+P0882|Alimentation du calculateur de boîte (TCM) : signal bas|Transmission|M
+P0883|Alimentation du calculateur de boîte (TCM) : signal haut|Transmission|M
+P0884|Alimentation du calculateur de boîte (TCM) : signal intermittent|Transmission|L
+P0885|Relais d'alimentation du TCM : défaut du circuit de commande / ouvert|Transmission|M
+P0886|Relais d'alimentation du TCM : circuit de commande bas|Transmission|M
+P0887|Relais d'alimentation du TCM : circuit de commande haut|Transmission|M
+P0888|Relais d'alimentation du TCM : défaut du circuit de détection|Transmission|M
+P0889|Relais d'alimentation du TCM : plage / performances du circuit de détection|Transmission|M
+P0890|Relais d'alimentation du TCM : circuit de détection bas|Transmission|M
+P0891|Relais d'alimentation du TCM : circuit de détection haut|Transmission|M
+P0892|Relais d'alimentation du TCM : circuit de détection intermittent|Transmission|L
+P0893|Plusieurs rapports enclenchés en même temps|Transmission|M
+P0894|Composant de la transmission : glissement|Transmission|M
+P0895|Temps de passage de rapport trop court|Transmission|M
+P0896|Temps de passage de rapport trop long|Transmission|M
+P0897|Liquide de boîte détérioré|Transmission|M
+P0898|Demande de voyant de défaut (boîte) : circuit bas|Transmission|M
+P0899|Demande de voyant de défaut (boîte) : circuit haut|Transmission|M
+P0900|Actionneur d'embrayage : défaut du circuit / ouvert|Transmission|M
+P0901|Actionneur d'embrayage : plage / performances|Transmission|M
+P0902|Actionneur d'embrayage : circuit bas|Transmission|M
+P0903|Actionneur d'embrayage : circuit haut|Transmission|M
+P0904|Capteur de position de sélection de grille : défaut de circuit|Transmission|M
+P0905|Capteur de position de sélection de grille : plage / performances|Transmission|M
+P0906|Capteur de position de sélection de grille : signal bas|Transmission|M
+P0907|Capteur de position de sélection de grille : signal haut|Transmission|M
+P0908|Capteur de position de sélection de grille : signal intermittent|Transmission|L
+P0909|Sélection de grille : erreur de commande|Transmission|M
+P0910|Actionneur de sélection de grille : défaut du circuit / ouvert|Transmission|M
+P0911|Actionneur de sélection de grille : plage / performances|Transmission|M
+P0912|Actionneur de sélection de grille : circuit bas|Transmission|M
+P0913|Actionneur de sélection de grille : circuit haut|Transmission|M
+P0914|Capteur de position de passage de rapport : défaut de circuit|Transmission|M
+P0915|Capteur de position de passage de rapport : plage / performances|Transmission|M
+P0916|Capteur de position de passage de rapport : signal bas|Transmission|M
+P0917|Capteur de position de passage de rapport : signal haut|Transmission|M
+P0918|Capteur de position de passage de rapport : signal intermittent|Transmission|L
+P0919|Position de passage de rapport : erreur de commande|Transmission|M
+P0920|Actionneur de passage de rapport avant : défaut du circuit / ouvert|Transmission|M
+P0921|Actionneur de passage de rapport avant : plage / performances|Transmission|M
+P0922|Actionneur de passage de rapport avant : circuit bas|Transmission|M
+P0923|Actionneur de passage de rapport avant : circuit haut|Transmission|M
+P0924|Actionneur de passage de rapport (marche arrière) : défaut du circuit / ouvert|Transmission|M
+P0925|Actionneur de passage de rapport (marche arrière) : plage / performances|Transmission|M
+P0926|Actionneur de passage de rapport (marche arrière) : circuit bas|Transmission|M
+P0927|Actionneur de passage de rapport (marche arrière) : circuit haut|Transmission|M
+P0928|Électrovanne de verrouillage du levier de vitesses : défaut du circuit de commande / ouvert|Transmission|M
+P0929|Électrovanne de verrouillage du levier de vitesses : plage / performances|Transmission|M
+P0930|Électrovanne de verrouillage du levier de vitesses : circuit bas|Transmission|M
+P0931|Électrovanne de verrouillage du levier de vitesses : circuit haut|Transmission|M
+P0932|Capteur de pression hydraulique : défaut de circuit|Transmission|M
+P0933|Capteur de pression hydraulique : plage / performances|Transmission|M
+P0934|Capteur de pression hydraulique : signal bas|Transmission|M
+P0935|Capteur de pression hydraulique : signal haut|Transmission|M
+P0936|Capteur de pression hydraulique : signal intermittent|Transmission|L
+P0937|Capteur de température de l'huile hydraulique : défaut de circuit|Transmission|M
+P0938|Capteur de température de l'huile hydraulique : plage / performances|Transmission|M
+P0939|Capteur de température de l'huile hydraulique : signal bas|Transmission|M
+P0940|Capteur de température de l'huile hydraulique : signal haut|Transmission|M
+P0941|Capteur de température de l'huile hydraulique : signal intermittent|Transmission|L
+P0942|Groupe hydraulique : défaut|Transmission|M
+P0943|Groupe hydraulique : période de cycle trop courte|Transmission|M
+P0944|Perte de pression hydraulique|Transmission|M
+P0945|Relais de pompe hydraulique : défaut du circuit / ouvert|Transmission|M
+P0946|Relais de pompe hydraulique : plage / performances|Transmission|M
+P0947|Relais de pompe hydraulique : circuit bas|Transmission|M
+P0948|Relais de pompe hydraulique : circuit haut|Transmission|M
+P0949|Boîte manuelle automatisée : apprentissage adaptatif non effectué|Transmission|M
+P0950|Commande de boîte manuelle automatisée : défaut du circuit de commande|Transmission|M
+P0951|Commande de boîte manuelle automatisée : plage / performances|Transmission|M
+P0952|Commande de boîte manuelle automatisée : circuit bas|Transmission|M
+P0953|Commande de boîte manuelle automatisée : circuit haut|Transmission|M
+P0954|Commande de boîte manuelle automatisée : signal intermittent|Transmission|L
+P0955|Mode de boîte manuelle automatisée : défaut de circuit|Transmission|M
+P0956|Mode de boîte manuelle automatisée : plage / performances|Transmission|M
+P0957|Mode de boîte manuelle automatisée : circuit bas|Transmission|M
+P0958|Mode de boîte manuelle automatisée : circuit haut|Transmission|M
+P0959|Mode de boîte manuelle automatisée : signal intermittent|Transmission|L
+P0960|Électrovanne de pression A : défaut du circuit de commande / ouvert|Transmission|M
+P0961|Électrovanne de pression A : plage / performances|Transmission|M
+P0962|Électrovanne de pression A : circuit bas|Transmission|M
+P0963|Électrovanne de pression A : circuit haut|Transmission|M
+P0964|Électrovanne de pression B : défaut du circuit de commande / ouvert|Transmission|M
+P0965|Électrovanne de pression B : plage / performances|Transmission|M
+P0966|Électrovanne de pression B : circuit bas|Transmission|M
+P0967|Électrovanne de pression B : circuit haut|Transmission|M
+P0968|Électrovanne de pression C : défaut du circuit de commande / ouvert|Transmission|M
+P0969|Électrovanne de pression C : plage / performances|Transmission|M
+P0970|Électrovanne de pression C : circuit bas|Transmission|M
+P0971|Électrovanne de pression C : circuit haut|Transmission|M
+P0972|Électrovanne de passage A : plage / performances|Transmission|M
+P0973|Électrovanne de passage A : circuit de commande bas|Transmission|M
+P0974|Électrovanne de passage A : circuit de commande haut|Transmission|M
+P0975|Électrovanne de passage B : plage / performances|Transmission|M
+P0976|Électrovanne de passage B : circuit de commande bas|Transmission|M
+P0977|Électrovanne de passage B : circuit de commande haut|Transmission|M
+P0978|Électrovanne de passage C : plage / performances|Transmission|M
+P0979|Électrovanne de passage C : circuit de commande bas|Transmission|M
+P0980|Électrovanne de passage C : circuit de commande haut|Transmission|M
+P0981|Électrovanne de passage D : plage / performances|Transmission|M
+P0982|Électrovanne de passage D : circuit de commande bas|Transmission|M
+P0983|Électrovanne de passage D : circuit de commande haut|Transmission|M
+P0984|Électrovanne de passage E : plage / performances|Transmission|M
+P0985|Électrovanne de passage E : circuit de commande bas|Transmission|M
+P0986|Électrovanne de passage E : circuit de commande haut|Transmission|M
+P0987|Capteur / contacteur de pression du liquide de boîte E : défaut de circuit|Transmission|M
+P0988|Capteur / contacteur de pression du liquide de boîte E : plage / performances|Transmission|M
+P0989|Capteur / contacteur de pression du liquide de boîte E : signal bas|Transmission|M
+P0990|Capteur / contacteur de pression du liquide de boîte E : signal haut|Transmission|M
+P0991|Capteur / contacteur de pression du liquide de boîte E : signal intermittent|Transmission|L
+P0992|Capteur / contacteur de pression du liquide de boîte F : défaut de circuit|Transmission|M
+P0993|Capteur / contacteur de pression du liquide de boîte F : plage / performances|Transmission|M
+P0994|Capteur / contacteur de pression du liquide de boîte F : signal bas|Transmission|M
+P0995|Capteur / contacteur de pression du liquide de boîte F : signal haut|Transmission|M
+P0996|Capteur / contacteur de pression du liquide de boîte F : signal intermittent|Transmission|L
+P0997|Électrovanne de passage F : plage / performances|Transmission|M
+P0998|Électrovanne de passage F : circuit de commande bas|Transmission|M
+P0999|Électrovanne de passage F : circuit de commande haut|Transmission|M
+P0A7F|Batterie hybride : détérioration|Electrical|M
+P0A80|Remplacer la batterie hybride|Electrical|M
+P0A94|Convertisseur DC/DC : performances|Electrical|M
+P0AA6|Batterie hybride : défaut d'isolement du système haute tension|Electrical|C

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo CarDeck (même dessin que l'icône de l'application), affiché dans l'appli. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <clip-path android:pathData="M16,0 H56 A16,16 0 0 1 72,16 V56 A16,16 0 0 1 56,72 H16 A16,16 0 0 1 0,56 V16 A16,16 0 0 1 16,0 Z" />
+    <path android:pathData="M0,0 H72 V72 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="-18"
+                android:startY="-18"
+                android:endX="90"
+                android:endY="90">
+                <item android:offset="0" android:color="#FF3DDC97" />
+                <item android:offset="1" android:color="#FF0E9F6E" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <group
+        android:translateX="-18"
+        android:translateY="-18">
+        <path
+            android:fillColor="#4705603F"
+            android:pathData="M68,32.5 L81,47 L80,70 L75,76 L36,76 L96,136 L140,92 Z" />
+        <path
+            android:fillColor="#FF86EFC0"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="3.6"
+            android:strokeLineJoin="round"
+            android:pathData="M42,32 H66 Q71,32 72.6,36.6 L75.4,45 H78 Q81,45 81,48 Q81,50.5 78.8,51 Q80,52.5 80,56 V66 Q80,70 76,70 H75 V73 Q75,76 72,76 H68 Q65,76 65,73 V70 H43 V73 Q43,76 40,76 H36 Q33,76 33,73 V70 H32 Q28,70 28,66 V56 Q28,52.5 29.2,51 Q27,50.5 27,48 Q27,45 30,45 H32.6 L35.4,36.6 Q37,32 42,32 Z" />
+    </group>
+</vector>
