@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.automirrored.rounded.FactCheck
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -58,6 +59,7 @@ import com.cardeck.app.AppViewModel
 import com.cardeck.app.Screen
 import com.cardeck.app.data.DtcCatalog
 import com.cardeck.app.data.DtcInfo
+import com.cardeck.app.data.ReadinessVerdict
 import com.cardeck.app.data.Severity
 import com.cardeck.app.data.agoLabel
 import com.cardeck.app.ui.BackBar
@@ -197,6 +199,8 @@ fun DiagScreen(vm: AppViewModel) {
                 DiagActions(vm, v, connected) { dialog = true }
             }
 
+            if (!vm.scanning && q.isEmpty()) ReadinessCard(vm, v.id, connected)
+
             // Journal du dernier scan : tous les échanges avec le boîtier, pour comprendre un défaut non trouvé.
             if (!vm.scanning && q.isEmpty()) {
                 val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -235,6 +239,78 @@ fun DiagScreen(vm: AppViewModel) {
         )
     }
 }
+
+/**
+ * « Prêt pour le contrôle technique ? » : voyant moteur et état des tests antipollution embarqués.
+ * Après un effacement des défauts ou un débranchement de la batterie, ces tests repartent de zéro.
+ */
+@Composable
+private fun ReadinessCard(vm: AppViewModel, vehicleId: Long, connected: Boolean) {
+    val c = Cd.c
+    val r = vm.readiness?.takeIf { it.first == vehicleId }?.second
+    Column(
+        Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Ico(Icons.AutoMirrored.Rounded.FactCheck, 22, c.p)
+            T("Prêt pour le contrôle technique ?", 18, weight = 500, modifier = Modifier.weight(1f))
+        }
+        if (r == null) {
+            T(
+                "Vérifie le voyant moteur et les tests antipollution que la voiture fait elle-même. Après un effacement des défauts " +
+                    "ou un débranchement de la batterie, ils ne sont plus prêts, et le contrôle de la pollution peut échouer.",
+                13, c.onv, lineHeight = 18,
+            )
+        } else {
+            val (icon, bg, fg, title) = when (r.verdict) {
+                ReadinessVerdict.Ready -> Quad(Icons.Rounded.CheckCircle, c.gc, c.ogc, "Prête pour le contrôle technique")
+                ReadinessVerdict.NotReady -> Quad(Icons.Rounded.Warning, c.wc, c.owc, "Pas encore prête : ${r.notReady.size} test${if (r.notReady.size > 1) "s" else ""} non terminé${if (r.notReady.size > 1) "s" else ""}")
+                ReadinessVerdict.MilOn -> Quad(Icons.Rounded.Error, c.ec, c.oec, "Voyant moteur allumé")
+            }
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(bg).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Ico(icon, 22, fg)
+                T(title, 15, fg, 500, lineHeight = 20, modifier = Modifier.weight(1f))
+            }
+            T(
+                when (r.verdict) {
+                    ReadinessVerdict.Ready -> "Voyant éteint et tous les tests antipollution terminés."
+                    ReadinessVerdict.NotReady -> "Roule 2 à 3 jours en conditions variées (ville, route, voie rapide, moteur bien chaud), " +
+                        "sans effacer les défauts ni débrancher la batterie, puis vérifie à nouveau."
+                    ReadinessVerdict.MilOn -> "Le voyant moteur est vérifié au contrôle technique : fais réparer le défaut " +
+                        "(${r.dtcCount} code${if (r.dtcCount > 1) "s" else ""} signalé${if (r.dtcCount > 1) "s" else ""}) avant d'y aller."
+                },
+                13, c.onv, lineHeight = 18,
+            )
+            listOfNotNull(
+                r.kmSinceClear?.let { "$it km depuis l'effacement des défauts" },
+                r.warmupsSinceClear?.let { "$it démarrage${if (it > 1) "s" else ""} moteur chaud depuis l'effacement" },
+            ).forEach { T(it, 12, c.onv) }
+            if (r.monitors.isEmpty()) T("La voiture ne déclare aucun test antipollution.", 13, c.onv)
+            r.monitors.sortedBy { it.ready }.forEach { m ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Ico(if (m.ready) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, 18, if (m.ready) c.g else c.w)
+                    T(m.label, 14, modifier = Modifier.weight(1f))
+                    T(if (m.ready) "Prêt" else "Non terminé", 13, if (m.ready) c.onv else c.w, 500)
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            when {
+                vm.readinessBusy -> Row(Modifier.height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+                    com.cardeck.app.ui.Spinner(18.dp, 2.dp, c.p); T("  Lecture…", 14, c.p, 500)
+                }
+                connected -> TextBtn(if (r == null) "Vérifier" else "Vérifier à nouveau", { vm.checkReadiness() }, Icons.Rounded.Refresh)
+                else -> T("Connecte le boîtier OBD2 pour vérifier.", 12, c.onv)
+            }
+        }
+    }
+}
+
+private data class Quad(val icon: androidx.compose.ui.graphics.vector.ImageVector, val bg: androidx.compose.ui.graphics.Color, val fg: androidx.compose.ui.graphics.Color, val title: String)
 
 /** Choix du niveau de diagnostic : simple (codes OBD classiques) ou complet (tous les calculateurs). */
 @Composable

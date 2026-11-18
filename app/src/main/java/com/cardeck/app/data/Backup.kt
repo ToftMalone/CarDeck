@@ -12,7 +12,8 @@ import java.util.zip.GZIPOutputStream
 
 /**
  * Sauvegarde complète de l'application (véhicules, trajets, diagnostics, codages d'origine, préférences),
- * chiffrée par [BackupCrypto] : seule CarDeck peut la relire.
+ * chiffrée par [BackupCrypto]. Protège contre la lecture et la modification par un tiers qui n'a pas l'application ;
+ * la clé est intégrée à l'APK, ce n'est donc pas une protection contre quelqu'un qui le décompile.
  */
 object Backup {
     private const val FORMAT = 1
@@ -22,11 +23,14 @@ object Backup {
 
     class Summary(val vehicles: Int, val trips: Int)
 
-    /** Clés connues : la clé officielle (versions publiées) et la clé de test (versions de développement). */
-    private fun keys(): Map<Int, ByteArray> = buildMap {
-        put(BackupCrypto.KEY_TEST, BackupCrypto.keyFromSecret("CarDeck test"))
-        if (BuildConfig.BACKUP_KEY.isNotEmpty()) put(BackupCrypto.KEY_OFFICIAL, BuildConfig.BACKUP_KEY.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
-    }
+    /**
+     * Clé connue : la clé officielle pour les versions publiées, la clé de test pour les versions de développement.
+     * Une version publiée refuse la clé de test : elle est publique (dans le dépôt), donc n'importe qui pourrait
+     * fabriquer une sauvegarde qu'elle accepterait.
+     */
+    private fun keys(): Map<Int, ByteArray> =
+        if (official) mapOf(BackupCrypto.KEY_OFFICIAL to BuildConfig.BACKUP_KEY.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+        else mapOf(BackupCrypto.KEY_TEST to BackupCrypto.keyFromSecret("CarDeck test"))
 
     /** Les versions de développement chiffrent avec la clé de test (pas de clé officielle dans le dépôt public). */
     val official: Boolean get() = BuildConfig.BACKUP_KEY.isNotEmpty()

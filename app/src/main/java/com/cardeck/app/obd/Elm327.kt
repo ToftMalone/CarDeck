@@ -154,6 +154,22 @@ class Elm327(private val t: ObdTransport) {
         return null
     }
 
+    /** Octets de données d'un PID du service 01 pour chaque calculateur qui répond (demande diffusée). */
+    suspend fun pid01All(pid: Int): List<IntArray> {
+        val r = raw("01%02X".format(pid))
+        return if (isError(r)) emptyList() else pid01Answers(r, pid)
+    }
+
+    /** Réponses « 41 [pid] … » d'une réponse brute, une par ligne (un calculateur par ligne, en-têtes masqués). */
+    internal fun pid01Answers(r: String, pid: Int): List<IntArray> {
+        val p = "%02X".format(pid)
+        return r.lines().mapNotNull { line ->
+            val tk = tokens(line)
+            val i = tk.windowed(2).indexOfFirst { it[0] == "41" && it[1] == p }
+            if (i >= 0) tk.drop(i + 2).map { it.toInt(16) }.toIntArray() else null
+        }
+    }
+
     /** Requête libre (PIDs spécifiques du modèle). Renvoie les octets suivant l'écho service+PID. */
     suspend fun query(request: String, header: String? = null): IntArray? {
         if (header != null) raw("ATSH$header")
@@ -711,19 +727,30 @@ class Elm327(private val t: ObdTransport) {
         try {
             val first = intArrayOf(0x10 or (payload.size shr 8), payload.size and 0xFF) + payload.copyOfRange(0, 6)
             val fc = rawFrames(raw(hex(first), 3000))
-            val flow = fc.firstOrNull { it.isNotEmpty() && it[0] shr 4 == 3 } ?: throw UdsError("Le module refuse l'écriture longue")
-            if (flow[0] and 0x0F == 2) throw UdsError("Le module refuse l'écriture longue (dépassement)")
-            val stMin = flow.getOrElse(2) { 0 }.let { if (it in 1..0x7F) it.toLong() else 0L }
+            var flow = flowControl(fc) ?: throw UdsError("Le module refuse l'écriture longue")
+            // Entre deux trames consécutives, le calculateur n'attend pas plus d'1 s (N_Cr) : le boîtier ne doit donc pas
+            // patienter ~1 s après chacune (ATSTFF). Attente courte (200 ms) sauf pour la dernière, qui reçoit la réponse.
+            raw("ATST32")
             var seq = 1
             var i = 6
+            var inBlock = 0
             var last = ""
             while (i < payload.size) {
                 val end = minOf(i + 7, payload.size)
+                val isLast = end == payload.size
                 val frame = (intArrayOf(0x20 or (seq and 0x0F)) + payload.copyOfRange(i, end)).copyOf(8)
-                last = raw(hex(frame), if (end == payload.size) 6000 else 3000)
-                if (stMin > 0) delay(stMin)
+                if (isLast) raw("ATSTFF")
+                last = raw(hex(frame), if (isLast) 6000 else 3000)
                 seq++
                 i = end
+                inBlock++
+                if (!isLast && flow.blockSize > 0 && inBlock == flow.blockSize) {
+                    // Bloc terminé : le calculateur envoie un nouveau contrôle de flux avant d'accepter la suite.
+                    flow = flowControl(rawFrames(last)) ?: throw UdsError("Le module n'a pas autorisé la suite de l'écriture")
+                    inBlock = 0
+                } else if (flow.stMinMs > 0) {
+                    delay(flow.stMinMs)
+                }
             }
             // Réponse finale (trames brutes : octet PCI puis données).
             val answers = rawFrames(last).mapNotNull { f -> if (f.isNotEmpty() && f[0] shr 4 == 0) f.drop(1).take(f[0] and 0x0F).toIntArray() else null }
@@ -732,6 +759,26 @@ class Elm327(private val t: ObdTransport) {
         } finally {
             raw("ATCAF1")
         }
+    }
+
+    /** Contrôle de flux ISO-TP reçu : taille de bloc (0 = sans limite) et délai minimal entre trames. */
+    private class FlowControl(val blockSize: Int, val stMinMs: Long)
+
+    /**
+     * Premier contrôle de flux (octet PCI 0x3X) parmi [frames], ou null s'il n'y en a pas.
+     * Lève [UdsError] si le calculateur demande d'attendre (0x31) ou signale un dépassement (0x32).
+     */
+    private fun flowControl(frames: List<IntArray>): FlowControl? {
+        val f = frames.firstOrNull { it.isNotEmpty() && it[0] shr 4 == 3 } ?: return null
+        when (f[0] and 0x0F) {
+            0 -> {}
+            1 -> throw UdsError("Le module est occupé et a suspendu l'écriture longue, réessayez")
+            2 -> throw UdsError("Le module refuse l'écriture longue (dépassement)")
+            else -> throw UdsError("Réponse inattendue du module pendant l'écriture longue")
+        }
+        // STmin : 0x00–0x7F en millisecondes ; 0xF1–0xF9 en centaines de microsecondes (arrondi à 1 ms).
+        val st = f.getOrElse(2) { 0 }.let { if (it in 1..0x7F) it.toLong() else if (it in 0xF1..0xF9) 1L else 0L }
+        return FlowControl(f.getOrElse(1) { 0 }, st)
     }
 
     /** Liste blanche : commandes du boîtier sans effet durable ; en lecture seule, services de lecture uniquement. */

@@ -91,7 +91,11 @@ object BackupCrypto {
         if (header[4].toInt() != VERSION) throw BadBackup("Sauvegarde d'une version plus récente de CarDeck")
         val keyId = header[5].toInt()
         val master = keys[keyId] ?: throw BadBackup(
-            if (keyId == KEY_OFFICIAL) "Sauvegarde officielle : à restaurer avec une version publiée de CarDeck" else "Sauvegarde chiffrée avec une clé inconnue",
+            when (keyId) {
+                KEY_OFFICIAL -> "Sauvegarde officielle : à restaurer avec une version publiée de CarDeck"
+                KEY_TEST -> "Sauvegarde d'une version de développement : refusée par une version publiée de CarDeck"
+                else -> "Sauvegarde chiffrée avec une clé inconnue"
+            },
         )
         val key = fileKey(master, header.copyOfRange(6, HEADER))
         return object : InputStream() {

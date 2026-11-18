@@ -33,7 +33,20 @@ object TripExport {
 
     private fun xml(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
-    private fun json(s: String) = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
+    /** Chaîne JSON : guillemets, barre oblique inverse et tous les caractères de contrôle échappés (RFC 8259). */
+    internal fun json(s: String) = buildString {
+        append('"')
+        for (ch in s) when {
+            ch == '"' -> append("\\\"")
+            ch == '\\' -> append("\\\\")
+            ch == '\n' -> append("\\n")
+            ch == '\r' -> append("\\r")
+            ch == '\t' -> append("\\t")
+            ch < ' ' -> append("\\u%04x".format(ch.code))
+            else -> append(ch)
+        }
+        append('"')
+    }
 
     fun fileName(trip: Trip): String = "CarDeck_trajet_" + local("yyyy-MM-dd_HH'h'mm").format(Date(trip.start)) + ".zip"
 

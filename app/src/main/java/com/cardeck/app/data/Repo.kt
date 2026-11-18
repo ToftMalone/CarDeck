@@ -14,7 +14,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** Version du schéma de la base (sauvegardes comprises). */
-const val DB_VERSION = 6
+const val DB_VERSION = 7
 
 /** Efface les mesures de données que CarDeck ne lit plus (celles absentes des catalogues actuels). */
 fun purgeRemovedPids(db: SQLiteDatabase) {
@@ -44,6 +44,7 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
                t INTEGER NOT NULL, ecus INTEGER NOT NULL, ff_code TEXT, ff_values TEXT)""",
         )
         createCodingTables(db)
+        addCodingVin(db)
         createSampleTables(db)
         addFuelColumns(db)
         db.execSQL("CREATE TABLE scan_codes(scan_id INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE, code TEXT NOT NULL, status TEXT NOT NULL, ecu TEXT NOT NULL)")
@@ -54,6 +55,12 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         if (oldVersion < 3) createSampleTables(db)
         if (oldVersion < 4) addFuelColumns(db)
         if (oldVersion < 6) purgeRemovedPids(db)
+        if (oldVersion < 7) addCodingVin(db)
+    }
+
+    /** VIN de la voiture sur laquelle le codage d'origine a été lu (restauration refusée sur une autre voiture). */
+    private fun addCodingVin(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE coding_backups ADD COLUMN vin TEXT")
     }
 
     /** Carburant et prix au litre retenus pour le coût du trajet. */
@@ -320,7 +327,7 @@ class Repo(ctx: Context) {
     fun saveCodingBackupIfAbsent(b: CodingBackup) {
         db.insertWithOnConflict("coding_backups", null, ContentValues().apply {
             put("vehicle_id", b.vehicleId); put("tx", b.txHeader.uppercase()); put("rx", b.rxHeader); put("did", b.did)
-            put("module", b.module); put("data", b.data.toHex()); put("t", b.t)
+            put("module", b.module); put("data", b.data.toHex()); put("t", b.t); put("vin", b.vin)
         }, SQLiteDatabase.CONFLICT_IGNORE)
         bump()
     }
@@ -328,7 +335,7 @@ class Repo(ctx: Context) {
     fun codingBackups(vehicleId: Long): List<CodingBackup> =
         db.rawQuery("SELECT * FROM coding_backups WHERE vehicle_id=? ORDER BY t", arrayOf(vehicleId.toString())).use { c ->
             buildList {
-                while (c.moveToNext()) add(CodingBackup(vehicleId, c.str("tx")!!, c.str("rx"), c.getInt(c.getColumnIndexOrThrow("did")), c.str("module")!!, hexToInts(c.str("data")!!), c.long("t")))
+                while (c.moveToNext()) add(CodingBackup(vehicleId, c.str("tx")!!, c.str("rx"), c.getInt(c.getColumnIndexOrThrow("did")), c.str("module")!!, hexToInts(c.str("data")!!), c.long("t"), c.str("vin")))
             }
         }
 

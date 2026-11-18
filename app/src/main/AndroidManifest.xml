@@ -32,9 +32,11 @@
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- Pas de sauvegarde automatique Android (Google Drive) : elle emporterait tout l'historique GPS.
+         Les données se sauvegardent par Paramètres → Sauvegarde, dans un fichier chiffré. -->
     <application
         android:name=".CarDeckApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"

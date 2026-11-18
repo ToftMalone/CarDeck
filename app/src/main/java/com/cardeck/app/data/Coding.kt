@@ -38,8 +38,11 @@ data class CodingDef(
 
 fun blockKey(txHeader: String, did: Int) = "${txHeader.uppercase()}:%04X".format(did)
 
-/** Sauvegarde du codage d'origine d'un bloc, prise avant la première écriture. */
-data class CodingBackup(val vehicleId: Long, val txHeader: String, val rxHeader: String?, val did: Int, val module: String, val data: IntArray, val t: Long) {
+/**
+ * Sauvegarde du codage d'origine d'un bloc, prise avant la première écriture.
+ * [vin] : VIN lu sur la voiture au moment de la sauvegarde ; une restauration n'est faite que sur la voiture de même VIN.
+ */
+data class CodingBackup(val vehicleId: Long, val txHeader: String, val rxHeader: String?, val did: Int, val module: String, val data: IntArray, val t: Long, val vin: String?) {
     val key get() = blockKey(txHeader, did)
 }
 

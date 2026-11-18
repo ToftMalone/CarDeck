@@ -508,6 +508,36 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var clearing by mutableStateOf(false)
         private set
 
+    // ---- Prêt pour le contrôle technique ----
+    /** Dernier état des tests antipollution lu, avec le véhicule concerné. */
+    var readiness by mutableStateOf<Pair<Long, com.cardeck.app.data.Readiness>?>(null)
+        private set
+    var readinessBusy by mutableStateOf(false)
+        private set
+
+    /** Lit l'état des tests antipollution embarqués (PID 01), la distance et les démarrages depuis l'effacement des défauts. */
+    fun checkReadiness() {
+        if (readinessBusy || scanning || clearing) return
+        val v = repo.active ?: return
+        readinessBusy = true
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.IO) {
+                obd.use { e ->
+                    val payloads = e.pid01All(0x01)
+                    val km = e.pid01(0x31)?.takeIf { it.size >= 2 }?.let { it[0] * 256 + it[1] }
+                    val warmups = e.pid01(0x30)?.firstOrNull()
+                    listOf(com.cardeck.app.data.Readiness.from(payloads, km, warmups))
+                }
+            }
+            readinessBusy = false
+            when {
+                out == null -> showSnack("Boîtier OBD2 non connecté")
+                out[0] == null -> showSnack("La voiture n'a pas donné l'état de ses tests antipollution : mettez le contact et réessayez.")
+                else -> readiness = v.id to out[0]!!
+            }
+        }
+    }
+
     /**
      * Efface les codes défaut. Simple : codes OBD classiques (service 04 : moteur, voyant, données figées).
      * Complet : en plus, chaque calculateur qui avait des codes au dernier scan (UDS 14 / KWP 14) ; à défaut de scan
@@ -520,6 +550,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val v = repo.active ?: return
         val targets = if (!full) emptyList() else scanEcus.ifEmpty { v.template.ecus }
         clearing = true
+        // L'effacement remet les tests antipollution à zéro : l'état affiché ne serait plus à jour.
+        readiness = null
         viewModelScope.launch {
             val r = withContext(Dispatchers.IO) {
                 obd.use { e ->
@@ -609,11 +641,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Écrit un bloc complet puis le relit ; renvoie un message d'erreur ou null si tout est conforme. */
-    private suspend fun writeBlock(e: Elm327, tpl: VehicleTemplate, tx: String, rx: String?, did: Int, module: String, data: IntArray): String? {
+    /**
+     * Écrit un bloc complet puis le relit ; renvoie un message d'erreur ou null si tout est conforme.
+     * [expected] : contenu du bloc sur lequel les modifications ont été calculées. Le bloc est relu juste avant l'écriture
+     * et rien n'est écrit s'il a changé depuis (autre outil, autre voiture) : sinon ses autres octets seraient écrasés.
+     */
+    private suspend fun writeBlock(e: Elm327, tpl: VehicleTemplate, tx: String, rx: String?, did: Int, module: String, data: IntArray, expected: IntArray?): String? {
         val level = tpl.codings.filter { it.blockKey == com.cardeck.app.data.blockKey(tx, did) }.mapNotNull { it.securityLevel }.maxOrNull()
         return try {
             e.udsOpen(tx, rx)
+            if (expected != null && !e.readDid(did).contentEquals(expected)) {
+                return "$module : le codage a changé depuis sa lecture, rien n'a été écrit. Relisez le codage avant de réessayer."
+            }
             e.extendedSession()
             if (level != null) e.securityAccess(level, tpl.securityKey)
             e.writeDid(did, data)
@@ -648,6 +687,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val out = withContext(Dispatchers.IO) {
                 obd.use { e ->
                     preWriteCheck(e)?.let { return@use Triple(listOf(it), emptyMap<String, IntArray>(), false) }
+                    // VIN lu sur la voiture : il accompagne le codage d'origine, qui ne sera restauré que sur cette voiture.
+                    val vin = e.vin()
+                        ?: return@use Triple(listOf("VIN illisible : sans lui, CarDeck ne pourrait pas garantir la restauration du codage d'origine sur cette voiture. Rien n'a été écrit."), emptyMap<String, IntArray>(), false)
+                    if (repo.codingBackups(v.id).any { it.vin != vin }) {
+                        return@use Triple(listOf("Le codage d'origine enregistré pour ce profil appartient à une autre voiture (VIN différent). Rien n'a été écrit."), emptyMap<String, IntArray>(), false)
+                    }
                     val errors = mutableListOf<String>()
                     val written = mutableMapOf<String, IntArray>()
                     for ((key, group) in changed.groupBy { it.blockKey }) {
@@ -656,8 +701,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         var data = orig
                         group.forEach { data = it.applyTo(data, pending.getValue(it.id)) }
                         if (data.contentEquals(orig)) continue
-                        repo.saveCodingBackupIfAbsent(CodingBackup(v.id, d.txHeader, d.rxHeader, d.did, d.module, orig, System.currentTimeMillis()))
-                        val err = writeBlock(e, tpl, d.txHeader, d.rxHeader, d.did, d.module, data)
+                        repo.saveCodingBackupIfAbsent(CodingBackup(v.id, d.txHeader, d.rxHeader, d.did, d.module, orig, System.currentTimeMillis(), vin))
+                        val err = writeBlock(e, tpl, d.txHeader, d.rxHeader, d.did, d.module, data, expected = orig)
                         if (err == null) written[key] = data else errors += err
                     }
                     Triple(errors, written, true)
@@ -689,7 +734,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (backups.isEmpty()) return@withContext emptyList<String>()
                 obd.use { e ->
                     preWriteCheck(e)?.let { return@use listOf(it) }
-                    backups.mapNotNull { b -> writeBlock(e, tpl, b.txHeader, b.rxHeader, b.did, b.module, b.data) }
+                    // Le codage d'origine n'est écrit que sur la voiture où il a été lu (une sauvegarde restaurée peut venir d'ailleurs).
+                    val vin = e.vin() ?: return@use listOf("VIN illisible : restauration refusée, CarDeck ne peut pas vérifier qu'il s'agit de la même voiture.")
+                    if (backups.any { it.vin != vin }) {
+                        return@use listOf("Ce codage d'origine n'a pas été lu sur cette voiture (VIN différent ou inconnu) : restauration refusée.")
+                    }
+                    backups.mapNotNull { b -> writeBlock(e, tpl, b.txHeader, b.rxHeader, b.did, b.module, b.data, expected = null) }
                 }
             }
             codingReport = when {

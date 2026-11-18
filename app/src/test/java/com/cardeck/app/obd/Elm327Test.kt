@@ -164,6 +164,35 @@ class Elm327Test {
         assertTrue(fake.sent.containsAll(listOf("ATCAF0", "100A2EB001010203", "2104050607000000", "ATCAF1")))
     }
 
+    @Test fun udsEcritureLongueTailleDeBloc() = runBlocking {
+        // 11 octets de données : 2 trames consécutives ; le module impose un bloc de 1 trame
+        // (BS = 1) et renvoie un contrôle de flux après la première.
+        val fake = FakeElm(base + mapOf(
+            "100E2EB001010203" to "30 01 00 00 00 00 00 00",
+            "210405060708090A" to "30 01 00 00 00 00 00 00",
+            "220B000000000000" to "03 6E B0 01",
+        ))
+        val e = Elm327(fake)
+        e.writeDid(0xB001, intArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
+        val i = fake.sent.indexOf("210405060708090A")
+        assertTrue(i > 0)
+        // Attente courte pendant l'envoi, longue (ATSTFF) juste avant la dernière trame.
+        assertTrue(fake.sent.subList(0, i).contains("ATST32"))
+        assertEquals("ATSTFF", fake.sent[fake.sent.indexOf("220B000000000000") - 1])
+    }
+
+    @Test fun udsEcritureLongueModuleOccupe() = runBlocking {
+        val fake = FakeElm(base + mapOf("100A2EB001010203" to "31 00 00 00 00 00 00 00"))
+        try { Elm327(fake).writeDid(0xB001, intArrayOf(1, 2, 3, 4, 5, 6, 7)); org.junit.Assert.fail() } catch (x: UdsError) { assertTrue(x.message!!.contains("occupé")) }
+    }
+
+    @Test fun pid01PlusieursCalculateurs() {
+        val e = elm(emptyMap())
+        val a = e.pid01Answers("41 01 00 07 65 00\n41 01 00 00 00 00", 0x01)
+        assertEquals(2, a.size)
+        assertEquals(listOf(0x00, 0x07, 0x65, 0x00), a[0].toList())
+    }
+
     @Test fun codageApplique() {
         val d = com.cardeck.app.data.CodingDef("t", "Confort", "Test", "", "BCM", "750", "758", 0xB001, 1, 0x0C,
             listOf(com.cardeck.app.data.CodingOption("A", 0x00), com.cardeck.app.data.CodingOption("B", 0x04)))
