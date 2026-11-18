@@ -212,13 +212,18 @@ fun TextBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, color:
 
 /** Champ de saisie « outlined » M3. */
 @Composable
-fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, mono: Boolean = false, number: Boolean = false) {
+fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, mono: Boolean = false, number: Boolean = false, password: Boolean = false) {
     val c = Cd.c
     OutlinedTextField(
         value = value, onValueChange = onChange, label = { Text(label) }, singleLine = true,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(4.dp),
-        keyboardOptions = if (number) KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number) else KeyboardOptions.Default,
+        visualTransformation = if (password) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = when {
+            password -> KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password, autoCorrectEnabled = false)
+            number -> KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+            else -> KeyboardOptions.Default
+        },
         textStyle = TextStyle(fontSize = 16.sp, fontFamily = if (mono) FontFamily.Monospace else null, letterSpacing = if (mono) 1.sp else 0.sp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,

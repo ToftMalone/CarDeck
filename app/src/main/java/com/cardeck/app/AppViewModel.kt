@@ -766,18 +766,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Nom proposé pour le fichier de sauvegarde. */
     fun backupName(): String = "CarDeck-" + java.text.SimpleDateFormat("yyyy-MM-dd-HHmm", java.util.Locale.FRANCE).format(java.util.Date()) + ".cdbak"
 
-    fun backupTo(uri: android.net.Uri) {
+    /** Protection « liée à cet appareil », ou null si l'appareil ne la permet pas. */
+    val deviceBackupLock: com.cardeck.app.data.BackupLock.Device? by lazy { com.cardeck.app.data.Backup.deviceLock(ctx) }
+
+    fun backupTo(uri: android.net.Uri, lock: com.cardeck.app.data.BackupLock) {
         if (backupBusy != null) return
         backupBusy = "Sauvegarde en cours…"
         viewModelScope.launch {
             val r = withContext(Dispatchers.IO) {
                 runCatching {
                     val out = ctx.contentResolver.openOutputStream(uri, "wt") ?: error("Fichier inaccessible")
-                    com.cardeck.app.data.Backup.write(ctx, repo, out)
+                    com.cardeck.app.data.Backup.write(ctx, repo, out, lock)
                 }
             }
+            (lock as? com.cardeck.app.data.BackupLock.Password)?.password?.fill('\u0000')
             backupBusy = null
-            r.onSuccess { showSnack("Sauvegarde chiffrée enregistrée · ${it.vehicles} véhicule${if (it.vehicles > 1) "s" else ""}, ${it.trips} trajet${if (it.trips > 1) "s" else ""}") }
+            val kind = when (lock) {
+                com.cardeck.app.data.BackupLock.None -> "en clair"
+                is com.cardeck.app.data.BackupLock.Password -> "protégée par mot de passe"
+                is com.cardeck.app.data.BackupLock.Device -> "liée à ${lock.label}"
+            }
+            r.onSuccess { showSnack("Sauvegarde $kind enregistrée · ${it.vehicles} véhicule${if (it.vehicles > 1) "s" else ""}, ${it.trips} trajet${if (it.trips > 1) "s" else ""}") }
                 .onFailure {
                     runCatching { android.provider.DocumentsContract.deleteDocument(ctx.contentResolver, uri) }
                     showSnack("Sauvegarde impossible : ${it.message}")
@@ -785,18 +794,47 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun restoreFrom(uri: android.net.Uri) {
+    /** Restauration en préparation : fichier choisi, en-tête lu, éventuelle erreur à afficher dans la fenêtre (mot de passe faux…). */
+    class RestoreRequest(val uri: android.net.Uri, val header: com.cardeck.app.data.BackupHeader, val error: String? = null)
+
+    var restoreRequest by mutableStateOf<RestoreRequest?>(null)
+        private set
+
+    /** Lit l'en-tête du fichier choisi pour savoir quoi demander (mot de passe…) avant de restaurer. */
+    fun prepareRestore(uri: android.net.Uri) {
         if (backupBusy != null) return
-        if (com.cardeck.app.service.TripService.recording) { showSnack("Trajet en cours : restaurez une fois le moteur arrêté"); return }
-        backupBusy = "Restauration en cours…"
         viewModelScope.launch {
             val r = withContext(Dispatchers.IO) {
                 runCatching {
-                    val inp = ctx.contentResolver.openInputStream(uri) ?: error("Fichier inaccessible")
-                    com.cardeck.app.data.Backup.read(ctx, repo, inp)
+                    com.cardeck.app.data.Backup.header(ctx.contentResolver.openInputStream(uri) ?: error("Fichier inaccessible"))
                 }
             }
+            r.onSuccess { restoreRequest = RestoreRequest(uri, it) }
+                .onFailure { showSnack(if (it is com.cardeck.app.data.BackupCrypto.BadBackup) it.message ?: "Sauvegarde illisible" else "Fichier illisible : ${it.message}") }
+        }
+    }
+
+    fun cancelRestore() { restoreRequest = null }
+
+    /** Restaure la sauvegarde de [restoreRequest] ; [password] pour une sauvegarde protégée par mot de passe. */
+    fun restoreFrom(password: CharArray? = null) {
+        val req = restoreRequest ?: return
+        if (backupBusy != null) return
+        if (com.cardeck.app.service.TripService.recording) { restoreRequest = null; showSnack("Trajet en cours : restaurez une fois le moteur arrêté"); return }
+        backupBusy = if (req.header.needsPassword) "Vérification du mot de passe et restauration…" else "Restauration en cours…"
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val inp = ctx.contentResolver.openInputStream(req.uri) ?: error("Fichier inaccessible")
+                    com.cardeck.app.data.Backup.read(ctx, repo, inp, password)
+                }
+            }
+            password?.fill('\u0000')
             backupBusy = null
+            // Mot de passe faux : la fenêtre reste ouverte pour réessayer.
+            val wrong = r.exceptionOrNull() as? com.cardeck.app.data.BackupCrypto.WrongPassword
+            restoreRequest = if (wrong != null) RestoreRequest(req.uri, req.header, wrong.message) else null
+            if (wrong != null) return@launch
             r.onSuccess { s ->
                 themeMode = prefs.themeMode
                 palette = prefs.palette
@@ -813,7 +851,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     onboarded = false
                     stack.clear(); stack.add(Screen.Welcome)
                 }
-                showSnack("Sauvegarde restaurée · ${s.vehicles} véhicule${if (s.vehicles > 1) "s" else ""}, ${s.trips} trajet${if (s.trips > 1) "s" else ""}")
+                showSnack(
+                    "Sauvegarde restaurée · ${s.vehicles} véhicule${if (s.vehicles > 1) "s" else ""}, ${s.trips} trajet${if (s.trips > 1) "s" else ""}" +
+                        if (s.codingSkipped > 0) ". Codages d'origine non restaurés : seule une sauvegarde liée à cet appareil les reprend." else "",
+                )
             }.onFailure {
                 showSnack(if (it is com.cardeck.app.data.BackupCrypto.BadBackup) it.message ?: "Sauvegarde illisible" else "Restauration impossible : ${it.message}")
             }

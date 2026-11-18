@@ -1,19 +1,22 @@
 package com.cardeck.app.data
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
+import android.provider.Settings
 import android.database.Cursor
 import com.cardeck.app.BuildConfig
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.security.MessageDigest
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
 /**
  * Sauvegarde complète de l'application (véhicules, trajets, diagnostics, codages d'origine, préférences),
- * chiffrée par [BackupCrypto]. Protège contre la lecture et la modification par un tiers qui n'a pas l'application ;
- * la clé est intégrée à l'APK, ce n'est donc pas une protection contre quelqu'un qui le décompile.
+ * protégée au choix de l'utilisateur ([BackupLock]) : en clair, par mot de passe, ou liée à cet appareil.
  */
 object Backup {
     private const val FORMAT = 1
@@ -21,23 +24,51 @@ object Backup {
     /** Tables dans l'ordre de restauration (parents avant enfants). */
     private val TABLES = listOf("vehicles", "trips", "trip_points", "trip_samples", "scans", "scan_codes", "coding_backups")
 
-    class Summary(val vehicles: Int, val trips: Int)
+    /** [codingSkipped] : codages d'origine présents dans le fichier mais non restaurés (sauvegarde non liée à cet appareil). */
+    class Summary(val vehicles: Int, val trips: Int, val codingSkipped: Int = 0)
 
     /**
-     * Clé connue : la clé officielle pour les versions publiées, la clé de test pour les versions de développement.
-     * Une version publiée refuse la clé de test : elle est publique (dans le dépôt), donc n'importe qui pourrait
-     * fabriquer une sauvegarde qu'elle accepterait.
+     * Clé des sauvegardes de CarDeck 0.1 (relues seulement) : la clé officielle pour les versions publiées, la clé de test
+     * pour les versions de développement. Une version publiée refuse la clé de test, publique dans le dépôt.
      */
-    private fun keys(): Map<Int, ByteArray> =
-        if (official) mapOf(BackupCrypto.KEY_OFFICIAL to BuildConfig.BACKUP_KEY.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+    private fun legacyKeys(): Map<Int, ByteArray> =
+        if (BuildConfig.BACKUP_KEY.isNotEmpty()) mapOf(BackupCrypto.KEY_OFFICIAL to BuildConfig.BACKUP_KEY.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
         else mapOf(BackupCrypto.KEY_TEST to BackupCrypto.keyFromSecret("CarDeck test"))
 
-    /** Les versions de développement chiffrent avec la clé de test (pas de clé officielle dans le dépôt public). */
-    val official: Boolean get() = BuildConfig.BACKUP_KEY.isNotEmpty()
+    /** Marque et modèle de l'appareil, tels qu'affichés à l'utilisateur. */
+    fun deviceLabel(): String {
+        val brand = Build.MANUFACTURER.orEmpty().trim().replaceFirstChar { it.titlecase() }
+        val model = Build.MODEL.orEmpty().trim()
+        return when {
+            model.startsWith(brand, ignoreCase = true) -> model
+            brand.isEmpty() -> model
+            else -> "$brand $model"
+        }.ifBlank { "cet appareil" }
+    }
 
-    fun write(ctx: Context, repo: Repo, out: OutputStream): Summary {
-        val keyId = if (official) BackupCrypto.KEY_OFFICIAL else BackupCrypto.KEY_TEST
-        val d = DataOutputStream(GZIPOutputStream(BackupCrypto.encrypt(keys().getValue(keyId), keyId, out), 64 * 1024).buffered(64 * 1024))
+    /**
+     * Secret propre à cet appareil, ou null s'il n'est pas disponible. Empreinte (SHA-256) de :
+     * l'identifiant Android de l'appareil (ANDROID_ID : aléatoire, tiré à la première mise en route, propre à l'appareil et à
+     * l'application, conservé à la désinstallation, renouvelé à la réinitialisation d'usine) et des caractéristiques matérielles
+     * (fabricant, modèle, carte mère, processeur). Le secret ne quitte jamais l'appareil et n'est écrit nulle part.
+     */
+    @SuppressLint("HardwareIds")
+    fun deviceSecret(ctx: Context): ByteArray? {
+        val id = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ANDROID_ID)?.trim().orEmpty()
+        // Identifiant absent, ou valeur commune connue de certains appareils anciens ou bas de gamme : pas assez distinctif.
+        if (id.length < 8 || id == "9774d56d682e549c" || id.all { it == '0' }) return null
+        val parts = listOf("CarDeck appareil v1", id, Build.MANUFACTURER, Build.BRAND, Build.MODEL, Build.DEVICE, Build.BOARD, Build.HARDWARE)
+        return MessageDigest.getInstance("SHA-256").digest(parts.joinToString("\u0000") { it.orEmpty() }.toByteArray(Charsets.UTF_8))
+    }
+
+    /** Protection « liée à cet appareil », ou null si l'appareil ne fournit pas d'identifiant utilisable. */
+    fun deviceLock(ctx: Context): BackupLock.Device? = deviceSecret(ctx)?.let { BackupLock.Device(it, deviceLabel()) }
+
+    /** En-tête de la sauvegarde (mode de protection, appareil d'origine), sans rien déchiffrer. */
+    fun header(input: InputStream): BackupHeader = input.use { BackupCrypto.header(it) }
+
+    fun write(ctx: Context, repo: Repo, out: OutputStream, lock: BackupLock): Summary {
+        val d = DataOutputStream(GZIPOutputStream(BackupCrypto.encrypt(lock, out), 64 * 1024).buffered(64 * 1024))
         d.use {
             d.writeUTF("CarDeck"); d.writeInt(FORMAT); d.writeInt(DB_VERSION); d.writeLong(System.currentTimeMillis()); d.writeUTF(BuildConfig.VERSION_NAME)
             val prefs = Prefs(ctx).raw.all.filterValues { it != null }
@@ -61,9 +92,19 @@ object Backup {
         return Summary(repo.vehicles.value.size, count(repo, "trips"))
     }
 
-    /** Remplace toutes les données par celles de la sauvegarde ; rien n'est modifié si elle est invalide ou endommagée. */
-    fun read(ctx: Context, repo: Repo, input: InputStream): Summary {
-        val d = DataInputStream(GZIPInputStream(BackupCrypto.decrypt(keys(), input), 64 * 1024).buffered(64 * 1024))
+    /**
+     * Remplace toutes les données par celles de la sauvegarde ; rien n'est modifié si elle est invalide, endommagée,
+     * si le mot de passe est faux ou si elle est liée à un autre appareil.
+     */
+    fun read(ctx: Context, repo: Repo, input: InputStream, password: CharArray? = null): Summary {
+        val (header, plain) = BackupCrypto.open(input, legacyKeys(), password, deviceSecret(ctx))
+        // Codages d'origine : réécrits tels quels dans la voiture à la demande. Seule une sauvegarde liée à cet appareil
+        // garantit qu'ils viennent de CarDeck ; un fichier en clair ou à mot de passe peut avoir été fabriqué par un tiers.
+        val trustedCoding = header.mode == BackupCrypto.MODE_DEVICE
+        // Un fichier en clair n'a pas d'authentification : un fichier qui n'est pas du gzip est signalé simplement.
+        val gz = try { GZIPInputStream(plain, 64 * 1024) } catch (_: java.util.zip.ZipException) { throw BackupCrypto.BadBackup("Sauvegarde illisible") }
+        val d = DataInputStream(gz.buffered(64 * 1024))
+        var codingSkipped = 0
         d.use {
             if (d.readUTF() != "CarDeck" || d.readInt() != FORMAT) throw BackupCrypto.BadBackup("Sauvegarde illisible")
             if (d.readInt() > DB_VERSION) throw BackupCrypto.BadBackup("Sauvegarde d'une version plus récente de CarDeck : mettez l'application à jour")
@@ -77,14 +118,17 @@ object Backup {
                     val table = d.readUTF()
                     val cols = (0 until d.readInt()).map { d.readUTF() }
                     // Colonnes inconnues de ce schéma (sauvegarde plus ancienne ou table retirée) : ignorées.
-                    val known = if (table in TABLES) db.rawQuery("PRAGMA table_info($table)", null).use { c -> buildSet { while (c.moveToNext()) add(c.getString(1)) } } else emptySet()
+                    val known = if (table in TABLES && (table != "coding_backups" || trustedCoding)) db.rawQuery("PRAGMA table_info($table)", null).use { c -> buildSet { while (c.moveToNext()) add(c.getString(1)) } } else emptySet()
                     val keep = cols.indices.filter { cols[it] in known }
                     val stmt = if (keep.isEmpty()) null else db.compileStatement(
                         "INSERT INTO $table(${keep.joinToString(",") { cols[it] }}) VALUES(${keep.joinToString(",") { "?" }})",
                     )
                     while (d.readBoolean()) {
                         val row = cols.map { readValue(d) }
-                        stmt ?: continue
+                        if (stmt == null) {
+                            if (table == "coding_backups") codingSkipped++
+                            continue
+                        }
                         stmt.clearBindings()
                         keep.forEachIndexed { j, i ->
                             when (val v = row[i]) {
@@ -121,7 +165,7 @@ object Backup {
             sp.commit()
         }
         repo.afterRestore()
-        return Summary(repo.vehicles.value.size, count(repo, "trips"))
+        return Summary(repo.vehicles.value.size, count(repo, "trips"), codingSkipped)
     }
 
     private fun count(repo: Repo, table: String) = repo.sql.rawQuery("SELECT COUNT(*) FROM $table", null).use { it.moveToFirst(); it.getInt(0) }

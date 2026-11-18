@@ -83,9 +83,20 @@ Pour chaque véhicule, tu choisis si CarDeck sort de veille à la connexion Blue
 l'appli te le demande quand tu actives l'option.
 
 ### 💾 Sauvegarde
-Toutes tes données (véhicules, trajets, diagnostics, réglages) peuvent être sauvegardées dans un fichier **chiffré**, puis restaurées
-depuis **Paramètres → Sauvegarde**. Le chiffrement empêche de lire ou de modifier le fichier sans CarDeck ; garde-le malgré tout en lieu sûr,
-car il contient l'historique de tes trajets. CarDeck n'utilise pas la sauvegarde automatique d'Android (Google Drive) pour tes données.
+Toutes tes données (véhicules, trajets, diagnostics, codages d'origine, réglages) se sauvegardent dans un fichier, puis se restaurent
+depuis **Paramètres → Sauvegarde**. À chaque sauvegarde, tu choisis la protection :
+
+- 🔓 **Sans protection** : fichier en clair, sans mot de passe. Toute personne qui récupère le fichier peut lire toutes tes données,
+  trajets GPS compris.
+- 🔑 **Mot de passe** : chiffré (AES-256) avec le mot de passe de ton choix, restaurable sur n'importe quel appareil. Une jauge indique
+  sa force, à titre de conseil seulement : c'est toi qui décides. Oublié, il ne peut pas être retrouvé.
+- 📱 **Liée à cet appareil** : chiffrée avec une empreinte de l'appareil (son identifiant Android et ses caractéristiques matérielles),
+  sans mot de passe. Elle ne se restaure que sur cet appareil, tant qu'il n'est pas réinitialisé. Idéal pour un **autoradio Android qui
+  reste dans la voiture** : une copie du fichier ne sert à rien ailleurs.
+
+Un fichier chiffré modifié ou abîmé est refusé à la restauration. Par sécurité, les **codages d'origine** ne sont repris que depuis une
+sauvegarde liée à l'appareil (un fichier en clair ou à mot de passe peut avoir été fabriqué par quelqu'un d'autre). CarDeck n'utilise
+pas la sauvegarde automatique d'Android (Google Drive) pour tes données.
 
 ### 🏠 Un garage pour plusieurs voitures
 Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Pour le créer, tu choisis ton véhicule **en trois listes** : la **marque**, le **modèle**, puis la **génération et la motorisation**.
@@ -123,7 +134,7 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
   quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
 - 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
   d'arrivée du trajet), les cartes OpenStreetMap et la recherche de mises à jour.
-- 🔐 Tes sauvegardes sont **chiffrées** : un fichier modifié ou fabriqué est refusé à la restauration.
+- 🔐 Tes sauvegardes sont protégées comme tu le choisis : **mot de passe**, **liées à l'appareil**, ou en clair si tu le veux.
 - 🛡️ Sur les voitures qui se codent, le **codage d'origine** est enregistré avec le numéro de série (VIN) de la voiture : CarDeck refuse de le
   réécrire sur une autre voiture, et relit chaque réglage juste avant de l'écrire.
 - 🔄 Les mises à jour sont proposées au lancement et installables depuis **Paramètres → Application**, où tu retrouves aussi le journal des nouveautés.
