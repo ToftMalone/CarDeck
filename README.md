@@ -88,6 +88,8 @@ depuis **Paramètres → Sauvegarde**. À chaque sauvegarde, tu choisis la prote
 
 - 🔓 **Sans protection** : fichier en clair, sans mot de passe. Toute personne qui récupère le fichier peut lire toutes tes données,
   trajets GPS compris.
+- 🔐 **Chiffrée par CarDeck** : chiffrée (AES-256) avec la clé de l'application, sans mot de passe, restaurable sur n'importe quel
+  appareil avec CarDeck.
 - 🔑 **Mot de passe** : chiffré (AES-256) avec le mot de passe de ton choix, restaurable sur n'importe quel appareil. Une jauge indique
   sa force, à titre de conseil seulement : c'est toi qui décides. Oublié, il ne peut pas être retrouvé.
 - 📱 **Liée à cet appareil** : chiffrée avec une empreinte de l'appareil (son identifiant Android et ses caractéristiques matérielles),
@@ -134,7 +136,7 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
   quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
 - 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
   d'arrivée du trajet), les cartes OpenStreetMap et la recherche de mises à jour.
-- 🔐 Tes sauvegardes sont protégées comme tu le choisis : **mot de passe**, **liées à l'appareil**, ou en clair si tu le veux.
+- 🔐 Tes sauvegardes sont protégées comme tu le choisis : **chiffrées par CarDeck**, **mot de passe**, **liées à l'appareil**, ou en clair si tu le veux.
 - 🛡️ Sur les voitures qui se codent, le **codage d'origine** est enregistré avec le numéro de série (VIN) de la voiture : CarDeck refuse de le
   réécrire sur une autre voiture, et relit chaque réglage juste avant de l'écrire.
 - 🔄 Les mises à jour sont proposées au lancement et installables depuis **Paramètres → Application**, où tu retrouves aussi le journal des nouveautés.

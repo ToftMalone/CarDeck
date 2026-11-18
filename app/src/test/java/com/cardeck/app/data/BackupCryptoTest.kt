@@ -106,6 +106,24 @@ class BackupCryptoTest {
         assertTrue(fails { open(t.toByteArray(), legacy = mapOf(BackupCrypto.KEY_OFFICIAL to key)) }!!.message!!.contains("développement"))
     }
 
+    @Test fun chiffreeParCarDeck() {
+        val official = BackupCrypto.keyFromSecret("clé officielle")
+        val test = BackupCrypto.keyFromSecret("CarDeck test")
+        val data = "Swift Sport · trajet Paris-Lyon".repeat(50).toByteArray()
+        val file = seal(data, BackupLock.App(official, test = false))
+        assertFalse(String(file, Charsets.ISO_8859_1).contains("Swift"))
+        assertEquals(BackupCrypto.MODE_APP, BackupCrypto.header(ByteArrayInputStream(file)).mode)
+        assertFalse(BackupCrypto.header(ByteArrayInputStream(file)).needsPassword)
+        assertArrayEquals(data, open(file, password = null, secret = null, legacy = mapOf(BackupCrypto.KEY_OFFICIAL to official)))
+        // Une version de développement ne relit pas une sauvegarde d'une version publiée, et inversement.
+        assertTrue(fails { open(file, legacy = mapOf(BackupCrypto.KEY_TEST to test)) }!!.message!!.contains("version publiée"))
+        val dev = seal(data, BackupLock.App(test, test = true))
+        assertEquals(BackupCrypto.MODE_APP_TEST, BackupCrypto.header(ByteArrayInputStream(dev)).mode)
+        assertTrue(fails { open(dev, legacy = mapOf(BackupCrypto.KEY_OFFICIAL to official)) }!!.message!!.contains("développement"))
+        // Clé officielle différente (autre édition signée) : refus clair.
+        assertTrue(fails { open(file, legacy = mapOf(BackupCrypto.KEY_OFFICIAL to test)) }!!.message!!.contains("autre édition"))
+    }
+
     @Test fun fichierEtranger() {
         assertEquals("Ce fichier n'est pas une sauvegarde CarDeck", fails { open("PK\u0003\u0004 zip quelconque".toByteArray() + ByteArray(64)) }?.message)
     }

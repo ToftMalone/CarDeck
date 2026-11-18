@@ -291,7 +291,7 @@ private fun BackupSection(vm: AppViewModel) {
         }
     }
     T(
-        busy ?: "Au moment de sauvegarder, tu choisis la protection : aucune, mot de passe, ou liée à cet appareil.",
+        busy ?: "Au moment de sauvegarder, tu choisis la protection : aucune, chiffrée par CarDeck, mot de passe, ou liée à cet appareil.",
         12, if (busy != null) c.p else c.onv, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), lineHeight = 16,
     )
 
@@ -325,6 +325,12 @@ private fun BackupProtectionDialog(vm: AppViewModel, onDismiss: () -> Unit, onCo
                     mode == BackupCrypto.MODE_PLAIN, true,
                 ) { mode = BackupCrypto.MODE_PLAIN }
                 ProtectionOption(
+                    Icons.Rounded.Lock, "Chiffrée par CarDeck", "Chiffrée (AES-256) avec la clé de l'application, sans mot de passe. " +
+                        "Restaurable sur n'importe quel appareil avec CarDeck." +
+                        if (BuildConfig.BACKUP_KEY.isEmpty()) " Version de développement : clé de test, réservée aux essais." else "",
+                    mode == BackupCrypto.MODE_APP, true,
+                ) { mode = BackupCrypto.MODE_APP }
+                ProtectionOption(
                     Icons.Rounded.Password, "Mot de passe", "Chiffré avec le mot de passe de ton choix, restaurable sur n'importe quel appareil. " +
                         "Sans lui, la sauvegarde est perdue : CarDeck ne peut pas le retrouver.",
                     mode == BackupCrypto.MODE_PASSWORD, true,
@@ -353,6 +359,7 @@ private fun BackupProtectionDialog(vm: AppViewModel, onDismiss: () -> Unit, onCo
                 {
                     when (mode) {
                         BackupCrypto.MODE_PLAIN -> onConfirm(BackupLock.None)
+                        BackupCrypto.MODE_APP -> onConfirm(com.cardeck.app.data.Backup.appLock())
                         BackupCrypto.MODE_PASSWORD -> onConfirm(BackupLock.Password(pw.toCharArray()))
                         else -> device?.let(onConfirm)
                     }
@@ -421,6 +428,7 @@ private fun RestoreDialog(vm: AppViewModel, req: AppViewModel.RestoreRequest) {
                 T(
                     when (h.mode) {
                         BackupCrypto.MODE_PLAIN -> "🔓 Sauvegarde en clair (sans protection)."
+                        BackupCrypto.MODE_APP, BackupCrypto.MODE_APP_TEST -> "🔐 Sauvegarde chiffrée par CarDeck."
                         BackupCrypto.MODE_PASSWORD -> "🔑 Sauvegarde protégée par mot de passe."
                         BackupCrypto.MODE_DEVICE -> "📱 Sauvegarde liée à " + h.label.ifBlank { "un appareil" } + " : restaurable seulement sur cet appareil."
                         else -> "🔐 Sauvegarde de CarDeck 0.1."

@@ -784,6 +784,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val kind = when (lock) {
                 com.cardeck.app.data.BackupLock.None -> "en clair"
                 is com.cardeck.app.data.BackupLock.Password -> "protégée par mot de passe"
+                is com.cardeck.app.data.BackupLock.App -> "chiffrée par CarDeck"
                 is com.cardeck.app.data.BackupLock.Device -> "liée à ${lock.label}"
             }
             r.onSuccess { showSnack("Sauvegarde $kind enregistrée · ${it.vehicles} véhicule${if (it.vehicles > 1) "s" else ""}, ${it.trips} trajet${if (it.trips > 1) "s" else ""}") }

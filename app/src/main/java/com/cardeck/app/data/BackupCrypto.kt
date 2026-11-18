@@ -26,6 +26,9 @@ sealed class BackupLock {
     /** Mot de passe choisi par l'utilisateur (aucune exigence de longueur ou de complexité). */
     class Password(val password: CharArray) : BackupLock()
 
+    /** Chiffrée par CarDeck, sans mot de passe : [key] intégrée à l'application, [test] pour celle des versions de développement. */
+    class App(val key: ByteArray, val test: Boolean) : BackupLock()
+
     /** Lié à cet appareil : [secret] dérivé de l'appareil, [label] (marque et modèle) écrit en clair pour l'afficher à la restauration. */
     class Device(val secret: ByteArray, val label: String) : BackupLock()
 }
@@ -42,6 +45,7 @@ data class BackupHeader(val mode: Int, val label: String) {
  * (fichier tronqué) est détecté.
  *
  * Version 1 (CarDeck 0.1) : clé intégrée à l'application ([KEY_OFFICIAL]) ou de test ([KEY_TEST]), encore relue.
+ * Les clés de l'application servent aussi au mode [MODE_APP] (versions publiées) et [MODE_APP_TEST] (développement).
  */
 object BackupCrypto {
     // Version 1 : identifiant de clé.
@@ -50,8 +54,10 @@ object BackupCrypto {
 
     // Version 2 : mode de protection.
     const val MODE_PLAIN = 0
+    const val MODE_APP = 1
     const val MODE_PASSWORD = 2
     const val MODE_DEVICE = 3
+    const val MODE_APP_TEST = 4
 
     /** Sauvegarde de la version 1 (CarDeck 0.1), chiffrée avec la clé intégrée à l'application. */
     const val MODE_LEGACY = -1
@@ -84,11 +90,13 @@ object BackupCrypto {
         val (mode, label) = when (lock) {
             BackupLock.None -> MODE_PLAIN to ""
             is BackupLock.Password -> MODE_PASSWORD to ""
+            is BackupLock.App -> (if (lock.test) MODE_APP_TEST else MODE_APP) to ""
             is BackupLock.Device -> MODE_DEVICE to lock.label
         }
         val master = when (lock) {
             BackupLock.None -> null
             is BackupLock.Password -> passwordKey(lock.password, salt, iterations)
+            is BackupLock.App -> lock.key
             is BackupLock.Device -> lock.secret
         }
         val key = master?.let { fileKey(it, salt) }
@@ -182,7 +190,7 @@ object BackupCrypto {
                     val iterations = inp.readInt()
                     val check = ByteArray(CHECK).also { inp.readFully(it) }
                     val labelBytes = ByteArray(inp.readUnsignedShort()).also { inp.readFully(it) }
-                    if (mode !in listOf(MODE_PLAIN, MODE_PASSWORD, MODE_DEVICE)) throw BadBackup("Sauvegarde d'une version plus récente de CarDeck")
+                    if (mode !in listOf(MODE_PLAIN, MODE_APP, MODE_PASSWORD, MODE_DEVICE, MODE_APP_TEST)) throw BadBackup("Sauvegarde d'une version plus récente de CarDeck")
                     if (mode == MODE_PASSWORD && iterations !in 1..10_000_000) throw BadBackup("Sauvegarde endommagée")
                     // En-tête tel qu'il est dans le fichier (authentifié avec chaque bloc).
                     val header = ByteArrayOutputStream().also { b ->
@@ -204,7 +212,8 @@ object BackupCrypto {
     }
 
     /**
-     * Flux de lecture du contenu. [legacyKeys] : clés de la version 1 par identifiant ; [password] pour une sauvegarde
+     * Flux de lecture du contenu. [legacyKeys] : clés de l'application par identifiant ([KEY_OFFICIAL], [KEY_TEST]),
+     * pour les sauvegardes de la version 1 et le mode [MODE_APP] ; [password] pour une sauvegarde
      * protégée par mot de passe ; [deviceSecret] pour une sauvegarde liée à l'appareil.
      * Lève [PasswordNeeded], [WrongPassword], [WrongDevice] ou [BadBackup].
      */
@@ -232,6 +241,14 @@ object BackupCrypto {
         }
         return when (p.mode) {
             MODE_PLAIN -> inp
+            MODE_APP, MODE_APP_TEST -> {
+                val official = p.mode == MODE_APP
+                val master = legacyKeys[if (official) KEY_OFFICIAL else KEY_TEST] ?: throw BadBackup(
+                    if (official) "Sauvegarde chiffrée par une version publiée de CarDeck : à restaurer avec une version publiée"
+                    else "Sauvegarde d'une version de développement : refusée par une version publiée de CarDeck",
+                )
+                verified(inp, p, fileKey(master, p.salt)) { BadBackup("Sauvegarde chiffrée par une autre édition de CarDeck") }
+            }
             MODE_PASSWORD -> {
                 val pw = password ?: throw PasswordNeeded()
                 verified(inp, p, fileKey(passwordKey(pw, p.salt, p.iterations), p.salt)) { WrongPassword() }

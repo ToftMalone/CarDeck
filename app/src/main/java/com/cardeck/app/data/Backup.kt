@@ -28,12 +28,17 @@ object Backup {
     class Summary(val vehicles: Int, val trips: Int, val codingSkipped: Int = 0)
 
     /**
-     * Clé des sauvegardes de CarDeck 0.1 (relues seulement) : la clé officielle pour les versions publiées, la clé de test
-     * pour les versions de développement. Une version publiée refuse la clé de test, publique dans le dépôt.
+     * Clé de l'application (sauvegardes de CarDeck 0.1 et mode « chiffrée par CarDeck ») : la clé officielle pour les versions
+     * publiées, la clé de test pour les versions de développement. Une version publiée refuse la clé de test, publique dans le dépôt.
      */
     private fun legacyKeys(): Map<Int, ByteArray> =
         if (BuildConfig.BACKUP_KEY.isNotEmpty()) mapOf(BackupCrypto.KEY_OFFICIAL to BuildConfig.BACKUP_KEY.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
         else mapOf(BackupCrypto.KEY_TEST to BackupCrypto.keyFromSecret("CarDeck test"))
+
+    /** Protection « chiffrée par CarDeck » : clé officielle d'une version publiée, clé de test d'une version de développement. */
+    fun appLock(): BackupLock.App = legacyKeys().let { k ->
+        k[BackupCrypto.KEY_OFFICIAL]?.let { BackupLock.App(it, test = false) } ?: BackupLock.App(k.getValue(BackupCrypto.KEY_TEST), test = true)
+    }
 
     /** Marque et modèle de l'appareil, tels qu'affichés à l'utilisateur. */
     fun deviceLabel(): String {
