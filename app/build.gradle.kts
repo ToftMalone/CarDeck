@@ -85,8 +85,13 @@ android {
 androidComponents {
     onVariants { variant ->
         if (variant.buildType == "release" && releaseVersion != null) {
+            // Code de version croissant, tiré du numéro : 0.2 → 200, 1.4.3 → 10403 (Android refuse une mise à jour de code inférieur).
+            val parts = releaseVersion.split('.').map { it.toIntOrNull() ?: throw GradleException("Numéro de version invalide : $releaseVersion") }
+            if (parts.size !in 1..3 || parts.drop(1).any { it > 99 }) throw GradleException("Numéro de version invalide : $releaseVersion (X.Y ou X.Y.Z)")
+            val code = parts.getOrElse(0) { 0 } * 10_000 + parts.getOrElse(1) { 0 } * 100 + parts.getOrElse(2) { 0 }
             variant.outputs.forEach { out ->
                 out.versionName.set(releaseVersion)
+                out.versionCode.set(code)
             }
         }
     }
