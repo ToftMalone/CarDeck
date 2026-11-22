@@ -165,27 +165,6 @@ private fun PidCard(p: PidDef, value: Double?, modifier: Modifier) {
     )
 }
 
-/** Carte de jauge du tableau de bord : arc à la couleur de la rubrique, valeur en Google Sans Flex. */
-@Composable
-internal fun GaugeCard(p: PidDef, value: Double?, modifier: Modifier, note: String? = null) {
-    val c = Cd.c
-    val acc = Cd.acc
-    Column(modifier.clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Ico(p.icon, 16, c.onv)
-            androidx.compose.material3.Text(p.label, style = rf(12, 16), color = c.onv, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        }
-        Box(Modifier.padding(top = 4.dp).size(138.dp), contentAlignment = Alignment.Center) {
-            ArcGauge(value?.let { ((it - p.min) / (p.max - p.min)).toFloat() } ?: 0f, acc.accent, 8f, Modifier.fillMaxSize())
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                androidx.compose.material3.Text(value?.let { p.text(it) } ?: "—", style = com.cardeck.app.ui.gs(30, 36, 500, -0.5f, tnum = true), color = c.on)
-                androidx.compose.material3.Text(p.unit, style = rf(12, 16), color = c.onv)
-            }
-        }
-        if (note != null) T(note, 12, c.onv, align = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
-    }
-}
-
 @Composable
 private fun InfoRow(label: String, value: String) {
     val c = Cd.c

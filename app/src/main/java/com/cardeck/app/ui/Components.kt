@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -496,5 +497,74 @@ fun ErrorBanner(icon: ImageVector, title: String, message: String) {
             Text(title, style = rf(15, 20, 600), color = c.oec)
             Text(message, Modifier.padding(top = 2.dp), style = rf(13, 18), color = c.oec)
         }
+    }
+}
+
+/** Pastille avec icône, sur la surface (carte d'en-tête d'un tableau de bord). */
+@Composable
+fun IconChip(icon: ImageVector, text: String, iconTint: Color) {
+    val c = Cd.c
+    Row(
+        Modifier.height(32.dp).clip(RoundedCornerShape(10.dp)).background(c.sf).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Ico(icon, 18, iconTint)
+        Text(text, style = rf(13, 18, 500, tnum = true), color = c.on, maxLines = 1)
+    }
+}
+
+/** Bouton pilule à la taille de son texte (56 dp par défaut), rempli de l'accent. */
+@Composable
+fun PillBtn(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, height: Dp = 56.dp, enabled: Boolean = true) {
+    val c = Cd.c
+    val acc = Cd.acc
+    val haptics = Cd.haptics
+    Row(
+        modifier.height(height).clip(RoundedCornerShape(height / 2)).background(if (enabled) acc.accent else c.on.copy(alpha = 0.12f))
+            .clickable(enabled = enabled) { haptics.confirm(); onClick() }.padding(horizontal = if (height >= 56.dp) 28.dp else 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+    ) {
+        val fg = if (enabled) acc.onAccent else c.on.copy(alpha = 0.38f)
+        if (icon != null) Ico(icon, 20, fg)
+        Text(text, style = rf(if (height >= 56.dp) 16 else 14, 20, 600), color = fg, maxLines = 1)
+    }
+}
+
+/** Page sans contenu possible (pas connecté, rien à afficher) : grand biscuit qui tourne, titre, message et action. */
+@Composable
+fun StatePanel(icon: ImageVector, title: String, message: String, action: Pair<String, () -> Unit>? = null, actionIcon: ImageVector? = null) {
+    val c = Cd.c
+    Column(
+        Modifier.fillMaxWidth().padding(top = 48.dp, bottom = 24.dp).fadeUp(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ShapeBadge(icon, cookieShape(), 120.dp, c.sf4, c.onv, 52.dp, spinMs = 40_000)
+        Text(title, Modifier.padding(top = 28.dp), style = gs(26, 32, 500), color = c.on, textAlign = TextAlign.Center)
+        Text(message, Modifier.padding(top = 10.dp).widthIn(max = 300.dp), style = rf(15, 22), color = c.onv, textAlign = TextAlign.Center)
+        if (action != null) PillBtn(action.first, action.second, Modifier.padding(top = 28.dp), icon = actionIcon)
+    }
+}
+
+/** Tuile de jauge : libellé, grande valeur et unité, anneau de niveau à la couleur de la rubrique, note éventuelle. */
+@Composable
+fun GaugeTile(label: String, value: String, unit: String, icon: ImageVector?, fraction: Float?, note: String?, modifier: Modifier = Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (icon != null) Ico(icon, 16, c.onv)
+                    Text(label, style = rf(12, 16), color = c.onv, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(value, style = gs(28, 32, 500, tnum = true), color = c.on, maxLines = 1)
+                    if (unit.isNotEmpty()) Text(unit, Modifier.padding(bottom = 3.dp), style = rf(12, 16), color = c.onv, maxLines = 1)
+                }
+            }
+            if (fraction != null) QualityRing(fraction, Cd.acc.accent, size = 44.dp)
+        }
+        if (note != null) Text(note, Modifier.padding(top = 6.dp), style = rf(11, 14), color = c.onv, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
