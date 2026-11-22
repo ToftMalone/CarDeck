@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
 import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.WifiFind
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -280,6 +281,17 @@ fun PairScreen(vm: AppViewModel) {
                     Triple("Wi-Fi", Icons.Rounded.Wifi, mode == 2),
                 ),
             ) { mode = it; found.clear(); selected = null }
+
+            // Version de développement : boîtier et voiture simulés, pour tout essayer sans voiture.
+            if (com.cardeck.app.obd.DebugTools.simulatorAvailable) {
+                val simAddr = "simulateur"
+                Column(Modifier.padding(top = 16.dp)) {
+                    T("🧪 Version de développement", 12, c.onv, 600, Modifier.padding(start = 4.dp, bottom = 6.dp))
+                    DeviceRow(Icons.Rounded.Science, "Simulateur CarDeck", "Boîtier et voiture simulés · trajets, défauts, cliquetis", connecting && selected == simAddr, connected?.address == simAddr) {
+                        connect(AdapterConfig(Transport.Simulator, simAddr, "Simulateur CarDeck"))
+                    }
+                }
+            }
 
             if (mode < 2) {
                 when {

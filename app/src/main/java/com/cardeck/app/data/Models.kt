@@ -14,7 +14,7 @@ fun fr(n: Number, decimals: Int = 0): String {
     return f.format(n)
 }
 
-enum class Transport(val label: String) { Classic("Bluetooth"), Ble("Bluetooth LE"), Wifi("Wi-Fi") }
+enum class Transport(val label: String) { Classic("Bluetooth"), Ble("Bluetooth LE"), Wifi("Wi-Fi"), Simulator("Simulateur") }
 
 /** Boîtier OBD2 associé à un profil de véhicule. [address] = MAC Bluetooth ou « hôte:port » en Wi-Fi. */
 data class AdapterConfig(val transport: Transport, val address: String, val name: String)

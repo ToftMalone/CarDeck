@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Version de développement seulement : branche le simulateur de boîtier OBD2 (absent de la version publiée). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="com.cardeck.app.sim.SimInstaller"
+            android:authorities="${applicationId}.simulateur"
+            android:exported="false" />
+    </application>
+</manifest>

@@ -61,6 +61,11 @@ class ObdManager(private val ctx: Context) {
         val t = when (a.transport) {
             Transport.Classic -> ClassicTransport(ctx, a.address)
             Transport.Ble -> BleTransport(ctx, a.address)
+            // Boîtier simulé : seulement dans la version de développement.
+            Transport.Simulator -> DebugTools.simulator?.invoke() ?: run {
+                _state.value = ObdState.Failed(a, "Simulateur disponible seulement dans la version de développement")
+                return@withLock Result.failure(java.io.IOException("Simulateur disponible seulement dans la version de développement"))
+            }
             Transport.Wifi -> {
                 // Contrôle à chaque connexion : l'adresse peut venir d'une sauvegarde restaurée.
                 val (host, port) = WifiAddress.parse(a.address) ?: run {
