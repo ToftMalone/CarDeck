@@ -82,6 +82,8 @@ import com.cardeck.app.ui.Radar
 import com.cardeck.app.ui.Segmented
 import com.cardeck.app.ui.Spinner
 import com.cardeck.app.ui.T
+import com.cardeck.app.ui.rememberSpin
+import com.cardeck.app.ui.spinning
 import com.cardeck.app.ui.TextBtn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -100,9 +102,11 @@ fun WelcomeScreen(vm: AppViewModel) {
             T("CarDeck", 20, weight = 600)
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(272.dp).clip(CircleShape).background(c.sf2), contentAlignment = Alignment.Center) {
-                ArcGauge(progress, c.p, 7f, Modifier.size(220.dp))
-                Ico(Icons.Rounded.DirectionsCar, 88, c.on)
+            Box(Modifier.size(280.dp), contentAlignment = Alignment.Center) {
+                com.cardeck.app.ui.PulseRing(c.p, 180.dp, periodMs = 2400)
+                Box(Modifier.size(272.dp).spinning(rememberSpin(40_000)).clip(com.cardeck.app.ui.cookieShape()).background(c.pc))
+                ArcGauge(progress, c.p, 7f, Modifier.size(210.dp))
+                Ico(Icons.Rounded.DirectionsCar, 88, c.opc)
             }
         }
         T("Comprenez enfin votre voiture", 36, lineHeight = 44, modifier = Modifier.padding(bottom = 12.dp))
@@ -307,7 +311,7 @@ fun PairScreen(vm: AppViewModel) {
                     }
                 }
             } else {
-                Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 16.dp).clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 16.dp).clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Ico(Icons.Rounded.WifiFind, 20, c.onv)
                     T("Connectez d'abord le téléphone au réseau Wi-Fi du boîtier (ex. « WiFi_OBDII »), puis revenez ici.", 13, c.onv, lineHeight = 18)
                 }
@@ -327,7 +331,7 @@ fun PairScreen(vm: AppViewModel) {
             }
 
             if (info != null) {
-                Row(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(16.dp)).background(c.gc).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(20.dp)).background(c.gc).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Ico(Icons.Rounded.CheckCircle, 22, c.ogc)
                     Column {
                         T("Boîtier connecté", 14, c.ogc, 600)
@@ -337,7 +341,7 @@ fun PairScreen(vm: AppViewModel) {
                 }
             }
             if (error != null) {
-                Row(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(16.dp)).background(c.ec).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(20.dp)).background(c.ec).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Ico(Icons.Rounded.ErrorOutline, 22, c.oec)
                     T(error!!, 13, c.oec, lineHeight = 18)
                 }
@@ -354,7 +358,7 @@ fun PairScreen(vm: AppViewModel) {
 @Composable
 private fun Notice(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, action: String?, onAction: (() -> Unit)?) {
     val c = Cd.c
-    Column(Modifier.fillMaxWidth().padding(top = 24.dp).clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().padding(top = 24.dp).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Ico(icon, 36, c.onv)
         T(text, 14, c.onv, modifier = Modifier.padding(top = 10.dp), align = androidx.compose.ui.text.style.TextAlign.Center)
         if (action != null && onAction != null) Box(Modifier.padding(top = 8.dp)) { TextBtn(action, onAction) }

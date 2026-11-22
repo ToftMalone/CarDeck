@@ -232,7 +232,7 @@ private fun Crumb(label: String, link: Boolean, onClick: () -> Unit) {
 private fun PickRow(title: String, sub: String, initial: String?, sub2: String? = null, tag: String? = null, onClick: () -> Unit) {
     val c = Cd.c
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(if (title == OTHER) c.sf4 else c.pc), contentAlignment = Alignment.Center) {
@@ -242,7 +242,7 @@ private fun PickRow(title: String, sub: String, initial: String?, sub2: String? 
             T(title, 16, weight = 500, lineHeight = 22, maxLines = 1)
             T(listOfNotNull(sub, sub2).joinToString(" · "), 12, c.onv, lineHeight = 16, maxLines = 1)
         }
-        if (tag != null) Box(Modifier.clip(RoundedCornerShape(10.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp)) { T(tag, 11, c.op, 600) }
+        if (tag != null) Box(Modifier.clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp)) { T(tag, 11, c.op, 600) }
         Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.onv)
     }
 }
@@ -255,7 +255,7 @@ private fun GenerationBlock(brand: CatalogBrand, model: CatalogModel, g: Catalog
     Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         T(title, 14, c.p, 600)
         if (g.years.isNotBlank()) T(g.years, 12, c.onv)
-        if (highlight) Box(Modifier.clip(RoundedCornerShape(10.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 2.dp)) { T("Correspond à votre VIN", 11, c.op, 600) }
+        if (highlight) Box(Modifier.clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 2.dp)) { T("Correspond à votre VIN", 11, c.op, 600) }
     }
     g.variants.forEach { t -> VariantRow(t, null, onPick) }
 }
@@ -264,7 +264,7 @@ private fun GenerationBlock(brand: CatalogBrand, model: CatalogModel, g: Catalog
 private fun VariantRow(t: VehicleTemplate, context: String?, onPick: (VehicleTemplate) -> Unit) {
     val c = Cd.c
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (t.dedicated) c.sc else c.sf1).clickable { onPick(t) }.padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (t.dedicated) c.sc else c.sf1).clickable { onPick(t) }.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f)) {
@@ -280,7 +280,7 @@ private fun VariantRow(t: VehicleTemplate, context: String?, onPick: (VehicleTem
 @Composable
 private fun DedicatedBadge() {
     val c = Cd.c
-    Row(Modifier.clip(RoundedCornerShape(10.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(Modifier.clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Ico(Icons.Rounded.Verified, 14, c.op)
         T("Profil dédié", 11, c.op, 600)
     }
@@ -291,7 +291,7 @@ private fun SearchResults(query: String, onPick: (VehicleTemplate) -> Unit) {
     val c = Cd.c
     val hits = remember(query) { searchCatalog(query) }
     if (hits.isEmpty()) {
-        Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(20.dp)) {
+        Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp)) {
             T("Aucun véhicule trouvé", 16, weight = 500)
             T("Essayez la marque et le modèle seuls, ou choisissez « $OTHER » : les données OBD2 standard fonctionnent sur toutes les voitures essence depuis 2001 et diesel depuis 2004.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(top = 4.dp))
         }
@@ -331,7 +331,7 @@ private fun VehicleDetails(vm: AppViewModel, tpl: VehicleTemplate, onChange: () 
                 IconBtn(Icons.Rounded.Edit, onChange, c.opc)
             }
             val fromVin = vm.vinResult?.takeIf { it.templateId == tpl.id }
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Ico(if (tpl.dedicated) Icons.Rounded.Verified else Icons.Rounded.Info, 20, c.onv)
                 T(
                     (if (fromVin != null) "Reconnue grâce au VIN ${fromVin.vin}. " else "") + if (tpl.dedicated) "Profil dédié : données constructeur en plus des données OBD2 standard. ${tpl.protocol}."

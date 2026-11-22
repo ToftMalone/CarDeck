@@ -43,6 +43,12 @@ import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.T
+import com.cardeck.app.ui.rise
+import com.cardeck.app.ui.rf
+import com.cardeck.app.ui.spinning
+import com.cardeck.app.ui.rememberSpin
+import com.cardeck.app.ui.cloverShape
+import androidx.compose.foundation.layout.fillMaxHeight
 import com.cardeck.app.ui.TextBtn
 
 /** Liaison OBD2 + toutes les valeurs envoyées par le véhicule. */
@@ -61,49 +67,47 @@ fun ObdDataScreen(vm: AppViewModel) {
     val supported by vm.obd.supported.collectAsState()
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 12.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            IconBtn(Icons.AutoMirrored.Rounded.ArrowBack, { vm.back() })
-            Box(Modifier.size(40.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 22, c.opc) }
-            Column(Modifier.weight(1f)) {
-                T(v.nickname, 16, weight = 500, lineHeight = 22, maxLines = 1)
-                T("Données OBD2 · " + v.plate.ifBlank { tpl.code }, 12, c.onv, lineHeight = 16, maxLines = 1)
-            }
-            ConnChip(connLabel, connKind)
+        com.cardeck.app.ui.PageBar("Données OBD2", v.nickname + " · " + v.plate.ifBlank { tpl.code }, { vm.back() }) {
+            com.cardeck.app.ui.StatusChip(connLabel, connDot(connKind), blink = connKind != ConnKind.Off)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-            // Explorateur : découverte de tous les calculateurs et de leurs données.
+            // Explorateur : découverte de tous les calculateurs et de leurs données (carte à sa couleur).
+            val ex = com.cardeck.app.ui.accentRoles(com.cardeck.app.ui.Section.Explorer, c.dark)
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(24.dp)).background(c.pc)
+                Modifier.fillMaxWidth().padding(bottom = 12.dp).rise(0).clip(RoundedCornerShape(28.dp)).background(ex.container)
                     .clickable { vm.go(com.cardeck.app.Screen.Explorer) }.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.TravelExplore, 24, c.op) }
-                Column(Modifier.weight(1f)) {
-                    T("Explorateur", 16, c.opc, 600)
-                    T(if (vm.explorer.running) "En cours · ${vm.explorer.mode ?: "préparation"}" else "Tous les calculateurs et leurs données · à l'arrêt ou en roulant", 12, c.opc, lineHeight = 16)
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    com.cardeck.app.ui.PulseRing(ex.accent, 40.dp, periodMs = 1600)
+                    Box(Modifier.size(44.dp).spinning(rememberSpin(20_000)).clip(cloverShape()).background(ex.accent))
+                    Ico(Icons.Rounded.TravelExplore, 24, ex.onAccent)
                 }
-                Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.opc)
+                Column(Modifier.weight(1f)) {
+                    androidx.compose.material3.Text("Explorateur", style = rf(16, 22, 600), color = ex.onContainer)
+                    androidx.compose.material3.Text(
+                        if (vm.explorer.running) "En cours · ${vm.explorer.mode ?: "préparation"}" else "Tous les calculateurs et leurs données · à l'arrêt ou en roulant",
+                        style = rf(13, 18), color = ex.onContainer.copy(alpha = .85f),
+                    )
+                }
+                Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, ex.onContainer)
             }
             // Liaison
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
-                T("Liaison OBD2", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
-                val a = v.adapter
+            val a = v.adapter
+            com.cardeck.app.ui.InfoList("Liaison OBD2", Modifier.rise(1)) {
                 if (a == null) {
-                    T("Aucun boîtier n'est associé à ce véhicule.", 14, c.onv)
+                    T("Aucun boîtier n'est associé à ce véhicule.", 14, c.onv, modifier = Modifier.padding(vertical = 8.dp))
                     TextBtn("Associer un boîtier", { vm.pairActive() })
                 } else {
-                    InfoRow("Boîtier", "${a.name} · ${a.transport.label}")
-                    InfoRow("Interface", (st as? ObdState.Connected)?.version ?: "—")
-                    InfoRow("Protocole", if (connected) protocol ?: "—" else "—")
-                    InfoRow("Véhicule", if (!connected) "—" else if (ecu) "Calculateur moteur joignable" else "Contact coupé")
-                    InfoRow("VIN", v.vin ?: "Non lu")
+                    com.cardeck.app.ui.InfoLine("Boîtier", "${a.name} · ${a.transport.label}")
+                    com.cardeck.app.ui.InfoLine("Interface", (st as? ObdState.Connected)?.version ?: "—")
+                    com.cardeck.app.ui.InfoLine("Protocole", if (connected) protocol ?: "—" else "—")
+                    com.cardeck.app.ui.InfoLine("Véhicule", if (!connected) "—" else if (ecu) "Calculateur moteur joignable" else "Contact coupé")
+                    com.cardeck.app.ui.InfoLine("VIN", v.vin ?: "Non lu")
                     (st as? ObdState.Failed)?.takeIf { it.adapter.address == a.address }?.let {
                         T(it.message, 13, c.e, modifier = Modifier.padding(top = 8.dp), lineHeight = 18)
                     }
-                    if (connKind == ConnKind.Off) TextBtn("Se connecter", { vm.connectNow() })
+                    if (connKind == ConnKind.Off) Box(Modifier.padding(top = 4.dp, bottom = 8.dp)) { com.cardeck.app.ui.TonalBtn("Se connecter", { vm.connectNow() }) }
                 }
             }
             // Toujours affichées, même boîtier déconnecté : données déclarées par le véhicule (dernière connexion),
@@ -111,7 +115,7 @@ fun ObdDataScreen(vm: AppViewModel) {
             val cached = remember(v.id, supported) { vm.repo.supportedPids(v.id) }
             val known = supported ?: cached
             val std = known?.let { StdPids.forSupported(it) } ?: StdPids.all
-            T("Toutes les valeurs du véhicule", 16, weight = 500, modifier = Modifier.padding(top = 20.dp, bottom = 4.dp))
+            androidx.compose.material3.Text("Toutes les valeurs du véhicule", Modifier.padding(start = 4.dp, top = 24.dp, bottom = 4.dp), style = com.cardeck.app.ui.gs(22, 28, 500), color = c.on)
             when {
                 !connected -> T("Boîtier non connecté : les valeurs s'afficheront dès la connexion.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
                 supported == null -> T("Mets le contact : CarDeck interroge le véhicule pour savoir quelles données il fournit.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
@@ -131,65 +135,51 @@ fun ObdDataScreen(vm: AppViewModel) {
     }
 }
 
-/** Titre de catégorie + cartes des données correspondantes. */
+/** Titre de catégorie (couleur de l'accent) + tuiles des données correspondantes, entrée en cascade. */
 @Composable
 private fun PidSection(title: String, pids: List<PidDef>, values: Map<String, Double>) {
-    T(title, 14, Cd.c.p, 500, Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        pids.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f)) }
+    com.cardeck.app.ui.SectionLabel(title)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        pids.chunked(2).forEachIndexed { i, row ->
+            Row(Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min).rise(i), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { p -> PidCard(p, values[p.id], Modifier.weight(1f).fillMaxHeight()) }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
 }
 
+/** État vide (biscuit neutre qui tourne lentement), comme dans All Radio Tools. */
 @Composable
 internal fun EmptyNote(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, text: String) {
-    val c = Cd.c
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).border(1.dp, c.olv, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(Modifier.size(56.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Ico(icon, 28, c.onv) }
-        T(title, 16, weight = 500, modifier = Modifier.padding(top = 14.dp))
-        T(text, 14, c.onv, align = TextAlign.Center, lineHeight = 20, modifier = Modifier.padding(top = 6.dp))
-    }
+    com.cardeck.app.ui.EmptyStateCard(icon, title, text)
 }
 
+/** Tuile de mesure d'All Radio Tools : libellé, grande valeur alignée, unité, barre de niveau à la couleur de la rubrique. */
 @Composable
 private fun PidCard(p: PidDef, value: Double?, modifier: Modifier) {
-    val c = Cd.c
-    Column(modifier.clip(RoundedCornerShape(20.dp)).border(1.dp, c.olv, RoundedCornerShape(20.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(c.sc), contentAlignment = Alignment.Center) { Ico(p.icon, 18, c.osc) }
-            T(p.label, 12, c.onv, lineHeight = 16, modifier = Modifier.weight(1f))
-        }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            T(value?.let { p.text(it) } ?: "—", 24, weight = 500, lineHeight = 32)
-            T(p.unit, 12, c.onv, modifier = Modifier.padding(bottom = 4.dp))
-        }
-        val pct by animateFloatAsState(value?.let { ((it - p.min) / (p.max - p.min)).toFloat().coerceIn(0f, 1f) } ?: 0f, tween(500), label = "pid")
-        Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.sf4)) {
-            Box(Modifier.fillMaxWidth(pct).fillMaxSize().clip(RoundedCornerShape(2.dp)).background(c.p))
-        }
-    }
+    com.cardeck.app.ui.MetricTile(
+        p.label, value?.let { p.text(it) } ?: "—", p.unit, p.icon,
+        level = value?.let { ((it - p.min) / (p.max - p.min)).toFloat().coerceIn(0f, 1f) } ?: 0f,
+        modifier = modifier,
+    )
 }
 
+/** Carte de jauge du tableau de bord : arc à la couleur de la rubrique, valeur en Google Sans Flex. */
 @Composable
 internal fun GaugeCard(p: PidDef, value: Double?, modifier: Modifier, note: String? = null) {
     val c = Cd.c
-    Column(modifier.clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    val acc = Cd.acc
+    Column(modifier.clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Ico(p.icon, 18, c.p)
-            T(p.label, 12, c.onv, 500)
+            Ico(p.icon, 16, c.onv)
+            androidx.compose.material3.Text(p.label, style = rf(12, 16), color = c.onv, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         Box(Modifier.padding(top = 4.dp).size(138.dp), contentAlignment = Alignment.Center) {
-            ArcGauge(value?.let { ((it - p.min) / (p.max - p.min)).toFloat() } ?: 0f, c.p, 8f, Modifier.fillMaxSize())
+            ArcGauge(value?.let { ((it - p.min) / (p.max - p.min)).toFloat() } ?: 0f, acc.accent, 8f, Modifier.fillMaxSize())
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                T(value?.let { p.text(it) } ?: "—", 30, weight = 500, lineHeight = 36, spacing = -.5f)
-                T(p.unit, 12, c.onv)
+                androidx.compose.material3.Text(value?.let { p.text(it) } ?: "—", style = com.cardeck.app.ui.gs(30, 36, 500, -0.5f, tnum = true), color = c.on)
+                androidx.compose.material3.Text(p.unit, style = rf(12, 16), color = c.onv)
             }
         }
         if (note != null) T(note, 12, c.onv, align = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))

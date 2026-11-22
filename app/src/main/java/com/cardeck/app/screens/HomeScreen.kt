@@ -132,16 +132,14 @@ fun HomeScreen(vm: AppViewModel) {
         Tile("diag", "Diagnostic", "Codes défaut, effacement et contrôle technique", Icons.Rounded.Troubleshoot, Section.Diag, Screen.Diag, { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("trips", "Trajets", "Tracés, consommation et coût de chaque trajet", Icons.Rounded.Route, Section.Trips, Screen.Trips, { vm.go(Screen.Trips) }),
         Tile("pair", "Boîtier OBD2", "Associer, changer ou reconnecter le boîtier", Icons.Rounded.SettingsInputHdmi, Section.Adapter, Screen.Pair, { vm.pairActive() }),
-        Tile("explorer", "Explorateur", "Tout ce que les calculateurs acceptent de dire", Icons.Rounded.TravelExplore, Section.Explorer, Screen.Explorer, { vm.go(Screen.Explorer) }),
+        Tile("settings", "Paramètres", "Garage, apparence, sauvegarde et mises à jour", Icons.Rounded.Settings, Section.Settings, Screen.Settings, { vm.go(Screen.Settings) }),
     )
     Column(Modifier.fillMaxSize().background(c.sf)) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Text("CarDeck", style = gs(32, 40, 500, -0.3f), color = c.on, maxLines = 1)
-                    Text(vm.greeting, Modifier.padding(top = 4.dp), style = rf(14, 20), color = c.onv)
-                }
-                IconBtn(Icons.Rounded.Settings, { vm.go(Screen.Settings) }, c.onv, c.sf3)
+        // Défilement gardé par le ViewModel : au retour d'une page, chaque carte est là où la page va rentrer.
+        Column(Modifier.weight(1f).verticalScroll(vm.homeScroll)) {
+            Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp)) {
+                Text("CarDeck", style = gs(32, 40, 500, -0.3f), color = c.on, maxLines = 1)
+                Text(vm.greeting, Modifier.padding(top = 4.dp), style = rf(14, 20), color = c.onv)
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (v != null) {
@@ -360,7 +358,7 @@ private fun TileIcon(t: Tile, roles: AccentRoles) {
             Box(Modifier.size(46.dp).spinning(rememberSpin(20_000)).clip(cloverShape()).background(roles.accent))
             Ico(t.icon, 26, roles.onAccent)
         }
-        Section.Settings -> ShapeBadge(t.icon, cookieShape(), 56.dp, roles.accent, roles.onAccent, 28.dp)
+        Section.Settings -> ShapeBadge(t.icon, cookieShape(), 56.dp, roles.accent, roles.onAccent, 28.dp, spinMs = 36_000, reverse = true)
     }
 }
 

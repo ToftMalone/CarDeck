@@ -61,22 +61,14 @@ fun connStatus(vm: AppViewModel, v: VehicleProfile?): Pair<String, ConnKind> {
     }
 }
 
+/** Couleur du point d'état de la liaison. */
+@Composable
+fun connDot(kind: ConnKind) = when (kind) { ConnKind.Ok -> Cd.c.g; ConnKind.Busy -> Cd.c.w; ConnKind.Off -> Cd.c.ol }
+
+/** Pastille d'état de la liaison (point qui clignote pendant la connexion et une fois connecté), style All Radio Tools. */
 @Composable
 fun ConnChip(label: String, kind: ConnKind, height: Int = 32, onClick: (() -> Unit)? = null) {
-    val c = Cd.c
-    val (bg, fg) = when (kind) { ConnKind.Ok -> c.gc to c.ogc; ConnKind.Busy -> c.sc to c.osc; ConnKind.Off -> c.sf3 to c.onv }
-    Row(
-        Modifier.height(height.dp).clip(RoundedCornerShape((height / 2).dp)).background(bg)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(start = 10.dp, end = 12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        when (kind) {
-            ConnKind.Ok -> ConnDot()
-            ConnKind.Busy -> Spinner(12.dp, 2.dp, fg)
-            ConnKind.Off -> Box(Modifier.size(8.dp).clip(CircleShape).background(fg.copy(alpha = .6f)))
-        }
-        T(label, 13, fg, 600)
-    }
+    com.cardeck.app.ui.StatusChip(label, connDot(kind), blink = kind != ConnKind.Off, onClick = onClick)
 }
 
 /** Partage un fichier de l'application (export, journal) via le menu de partage d'Android. */

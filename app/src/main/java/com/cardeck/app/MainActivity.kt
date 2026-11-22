@@ -91,14 +91,19 @@ import com.cardeck.app.ui.CarDeckTheme
 import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.Motion
+import com.cardeck.app.ui.LocalEntrance
 import com.cardeck.app.ui.ProvideAccent
 import com.cardeck.app.ui.Section
 import com.cardeck.app.ui.accentRoles
 import com.cardeck.app.ui.isDark
 import com.cardeck.app.ui.pop
 import com.cardeck.app.ui.rf
+import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -183,46 +188,66 @@ private fun ScreenHost(vm: AppViewModel, origins: HashMap<Screen, Rect>) {
     val scope = rememberCoroutineScope()
     var hostBounds by remember { mutableStateOf(Rect.Zero) }
 
-    LaunchedEffect(vm.screen) {
-        val target = vm.screen
-        if (target == moving && under == null) { depth = vm.stack.size; return@LaunchedEffect }
-        val d = vm.stack.size
-        val from = moving
-        when {
-            d > depth -> {
-                move = Move.Forward
-                origin = if (from == Screen.Home) origins[target]?.translate(-hostBounds.left, -hostBounds.top) else null
-                under = from
-                moving = target
-                p.snapTo(0f)
-                haptics.confirm()
-                p.animateTo(1f, tween(if (origin != null) 520 else 400, easing = Motion.Emphasized))
-            }
-            d < depth -> {
-                move = Move.Back
-                origin = if (target == Screen.Home) origins[from]?.translate(-hostBounds.left, -hostBounds.top) else null
-                under = target
-                launch { back.animateTo(0f, tween(380, easing = Motion.EmphasizedAccelerate)) }
-                p.animateTo(0f, tween(380, easing = Motion.EmphasizedAccelerate))
-                moving = target
-                p.snapTo(1f)
-            }
-            else -> {
-                move = Move.Through
-                origin = null
-                under = from
-                moving = target
-                p.snapTo(0f)
-                p.animateTo(1f, tween(400, 60, Motion.Emphasized))
+    // Une transition à la fois : un nouvel écran demandé pendant une animation la termine d'abord (collectLatest attend
+    // la fin de la précédente), sans jamais laisser d'écran fantôme ni d'état à moitié.
+    LaunchedEffect(Unit) {
+        snapshotFlow { vm.screen }.collectLatest { target ->
+            if (target == moving && under == null) { depth = vm.stack.size; return@collectLatest }
+            val d = vm.stack.size
+            val from = moving
+            try {
+                when {
+                    d > depth -> {
+                        // Progression remise à zéro avant d'afficher la nouvelle page : jamais une image en pleine page.
+                        p.snapTo(0f)
+                        move = Move.Forward
+                        origin = if (from == Screen.Home) origins[target]?.translate(-hostBounds.left, -hostBounds.top) else null
+                        under = from
+                        moving = target
+                        haptics.confirm()
+                        p.animateTo(1f, tween(if (origin != null) 520 else 400, easing = Motion.Emphasized))
+                    }
+                    d < depth -> {
+                        move = Move.Back
+                        origin = if (target == Screen.Home) origins[from]?.translate(-hostBounds.left, -hostBounds.top) else null
+                        under = target
+                        coroutineScope {
+                            launch { back.animateTo(0f, tween(380, easing = Motion.EmphasizedAccelerate)) }
+                            p.animateTo(0f, tween(380, easing = Motion.EmphasizedAccelerate))
+                        }
+                    }
+                    else -> {
+                        p.snapTo(0f)
+                        move = Move.Through
+                        origin = null
+                        under = from
+                        moving = target
+                        p.animateTo(1f, tween(400, 60, Motion.Emphasized))
+                    }
+                }
+            } finally {
+                // Fin normale ou interrompue : l'écran demandé seul, au repos.
+                withContext(NonCancellable) {
+                    moving = vm.screen
+                    under = null
+                    move = Move.None
+                    depth = vm.stack.size
+                    p.snapTo(1f)
+                    back.snapTo(0f)
+                }
             }
         }
-        under = null
-        move = Move.None
-        depth = d
     }
 
     // Retour prédictif : la page suit le geste ; relâchée, elle part (retour), sinon elle revient.
-    PredictiveBackHandler(enabled = vm.stack.size > 1 && move == Move.None) { events ->
+    // Toujours actif dès qu'il y a un écran derrière : un retour pendant une animation ne doit jamais fermer l'appli.
+    PredictiveBackHandler(enabled = vm.stack.size > 1) { events ->
+        if (move != Move.None) {
+            // Transition en cours : retour simple, sans suivre le geste.
+            events.collect { }
+            vm.back()
+            return@PredictiveBackHandler
+        }
         var buzzed = false
         try {
             under = vm.stack.getOrNull(vm.stack.size - 2)
@@ -274,8 +299,11 @@ private fun ScreenHost(vm: AppViewModel, origins: HashMap<Screen, Rect>) {
             val bg = if (isMoving && o != null && move != Move.Through) lerp(startBg, c.sf, pv) else c.sf
             val contentAlpha = if (isMoving && o != null && move != Move.Through) ((pv - 0.3f) / 0.7f).coerceIn(0f, 1f) else 1f
             ProvideAccent(section) {
-                Box(Modifier.fillMaxSize().then(modifier).background(bg)) {
-                    Box(Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) { ScreenContent(vm, s) }
+                // Une page qui réapparaît dessous (retour, geste de retour) ne rejoue pas ses animations d'entrée.
+                CompositionLocalProvider(LocalEntrance provides isMoving) {
+                    Box(Modifier.fillMaxSize().then(modifier).background(bg)) {
+                        Box(Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) { ScreenContent(vm, s) }
+                    }
                 }
             }
         }
@@ -370,7 +398,7 @@ private fun DockLayer(vm: AppViewModel, modifier: Modifier) {
                     while (vm.screen != Screen.Home && vm.stack.size > 1) vm.stack.removeAt(vm.stack.lastIndex)
                 },
                 contentAlignment = Alignment.Center,
-            ) { Box(Modifier.pop(key = last)) { Ico(Icons.Rounded.GridView, 24, acc.onContainer) } }
+            ) { Box(Modifier.pop()) { Ico(Icons.Rounded.GridView, 24, acc.onContainer) } }
             Tabs.forEach { t ->
                 DockButton(t, t.screen == last) {
                     if (t.screen != vm.screen) { haptics.segment(); vm.switchTo(t.screen) }

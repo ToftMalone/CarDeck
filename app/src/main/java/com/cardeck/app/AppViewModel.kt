@@ -63,6 +63,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun go(s: Screen) { stack.add(s) }
 
+    /** Défilement de l'accueil, gardé d'une visite à l'autre (les pages rentrent dans leur carte au retour). */
+    val homeScroll = androidx.compose.foundation.ScrollState(0)
+
     /** Dock des rubriques masqué (sélection multiple des trajets, qui a sa propre barre en bas). */
     var dockHidden by mutableStateOf(false)
 

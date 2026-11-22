@@ -63,6 +63,7 @@ import com.cardeck.app.ui.Palette
 import com.cardeck.app.ui.SectionLabel
 import com.cardeck.app.ui.Segmented
 import com.cardeck.app.ui.T
+import com.cardeck.app.ui.rise
 import com.cardeck.app.ui.ThemeMode
 
 @Composable
@@ -365,7 +366,7 @@ private fun BackupProtectionDialog(vm: AppViewModel, onDismiss: () -> Unit, onCo
 private fun ProtectionOption(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val c = Cd.c
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (selected) c.pc else c.sf1)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (selected) c.pc else c.sf1)
             .clickable(enabled = enabled, onClick = onClick).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -458,7 +459,7 @@ private fun BackupRow(icon: androidx.compose.ui.graphics.vector.ImageVector, tit
 
 @Composable
 private fun Group(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)), verticalArrangement = Arrangement.spacedBy(2.dp)) { content() }
+    Column(Modifier.fillMaxWidth().rise().clip(RoundedCornerShape(24.dp)), verticalArrangement = Arrangement.spacedBy(2.dp)) { content() }
 }
 
 /** Choix des couleurs : fond d'écran (Android 12 et plus), Rose ou Neutre ; aperçu en trois teintes. */

@@ -1,6 +1,7 @@
 package com.cardeck.app.screens
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import com.cardeck.app.ui.Cd
 import com.cardeck.app.ui.Ico
 import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.T
+import com.cardeck.app.ui.rise
 import com.cardeck.app.ui.TextBtn
 
 @Composable
@@ -51,16 +53,7 @@ fun DashboardScreen(vm: AppViewModel) {
     LaunchedEffect(Unit) { vm.obd.keepReading() }
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 12.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            IconBtn(Icons.AutoMirrored.Rounded.ArrowBack, { vm.back() })
-            Box(Modifier.size(40.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.DirectionsCar, 22, c.opc) }
-            Column(Modifier.weight(1f)) {
-                T(v.nickname, 16, weight = 500, lineHeight = 22, maxLines = 1)
-                T(if (sport) "Tableau de bord Sport" else "Tableau de bord", 12, c.onv, lineHeight = 16, maxLines = 1)
-            }
+        com.cardeck.app.ui.PageBar(if (sport) "Tableau Sport" else "Tableau de bord", v.nickname, { vm.back() }) {
             ModeSelector(sport) { vm.updateDashSport(it) }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
@@ -78,9 +71,9 @@ fun DashboardScreen(vm: AppViewModel) {
                         sport, values, sup, v.template.pids.map { it.id }.toSet(),
                         if (sport) v.template.pids.filter { it.id in v.template.dashSport } else emptyList(),
                     )
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        gauges.chunked(2).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        gauges.chunked(2).forEachIndexed { i, row ->
+                            Row(Modifier.rise(i), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { g -> GaugeCard(g.def, g.value, Modifier.weight(1f), g.note) }
                                 if (row.size == 1) Spacer(Modifier.weight(1f))
                             }
@@ -97,14 +90,17 @@ fun DashboardScreen(vm: AppViewModel) {
 @Composable
 private fun ModeSelector(sport: Boolean, onChange: (Boolean) -> Unit) {
     val c = Cd.c
-    Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(c.sf3).padding(3.dp)) {
+    val acc = Cd.acc
+    val haptics = Cd.haptics
+    Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         listOf(false to "Standard", true to "Sport").forEach { (isSport, label) ->
             val sel = isSport == sport
-            val bg by animateColorAsState(if (sel) c.p else c.sf3, label = "mode")
+            val bg by animateColorAsState(if (sel) acc.accent else c.sf3, tween(250, easing = com.cardeck.app.ui.Motion.Emphasized), label = "mode")
+            val fg by animateColorAsState(if (sel) acc.onAccent else c.onv, tween(250, easing = com.cardeck.app.ui.Motion.Emphasized), label = "modeFg")
             Box(
-                Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(bg).clickable { onChange(isSport) }.padding(horizontal = 12.dp),
+                Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(bg).clickable { if (!sel) { haptics.segment(); onChange(isSport) } }.padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center,
-            ) { T(label, 13, if (sel) c.op else c.onv, 600) }
+            ) { T(label, 13, fg, 600) }
         }
     }
 }

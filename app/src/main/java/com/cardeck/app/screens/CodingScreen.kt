@@ -78,10 +78,10 @@ fun CodingScreen(vm: AppViewModel) {
 
             if (tpl.codings.isEmpty()) {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).border(1.dp, c.olv, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 32.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(horizontal = 24.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(Modifier.size(64.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Build, 30, c.onv) }
+                    com.cardeck.app.ui.ShapeBadge(Icons.Rounded.Build, com.cardeck.app.ui.cookieShape(), 64.dp, c.sf4, c.onv, 30.dp, spinMs = 40_000)
                     val why = tpl.codingImpossible
                     T(if (why != null) "Le codage n'est pas possible" else "Fonctions de codage à venir", 18, weight = 500, modifier = Modifier.padding(top = 16.dp))
                     T(
@@ -91,7 +91,7 @@ fun CodingScreen(vm: AppViewModel) {
                 }
             } else {
                 // Lecture
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(16.dp)) {
                     val busy = vm.codingBusy
                     if (busy != null) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -114,7 +114,7 @@ fun CodingScreen(vm: AppViewModel) {
 
                 vm.codingReport?.let { (ok, msg) ->
                     Row(
-                        Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(16.dp)).background(if (ok) c.gc else c.ec).padding(14.dp),
+                        Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(20.dp)).background(if (ok) c.gc else c.ec).padding(14.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Ico(if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.ErrorOutline, 22, if (ok) c.ogc else c.oec)
@@ -131,7 +131,7 @@ fun CodingScreen(vm: AppViewModel) {
 
                 if (backups.isNotEmpty()) {
                     SectionLabel("Sauvegardes")
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(16.dp)) {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(16.dp)) {
                         T("Codage d'origine sauvegardé avant la première modification :", 13, c.onv, lineHeight = 18)
                         backups.forEach { b -> T("• ${b.module} · ${dayLabel(b.t)} ${timeHm(b.t)}", 13, modifier = Modifier.padding(top = 4.dp)) }
                         if (connected && vm.codingBusy == null) TextBtn("Restaurer le codage d'origine", { confirmRestore = true }, Icons.Rounded.Restore)

@@ -109,12 +109,20 @@ fun BlinkDot(color: Color, size: Dp, periodMs: Int = 1600) {
     Box(Modifier.size(size).graphicsLayer { alpha = a }.clip(CircleShape).background(color))
 }
 
+/**
+ * Les animations d'entrée jouent-elles ? Non pour une page qui réapparaît sous une autre (retour) : elle est déjà là,
+ * l'animation ferait bouger les cartes pendant que la page qui part y rentre.
+ */
+val LocalEntrance = staticCompositionLocalOf { true }
+
 /** Entrée des listes : montée de 18 dp et fondu, ressort (0,8 ; 380), décalée de [index] × [stepMs]. */
 @Composable
 fun Modifier.rise(index: Int = 0, stepMs: Int = 45, distance: Dp = 18.dp): Modifier {
-    val y = remember { Animatable(1f) }
-    val a = remember { Animatable(0f) }
+    val play = LocalEntrance.current
+    val y = remember { Animatable(if (play) 1f else 0f) }
+    val a = remember { Animatable(if (play) 0f else 1f) }
     LaunchedEffect(Unit) {
+        if (!play) return@LaunchedEffect
         delay((index.coerceAtMost(12) * stepMs).toLong())
         launch { y.animateTo(0f, Motion.standard()) }
         a.animateTo(1f, tween(300, easing = Motion.Emphasized))
@@ -128,8 +136,10 @@ fun Modifier.rise(index: Int = 0, stepMs: Int = 45, distance: Dp = 18.dp): Modif
 /** Entrée « pop » : échelle 0,4 → 1 et rotation −40° → 0, ressort rebondissant. */
 @Composable
 fun Modifier.pop(delayMs: Int = 0, key: Any? = Unit): Modifier {
-    val p = remember(key) { Animatable(0f) }
+    val play = LocalEntrance.current
+    val p = remember(key) { Animatable(if (play) 0f else 1f) }
     LaunchedEffect(key) {
+        if (!play) return@LaunchedEffect
         delay(delayMs.toLong())
         p.animateTo(1f, spring(0.55f, 420f))
     }
@@ -145,8 +155,9 @@ fun Modifier.pop(delayMs: Int = 0, key: Any? = Unit): Modifier {
 /** Entrée d'un contenu de page : montée de 12 dp et fondu, 400 ms. */
 @Composable
 fun Modifier.fadeUp(delayMs: Int = 0): Modifier {
-    val p = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { p.animateTo(1f, tween(400, delayMs, Motion.Emphasized)) }
+    val play = LocalEntrance.current
+    val p = remember { Animatable(if (play) 0f else 1f) }
+    LaunchedEffect(Unit) { if (play) p.animateTo(1f, tween(400, delayMs, Motion.Emphasized)) }
     return graphicsLayer {
         translationY = (1f - p.value) * 12.dp.toPx()
         alpha = p.value

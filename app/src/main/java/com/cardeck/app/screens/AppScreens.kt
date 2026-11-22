@@ -163,7 +163,7 @@ private fun ReleaseCard(r: Release) {
     val c = Cd.c
     val installed = Updater.compare(r.version, BuildConfig.VERSION_NAME) == 0
     val newer = Updater.compare(r.version, BuildConfig.VERSION_NAME) > 0
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(16.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             T(r.name, 16, weight = 500, modifier = Modifier.weight(1f))
             if (installed || newer) {

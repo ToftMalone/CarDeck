@@ -98,7 +98,7 @@ fun ExplorerScreen(vm: AppViewModel) {
                 14, c.onv, lineHeight = 20,
             )
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(14.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Ico(Icons.Rounded.Lock, 20, c.onv)
@@ -112,7 +112,7 @@ fun ExplorerScreen(vm: AppViewModel) {
             if (ex.running) Running(vm)
             else {
                 ex.done?.let { msg ->
-                    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.sc).padding(14.dp)) { T(msg, 14, c.osc, lineHeight = 20) }
+                    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sc).padding(14.dp)) { T(msg, 14, c.osc, lineHeight = 20) }
                 }
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(88.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.TravelExplore, 44, c.opc) }
@@ -196,7 +196,7 @@ private fun Running(vm: AppViewModel) {
         ) { Ico(Icons.Rounded.Stop, 20, c.oe); T("Arrêter", 14, c.oe, 600) }
         T("Tout ce qui est trouvé est enregistré au fur et à mesure.", 12, c.onv, modifier = Modifier.padding(top = 8.dp))
     }
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf2).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         T("Journal", 14, weight = 600)
         if (ex.lines.isEmpty()) T("…", 12, c.onv)
         ex.lines.take(60).forEachIndexed { i, l -> T(l, 12, c.on, mono = true, lineHeight = 16, modifier = Modifier.alpha(if (i < 8) 1f else .7f)) }
@@ -206,7 +206,7 @@ private fun Running(vm: AppViewModel) {
 @Composable
 private fun Results(s: Summary) {
     val c = Cd.c
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf2).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         T("Découvertes", 16, weight = 600, modifier = Modifier.padding(bottom = 4.dp))
         if (s.ecus == 0 && s.answers == 0) { T("Rien pour l'instant : lancez un balayage à l'arrêt.", 13, c.onv); return@Column }
         Line("Calculateurs", "${s.ecus}" + listOfNotNull(

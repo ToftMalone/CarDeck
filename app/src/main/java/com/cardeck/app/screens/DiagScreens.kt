@@ -71,6 +71,11 @@ import com.cardeck.app.ui.Radar
 import com.cardeck.app.ui.ScreenTitle
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.TextBtn
+import androidx.compose.foundation.layout.Spacer
+import com.cardeck.app.ui.rememberSpin
+import com.cardeck.app.ui.spinning
+import com.cardeck.app.ui.groupShape
+import com.cardeck.app.ui.pop
 import com.cardeck.app.ui.rise
 
 private data class SevStyle(val icon: ImageVector, val bg: Color, val fg: Color, val accent: Color)
@@ -123,10 +128,11 @@ fun DiagScreen(vm: AppViewModel) {
                 val res = DtcCatalog.all.filter { (it.code + " " + it.title + " " + it.sys.label).lowercase().contains(q) }
                     .ifEmpty { if (Regex("[pcbu][0-9a-f]{4}").matches(q)) listOf(DtcCatalog.info(q.uppercase())) else emptyList() }
                 T(if (res.isEmpty()) "Aucun code ne correspond" else "${res.size} résultat${if (res.size > 1) "s" else ""}", 14, c.onv, 500, Modifier.padding(start = 4.dp, top = 4.dp, bottom = 10.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    res.take(60).forEach { d ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val shown = res.take(60)
+                    shown.forEachIndexed { i, d ->
                         val detected = scan?.codes?.any { it.code == d.code } == true
-                        DtcRow(d, if (detected) "Détecté" else "Base de codes", null) { vm.go(Screen.Dtc(d.code)) }
+                        DtcRow(d, if (detected) "Détecté" else "Base de codes", null, groupShape(i, shown.size)) { vm.go(Screen.Dtc(d.code)) }
                     }
                 }
             } else if (vm.scanning) {
@@ -134,9 +140,7 @@ fun DiagScreen(vm: AppViewModel) {
                     Radar(184.dp, true, label = "${vm.scanStep * 100 / vm.scanSteps.size} %")
                     T(vm.scanSteps[vm.scanStep], 16, weight = 500, modifier = Modifier.padding(top = 16.dp))
                     vm.scanDetail?.let { T(it, 13, c.onv) }
-                    Box(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 20.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.sf4)) {
-                        Box(Modifier.fillMaxWidth(vm.scanStep / vm.scanSteps.size.toFloat()).fillMaxSize().background(c.p))
-                    }
+                    com.cardeck.app.ui.LevelBar(vm.scanStep / vm.scanSteps.size.toFloat(), c.p, Modifier.padding(top = 16.dp, bottom = 20.dp))
                     vm.scanSteps.forEachIndexed { i, name ->
                         Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Ico(
@@ -169,7 +173,7 @@ fun DiagScreen(vm: AppViewModel) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(horizontal = 24.dp, vertical = 36.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(Modifier.size(96.dp).clip(CircleShape).background(c.gc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Verified, 48, c.ogc) }
+                    com.cardeck.app.ui.ShapeBadge(Icons.Rounded.Verified, com.cardeck.app.ui.cookieShape(), 104.dp, c.gc, c.ogc, 48.dp, Modifier.pop(), spinMs = 40_000)
                     T("Aucun défaut enregistré", 22, lineHeight = 28, modifier = Modifier.padding(top = 20.dp))
                     T(
                         "${scan.ecus} calculateur${if (scan.ecus > 1) "s ont" else " a"} répondu sans code défaut.",
@@ -192,8 +196,8 @@ fun DiagScreen(vm: AppViewModel) {
                             T(sev.label, 14, weight = 500)
                             T("${items.size}", 14, c.onv)
                         }
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items.forEachIndexed { i, (fc, d) -> Box(Modifier.rise(i)) { DtcRow(d, fc.status.label, fc.ecu) { vm.go(Screen.Dtc(d.code)) } } }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            items.forEachIndexed { i, (fc, d) -> Box(Modifier.rise(i)) { DtcRow(d, fc.status.label, fc.ecu, groupShape(i, items.size)) { vm.go(Screen.Dtc(d.code)) } } }
                         }
                     }
                 }
@@ -358,14 +362,16 @@ private fun DiagActions(vm: AppViewModel, v: com.cardeck.app.data.VehicleProfile
 @Composable
 private fun ScanButton(enabled: Boolean, onClick: () -> Unit) {
     val c = Cd.c
-    Box(Modifier.size(180.dp).alpha(if (enabled) 1f else .38f), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(180.dp).clip(CircleShape).background(c.pc))
+    val haptics = Cd.haptics
+    Box(Modifier.size(196.dp).alpha(if (enabled) 1f else .38f), contentAlignment = Alignment.Center) {
+        if (enabled) com.cardeck.app.ui.PulseRing(c.p, 140.dp, periodMs = 2400)
+        Box(Modifier.size(184.dp).spinning(rememberSpin(40_000)).clip(com.cardeck.app.ui.cookieShape()).background(c.pc))
         Column(
-            Modifier.size(168.dp).clip(CircleShape).background(c.p).clickable(enabled = enabled, onClick = onClick),
+            Modifier.size(160.dp).clip(CircleShape).background(c.p).clickable(enabled = enabled) { haptics.confirm(); onClick() },
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
         ) {
             Ico(Icons.Rounded.Troubleshoot, 56, c.op)
-            T("Scanner", 14, c.op, 600)
+            androidx.compose.material3.Text("Scanner", style = com.cardeck.app.ui.rf(15, 20, 600), color = c.op)
         }
     }
 }
@@ -379,21 +385,24 @@ private fun ConnectAction(vm: AppViewModel, hasAdapter: Boolean) {
 }
 
 @Composable
-private fun DtcRow(d: DtcInfo, tag: String, ecu: String?, onClick: () -> Unit) {
+private fun DtcRow(d: DtcInfo, tag: String, ecu: String?, shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(20.dp), onClick: () -> Unit) {
     val c = Cd.c
     val s = sevStyle(d.sev, c)
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.sf1).clickable(onClick = onClick).padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
+        Modifier.fillMaxWidth().clip(shape).background(c.sf1).clickable(onClick = onClick).padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(s.bg), contentAlignment = Alignment.Center) { Ico(s.icon, 22, s.fg) }
+        com.cardeck.app.ui.LeadingIcon(s.icon, s.bg, s.fg)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 T(d.code, 15, weight = 700, mono = true)
-                T(tag, 11, c.onv, 500, Modifier.clip(RoundedCornerShape(6.dp)).background(c.sf3).padding(horizontal = 6.dp, vertical = 2.dp))
+                Box(
+                    Modifier.height(24.dp).clip(RoundedCornerShape(8.dp)).border(1.dp, c.olv, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) { androidx.compose.material3.Text(tag, style = com.cardeck.app.ui.rf(11, 14, 600), color = c.onv, maxLines = 1) }
                 if (ecu != null) T(ecu, 12, c.onv, maxLines = 1)
             }
-            T(d.title, 14, c.on, modifier = Modifier.padding(top = 2.dp), lineHeight = 20)
+            androidx.compose.material3.Text(d.title, Modifier.padding(top = 2.dp), style = com.cardeck.app.ui.rf(14, 20), color = c.on)
         }
         Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.onv)
     }
@@ -423,31 +432,31 @@ fun DtcDetailScreen(vm: AppViewModel, code: String) {
                 T(d.title, 24, lineHeight = 32, modifier = Modifier.padding(top = 8.dp))
                 if (found != null) T("${found.status.label} · ${found.ecu} · scan ${agoLabel(scan!!.t)}", 13, c.onv, modifier = Modifier.padding(top = 6.dp))
             }
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf2).padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(c.sc), contentAlignment = Alignment.Center) { Ico(d.sys.icon, 22, c.osc) }
-                Column { T("Système concerné", 12, c.onv); T(d.sys.label, 16, weight = 500) }
+            Row(Modifier.fillMaxWidth().rise(0).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                com.cardeck.app.ui.LeadingIcon(d.sys.icon, c.pc, c.opc)
+                Column { T("Système concerné", 12, c.onv); T(d.sys.label, 16, weight = 600) }
             }
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(20.dp)) {
-                T("Description", 16, weight = 500, modifier = Modifier.padding(bottom = 8.dp))
+            Column(Modifier.fillMaxWidth().rise(1).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp)) {
+                androidx.compose.material3.Text("Description", Modifier.padding(bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.p)
                 T(
                     d.desc ?: if (d.known) d.title + "." else "Ce code n'est pas encore décrit dans la base de CarDeck.",
                     14, c.onv, lineHeight = 22,
                 )
             }
             if (d.causes.isNotEmpty()) {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    T("Causes possibles", 16, weight = 500, modifier = Modifier.padding(bottom = 2.dp))
+                Column(Modifier.fillMaxWidth().rise(2).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    androidx.compose.material3.Text("Causes possibles", Modifier.padding(bottom = 2.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.p)
                     d.causes.forEachIndexed { i, t ->
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(Modifier.size(24.dp).clip(CircleShape).background(c.sf3), contentAlignment = Alignment.Center) { T("${i + 1}", 12, weight = 600) }
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { T("${i + 1}", 12, c.opc, 700) }
                             T(t, 14, modifier = Modifier.padding(top = 2.dp), lineHeight = 20)
                         }
                     }
                 }
             }
             if (d.recos.isNotEmpty()) {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.pc).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    T("Recommandations", 16, c.opc, 500, Modifier.padding(bottom = 2.dp))
+                Column(Modifier.fillMaxWidth().rise(3).clip(RoundedCornerShape(24.dp)).background(c.pc).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    androidx.compose.material3.Text("Recommandations", Modifier.padding(bottom = 2.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.opc)
                     d.recos.forEach { r ->
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { Ico(Icons.Rounded.Check, 20, c.opc); T(r, 14, c.opc, lineHeight = 20, modifier = Modifier.weight(1f)) }
                     }
@@ -455,14 +464,13 @@ fun DtcDetailScreen(vm: AppViewModel, code: String) {
             }
             val ff = if (scan?.ffCode == code) scan.ff else null
             if (ff != null) {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).border(1.dp, c.olv, RoundedCornerShape(20.dp)).padding(20.dp)) {
-                    T("Données figées", 16, weight = 500)
-                    T("Valeurs enregistrées au moment du défaut", 12, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 14.dp))
+                Column(Modifier.fillMaxWidth().rise(4), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.cardeck.app.ui.SectionLabel("Données figées")
+                    T("Valeurs enregistrées au moment du défaut", 12, c.onv, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
                     ff.chunked(2).forEachIndexed { r, pair ->
-                        Row(Modifier.fillMaxWidth().padding(bottom = if (r == 0) 16.dp else 0.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            pair.forEachIndexed { k, value ->
-                                Column(Modifier.weight(1f)) { T(ffLabels.getOrElse(r * 2 + k) { "" }, 12, c.onv); T(value, 20, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 28) }
-                            }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            pair.forEachIndexed { k, value -> com.cardeck.app.ui.ValueTile(ffLabels.getOrElse(r * 2 + k) { "" }, value, Modifier.weight(1f)) }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }

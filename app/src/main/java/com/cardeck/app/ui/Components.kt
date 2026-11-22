@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -363,3 +364,137 @@ fun Skeleton(modifier: Modifier, radius: Dp = 6.dp) {
 @Composable
 fun ConnDot() = BlinkDot(Cd.c.g, 8.dp)
 
+
+// ---------------------------------------------------------------- Composants d'All Radio Tools
+
+/** Barre du haut d'une page : retour, titre (Google Sans Flex 22) et sous-titre, action à droite. */
+@Composable
+fun PageBar(title: String, subtitle: String?, onBack: () -> Unit, trailing: @Composable RowScope.() -> Unit = {}) {
+    val c = Cd.c
+    Row(
+        Modifier.fillMaxWidth().height(64.dp).background(c.sf).padding(start = 4.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        IconBtn(Icons.AutoMirrored.Rounded.ArrowBack, onBack)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = gs(22, 28, 500), color = c.on, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (subtitle != null) Text(subtitle, style = rf(12, 16), color = c.onv, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        trailing()
+    }
+}
+
+/** Icône dans un carré arrondi (début d'une ligne de liste). */
+@Composable
+fun LeadingIcon(icon: ImageVector, bg: Color, fg: Color, size: Dp = 44.dp, iconSize: Int = 24, shape: Shape = RoundedCornerShape(16.dp)) {
+    Box(Modifier.size(size).clip(shape).background(bg), contentAlignment = Alignment.Center) { Ico(icon, iconSize, fg) }
+}
+
+/** Barre de niveau (8 dp), remplie de [color] avec le ressort de base. */
+@Composable
+fun LevelBar(fraction: Float, color: Color, modifier: Modifier = Modifier, height: Dp = 8.dp, track: Color = Cd.c.sf4) {
+    val f by animateFloatAsState(fraction.coerceIn(0f, 1f), Motion.standard(), label = "bar")
+    Box(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)).background(track)) {
+        Box(Modifier.fillMaxWidth(f).height(height).clip(RoundedCornerShape(height / 2)).background(color))
+    }
+}
+
+/** Tuile de mesure : libellé (avec icône), grande valeur en chiffres alignés, unité, et sa barre de niveau. */
+@Composable
+fun MetricTile(label: String, value: String, unit: String = "", icon: ImageVector? = null, level: Float? = null, modifier: Modifier = Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(horizontal = 16.dp, vertical = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (icon != null) Ico(icon, 16, c.onv)
+            Text(label, style = rf(12, 16), color = c.onv, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(value, style = gs(28, 32, 500, tnum = true), color = c.on, maxLines = 1)
+            if (unit.isNotEmpty()) Text(unit, Modifier.padding(bottom = 3.dp), style = rf(12, 16), color = c.onv, maxLines = 1)
+        }
+        if (level != null) LevelBar(level, Cd.acc.accent, Modifier.padding(top = 10.dp), height = 6.dp)
+    }
+}
+
+/** Petite tuile clé / valeur. */
+@Composable
+fun ValueTile(label: String, value: String, modifier: Modifier = Modifier) {
+    val c = Cd.c
+    Column(modifier.clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(label, style = rf(12, 16), color = c.onv, maxLines = 1)
+        Text(value, style = gs(20, 28, 500, tnum = true), color = c.on, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Ligne clé / valeur de 48 dp, sous un filet. */
+@Composable
+fun InfoLine(label: String, value: String, valueColor: Color = Cd.c.on) {
+    val c = Cd.c
+    Box(Modifier.fillMaxWidth().height(1.dp).background(c.olv))
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, style = rf(14, 20), color = c.onv)
+        Spacer(Modifier.weight(1f))
+        Text(value, Modifier.padding(vertical = 8.dp), style = rf(14, 20, 500, tnum = true), color = valueColor, textAlign = TextAlign.End)
+    }
+}
+
+/** Carte de lignes clé / valeur, titrée à la couleur de l'accent. */
+@Composable
+fun InfoList(title: String, modifier: Modifier = Modifier, trailing: @Composable RowScope.() -> Unit = {}, rows: @Composable ColumnScope.() -> Unit) {
+    SectionCard(modifier, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 6.dp)) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).padding(top = 6.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, Modifier.weight(1f), style = rf(14, 20, 600), color = Cd.acc.accent)
+            trailing()
+        }
+        rows()
+    }
+}
+
+/** État vide dans une page : biscuit neutre, titre, message et action tonale. */
+@Composable
+fun EmptyStateCard(icon: ImageVector, title: String, message: String, action: (@Composable () -> Unit)? = null) {
+    val c = Cd.c
+    SectionCard(padding = PaddingValues(horizontal = 20.dp, vertical = 24.dp)) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            ShapeBadge(icon, cookieShape(), 56.dp, c.sf4, c.onv, 26.dp, spinMs = 40_000)
+            Text(title, Modifier.padding(top = 4.dp), style = gs(20, 26, 500), color = c.on, textAlign = TextAlign.Center)
+            Text(message, style = rf(14, 20), color = c.onv, textAlign = TextAlign.Center)
+            if (action != null) Box(Modifier.padding(top = 6.dp)) { action() }
+        }
+    }
+}
+
+/** Bouton pilule tonal (conteneur de l'accent), plus petit que [FilledBtn]. */
+@Composable
+fun TonalBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, enabled: Boolean = true, modifier: Modifier = Modifier) {
+    val acc = Cd.acc
+    val c = Cd.c
+    val haptics = Cd.haptics
+    Row(
+        modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(if (enabled) acc.container else c.on.copy(alpha = 0.12f))
+            .clickable(enabled = enabled) { haptics.tick(); onClick() }.padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+    ) {
+        val fg = if (enabled) acc.onContainer else c.on.copy(alpha = 0.38f)
+        if (icon != null) Ico(icon, 18, fg)
+        Text(text, style = rf(14, 20, 600), color = fg, maxLines = 1)
+    }
+}
+
+/** Bandeau d'erreur (errorContainer). */
+@Composable
+fun ErrorBanner(icon: ImageVector, title: String, message: String) {
+    val c = Cd.c
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.ec).padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Ico(icon, 24, c.oec)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = rf(15, 20, 600), color = c.oec)
+            Text(message, Modifier.padding(top = 2.dp), style = rf(13, 18), color = c.oec)
+        }
+    }
+}

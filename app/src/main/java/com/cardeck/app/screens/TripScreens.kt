@@ -36,6 +36,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.cardeck.app.ui.TextBtn
 import com.cardeck.app.ui.rise
+import androidx.compose.ui.graphics.graphicsLayer
+import com.cardeck.app.ui.pop
 import androidx.compose.runtime.key
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -211,7 +213,7 @@ fun TripsScreen(vm: AppViewModel) {
                     if (loaded.isEmpty()) T("Les trajets sont enregistrés automatiquement dès que le moteur démarre avec le boîtier branché.", 13, c.onv, align = TextAlign.Center, modifier = Modifier.padding(top = 6.dp), lineHeight = 18)
                 }
                 else -> list.groupBy { dayLabel(it.start) }.forEach { (date, trips) ->
-                    T(date, 14, c.onv, 500, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp))
+                    androidx.compose.material3.Text(date, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = Cd.acc.accent)
                     Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         trips.forEachIndexed { i, t ->
                             key(t.id) {
@@ -292,29 +294,43 @@ fun TripsScreen(vm: AppViewModel) {
 @Composable
 private fun TripCard(t: Trip, selecting: Boolean, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val c = Cd.c
+    val acc = Cd.acc
+    // Carte choisie (sélection multiple) : grossit un peu, prend le conteneur de l'accent et un contour, comme les cartes d'All Radio Tools.
+    val scale by animateFloatAsState(if (selected) 1.02f else 1f, com.cardeck.app.ui.Motion.standard(), label = "tripScale")
+    val bg by androidx.compose.animation.animateColorAsState(if (selected) acc.container else c.sf1, tween(250, easing = com.cardeck.app.ui.Motion.Emphasized), label = "tripBg")
+    val ring by androidx.compose.animation.animateColorAsState(if (selected) acc.accent else androidx.compose.ui.graphics.Color.Transparent, tween(200, easing = com.cardeck.app.ui.Motion.Emphasized), label = "tripRing")
+    val fg = if (selected) acc.onContainer else c.on
+    val shape = RoundedCornerShape(24.dp)
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (selected) c.sc else c.sf1)
-            .then(if (selected) Modifier.border(2.dp, c.p, RoundedCornerShape(20.dp)) else Modifier)
+        Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale }.border(2.dp, ring, shape).clip(shape).background(bg)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(16.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            T("${timeHm(t.start)} – ${timeHm(t.end)}", 16, weight = 500)
-            if (selecting) Ico(if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, 24, if (selected) c.p else c.onv)
+            androidx.compose.material3.Text("${timeHm(t.start)} – ${timeHm(t.end)}", style = com.cardeck.app.ui.gs(20, 26, 500, tnum = true), color = fg)
+            if (selecting) Box(Modifier.pop(key = selected)) { Ico(if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, 24, if (selected) acc.accent else c.onv) }
         }
         Row(Modifier.padding(top = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.padding(top = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(10.dp).clip(CircleShape).border(2.dp, c.g, CircleShape))
                 Box(Modifier.width(2.dp).height(18.dp).background(c.olv))
-                Box(Modifier.size(10.dp).clip(CircleShape).background(c.p))
+                Box(Modifier.size(10.dp).clip(CircleShape).background(acc.accent))
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { T(t.from, 14, lineHeight = 20, maxLines = 1); T(t.to, 14, lineHeight = 20, maxLines = 1) }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                androidx.compose.material3.Text(t.from, style = com.cardeck.app.ui.rf(14, 20), color = fg, maxLines = 1)
+                androidx.compose.material3.Text(t.to, style = com.cardeck.app.ui.rf(14, 20), color = fg, maxLines = 1)
+            }
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(c.olv))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(if (selected) acc.onContainer.copy(alpha = .2f) else c.olv))
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             listOf(
                 "Durée" to durationLabel(t.end - t.start), "Distance" to "${fr(t.distanceKm, 1)} km",
                 "Vit. moy." to "${fr(t.avgKmh)} km/h", "Vit. max" to "${fr(t.maxKmh)} km/h",
-            ).forEach { (l, v) -> Column(Modifier.weight(1f)) { T(l, 11, c.onv); T(v, 14, weight = 500) } }
+            ).forEach { (l, v) ->
+                Column(Modifier.weight(1f)) {
+                    androidx.compose.material3.Text(l, style = com.cardeck.app.ui.rf(11, 14), color = if (selected) acc.onContainer.copy(alpha = .8f) else c.onv)
+                    androidx.compose.material3.Text(v, style = com.cardeck.app.ui.rf(14, 20, 600, tnum = true), color = fg, maxLines = 1)
+                }
+            }
         }
     }
 }
@@ -409,10 +425,10 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                         "Vit. max" to "${fr(t.maxKmh)} km/h",
                     )
                     Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        stats.chunked(2).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        stats.chunked(2).forEachIndexed { i, row ->
+                            Row(Modifier.rise(i), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { (l, v) ->
-                                    Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).padding(12.dp)) { T(l, 12, c.onv); T(v, 18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24) }
+                                    Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(horizontal = 16.dp, vertical = 12.dp)) { T(l, 12, c.onv); T(v, 20, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 28) }
                                 }
                                 repeat(2 - row.size) { Box(Modifier.weight(1f)) }
                             }
@@ -461,20 +477,20 @@ private fun FuelCards(vm: AppViewModel, t: Trip, samples: Map<String, List<Sampl
     val conso = if (liters != null && t.distanceKm > 0.5) liters / t.distanceKm * 100 else null
     val cost = t.fuelPrice?.let { p -> liters?.let { it * p } }
     Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).padding(12.dp)) {
+        Column(Modifier.weight(1f).rise(2).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(horizontal = 16.dp, vertical = 12.dp)) {
             T("Conso. moyenne", 12, c.onv)
-            T(conso?.let { "${fr(it, 1)} L/100 km" } ?: "—", 18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24)
+            T(conso?.let { "${fr(it, 1)} L/100 km" } ?: "—", 20, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 28)
             T(liters?.let { "${fr(it, 1)} L consommés" } ?: "Débit d'air non enregistré", 11, c.onv, lineHeight = 14)
         }
-        Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(c.sf3).clickable { if (failed) price(fuel) else choose = true }.padding(12.dp)) {
-            T("Coût du trajet", 12, c.onv)
+        Column(Modifier.weight(1f).rise(2).clip(RoundedCornerShape(20.dp)).background(c.pc).clickable { if (failed) price(fuel) else choose = true }.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            T("Coût du trajet", 12, c.opc)
             T(
                 when {
                     cost != null -> "${fr(cost, 2)} €"
                     loading -> "…"
                     else -> "—"
                 },
-                18, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 24,
+                20, c.opc, 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 28,
             )
             T(
                 when {
@@ -483,7 +499,7 @@ private fun FuelCards(vm: AppViewModel, t: Trip, samples: Map<String, List<Sampl
                     t.fuelPrice != null -> "${fuel.label} · ${fr(t.fuelPrice, 3)} €/L"
                     else -> fuel.label
                 },
-                11, if (failed) c.e else c.onv, lineHeight = 14,
+                11, if (failed) c.e else c.opc, lineHeight = 14,
             )
         }
     }
@@ -712,9 +728,9 @@ private fun EngineHistory(t: Trip, samples: Map<String, List<Sample>>, cursor: L
 @Composable
 private fun MomentCard(p: PidDef, value: Double?, modifier: Modifier) {
     val c = Cd.c
-    Column(modifier.clip(RoundedCornerShape(16.dp)).background(c.sf2).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier.clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Ico(p.icon, 16, c.p)
+            Ico(p.icon, 16, c.onv)
             T(p.label, 12, c.onv, lineHeight = 16, modifier = Modifier.weight(1f))
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
