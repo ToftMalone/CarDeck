@@ -75,7 +75,9 @@ class ObdManager(private val ctx: Context) {
             val e = Elm327(t)
             // Réglages du modèle du véhicule actif : protocole connu, lecture seule.
             val tpl = runCatching { ctx.cardeck.repo.active?.template }.getOrNull()
-            e.readOnly = tpl?.readOnly == true
+            // Liste blanche de lecture pour tout modèle sans fonction de codage (et sans véhicule actif) : seuls les modèles
+            // qui codent peuvent écrire, et seulement par l'écran de codage.
+            e.readOnly = tpl == null || tpl.readOnly || tpl.codings.isEmpty()
             e.ecuNames = tpl?.ecuNames.orEmpty()
             e.init(tpl?.elmProtocol, tpl?.elmInit.orEmpty())
             transport = t

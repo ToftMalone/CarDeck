@@ -193,6 +193,26 @@ class Elm327Test {
         assertEquals(listOf(0x00, 0x07, 0x65, 0x00), a[0].toList())
     }
 
+    @Test fun lectureSeuleTramesBrutesBloquees() = runBlocking {
+        val fake = FakeElm(base + mapOf("0100" to "41 00 BE 3E B8 11"))
+        val e = Elm327(fake).apply { readOnly = true }
+        e.raw("ATCAF0")
+        // Formatage coupé : « 02 10 03 » serait une ouverture de session, pas un service 02 ; rien n'est envoyé.
+        assertEquals(Elm327.BLOCKED, e.raw("021003"))
+        assertEquals(Elm327.BLOCKED, e.raw("0100"))
+        e.raw("ATCAF1")
+        assertTrue(e.raw("0100").startsWith("41 00"))
+        assertTrue("021003" !in fake.sent)
+    }
+
+    @Test fun lectureSeuleControleDeFlux() = runBlocking {
+        val fake = FakeElm(base)
+        val e = Elm327(fake).apply { readOnly = true }
+        assertEquals(Elm327.BLOCKED, e.raw("ATFCSD021003"))
+        assertEquals("OK", e.raw("ATFCSD300005"))
+        assertTrue("ATFCSD021003" !in fake.sent)
+    }
+
     @Test fun codageApplique() {
         val d = com.cardeck.app.data.CodingDef("t", "Confort", "Test", "", "BCM", "750", "758", 0xB001, 1, 0x0C,
             listOf(com.cardeck.app.data.CodingOption("A", 0x00), com.cardeck.app.data.CodingOption("B", 0x04)))

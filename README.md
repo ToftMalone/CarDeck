@@ -132,10 +132,10 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
 
 ## Respect de ta voiture et de tes données
 
-- 🔒 Sur la Swift Sport, CarDeck est en **lecture seule** : il regarde, il n'écrit rien dans la voiture, à part l'effacement des codes défaut
-  quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
+- 🔒 Sur toutes les voitures sans fonction de codage (dont la Swift Sport), CarDeck est en **lecture seule** : il regarde, il n'écrit rien
+  dans la voiture, à part l'effacement des codes défaut quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
 - 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
-  d'arrivée du trajet), les cartes OpenStreetMap et la recherche de mises à jour.
+  d'arrivée du trajet, arrondie au kilomètre), les cartes OpenStreetMap et la recherche de mises à jour.
 - 🔐 Tes sauvegardes sont protégées comme tu le choisis : **chiffrées par CarDeck**, **mot de passe**, **liées à l'appareil**, ou en clair si tu le veux.
 - 🛡️ Sur les voitures qui se codent, le **codage d'origine** est enregistré avec le numéro de série (VIN) de la voiture : CarDeck refuse de le
   réécrire sur une autre voiture, et relit chaque réglage juste avant de l'écrire.

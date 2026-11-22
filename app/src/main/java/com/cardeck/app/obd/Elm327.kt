@@ -781,6 +781,9 @@ class Elm327(private val t: ObdTransport) {
         return FlowControl(f.getOrElse(1) { 0 }, st)
     }
 
+    /** Formatage CAN automatique coupé (ATCAF0) : les demandes sont envoyées comme trames brutes. */
+    private var rawFrames = false
+
     /** Liste blanche : commandes du boîtier sans effet durable ; en lecture seule, services de lecture uniquement. */
     private fun allowed(cmd: String): Boolean {
         val c = cmd.uppercase().replace(" ", "")
@@ -789,9 +792,19 @@ class Elm327(private val t: ObdTransport) {
             if (listOf("PP", "WM", "SW", "BRD").any { a.startsWith(it) }) return false
             // Adresses réservées (ISO 26021) : jamais interrogées.
             if (Regex("^(SH|FCSH)0*7F1$").matches(a) || Regex("^CRA0*7F9$").matches(a)) return false
+            // Données de contrôle de flux envoyées seules par le boîtier : en lecture seule, uniquement un vrai contrôle de flux
+            // (30 …), sinon le boîtier enverrait de lui-même n'importe quelle trame (ex. 02 10 03) à chaque réponse longue.
+            if (readOnly && a.startsWith("FCSD") && !a.removePrefix("FCSD").startsWith("30")) return false
+            when {
+                a == "CAF0" -> rawFrames = true
+                a == "CAF1" || a == "Z" || a == "D" || a == "WS" -> rawFrames = false
+            }
             return true
         }
         if (!readOnly) return true
+        // Formatage CAN coupé (ATCAF0) : le premier octet envoyé est l'octet de protocole ISO-TP, pas le service ;
+        // la liste blanche ne pourrait plus juger la demande. En lecture seule, aucune demande dans ce mode.
+        if (rawFrames) return false
         return when (val svc = c.take(2)) {
             "10" -> c.startsWith("1001") || c.startsWith("1081")
             // Effacement des codes défaut : seulement pendant un effacement demandé par l'utilisateur.
