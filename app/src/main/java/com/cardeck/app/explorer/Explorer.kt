@@ -721,6 +721,132 @@ class Explorer(
         }
     }
 
+    // ------------------------------------------------------------------ Recherche du cliquetis
+
+    /** Calculateur moteur : 7E0 (CAN 11 bits) ou 18DA10F1 (29 bits), ajouté aux découvertes s'il n'y est pas encore. */
+    private suspend fun engineEcu(): Ecu? {
+        if (!e.isCan) return null
+        val t = if (e.is11bit) Ecu("7E0", Bus.Can11, 0x7E0, 0x7E8, "kwp") else Ecu("18DA10F1", Bus.Can29, 0x18DA10F1, 0x18DAF110, "uds")
+        data.ecus[t.key]?.let { return it }
+        t.proto = detectProto(t)
+        data.ecus[t.key] = t
+        return t
+    }
+
+    /**
+     * Recherche du cliquetis, en roulant : mesures OBD utiles (régime, charge, avance, pression d'admission, papillon, vitesse)
+     * et blocs de données du moteur, lus le plus vite possible (pas d'écoute du bus, demandes adressées au seul moteur).
+     * Puis classement des octets qui se comportent comme un retard d'allumage dû au cliquetis ([KnockAnalysis]).
+     * Tout dans cliquetis/<date>/ : mesures.csv, blocs.csv, candidats.csv, ANALYSE.md.
+     */
+    suspend fun knock(version: String, vehicle: String) {
+        val folder = stampFile()
+        val out = File(dir, "cliquetis/$folder").apply { mkdirs() }
+        val t0 = System.currentTimeMillis()
+        fun secs() = (System.currentTimeMillis() - t0) / 1000.0
+
+        ui.step(1, 3, "Calculateur moteur")
+        val engine = engineEcu() ?: run { ui.line("❌ Recherche possible seulement sur une voiture en CAN (la plupart depuis 2008)"); return }
+        ui.line("🔧 Moteur : ${engine.label} (${engine.proto.uppercase()})")
+        // Blocs du moteur : ceux déjà découverts ; sinon, en KWP, balayage rapide des blocs 21xx (une seule fois, repris s'il est coupé).
+        if (data.dataBlocks(engine.key).isEmpty() && engine.proto == "kwp") {
+            ui.step(2, 3, "Recherche des blocs du moteur")
+            sweep(engine, 0x21, 0x100, 1, "21:${engine.key}")
+        }
+        val blocks = data.dataBlocks(engine.key).map { it.second }
+        if (blocks.isEmpty()) {
+            ui.line("❌ Aucun bloc de données du moteur connu : lancez d'abord un balayage à l'arrêt, puis relancez la recherche")
+            return
+        }
+        openSession(engine)
+
+        // Mesures OBD : demandées directement au moteur, groupées si possible (sinon diffusées, une par une).
+        val pids = listOf(0x0C, 0x04, 0x0E, 0x0B, 0x11, 0x0D)
+        val groupReq = "01" + pids.joinToString("") { "%02X".format(it) }
+        var direct = ask(engine, groupReq).let { a -> a.ok && Explore.decodeMode01(a.payload, pids).size >= 4 }
+        suspend fun measure(): Map<String, Double> =
+            if (direct) ask(engine, groupReq).takeIf { it.ok }?.let { Explore.decodeMode01(it.payload, pids) }.orEmpty()
+            else obdValues(pids)
+
+        val fM = File(out, "mesures.csv").bufferedWriter()
+        val fB = File(out, "blocs.csv").bufferedWriter()
+        val cols = listOf("regime", "charge_calculee", "avance_allumage", "pression_admission", "position_papillon", "vitesse")
+        fM.write((listOf("t") + cols).joinToString(",") + "\n")
+        fB.write("t,calc,req,hex\n")
+        data.knocks += folder
+        ui.step(3, 3, "Enregistrement : faites des reprises en charge")
+        ui.line("💥 cliquetis/$folder · ${blocks.size} bloc(s) du moteur · mesures ${if (direct) "adressées au moteur" else "diffusées"}")
+        ui.line("👉 Moteur chaud : plusieurs reprises franches en 3e ou 4e, de 1 500 à 4 000 tr/min, en sécurité. Arrêtez quand c'est fait.")
+
+        val obdRows = ArrayList<KnockAnalysis.Obd>()
+        val blockRows = ArrayList<KnockAnalysis.Block>()
+        val perRound = minOf(3, blocks.size)
+        var iRot = 0; var fails = 0; var pulls = 0; var wasLoaded = false
+        var lastAnswer = System.currentTimeMillis()
+        var lastFlush = System.currentTimeMillis()
+        var mute = 0
+        try {
+            while (true) {
+                try {
+                    val v = measure()
+                    if (v.isNotEmpty()) {
+                        lastAnswer = System.currentTimeMillis()
+                        val o = KnockAnalysis.Obd(secs(), v["regime"], v["charge_calculee"], v["avance_allumage"], v["pression_admission"])
+                        if (obdRows.size < 200_000) obdRows += o
+                        val loaded = KnockAnalysis.isLoaded(o)
+                        if (loaded && !wasLoaded) { pulls++; ui.line("🔥 Reprise en charge n°$pulls") }
+                        wasLoaded = loaded
+                        fM.write((listOf("%.3f".format(Locale.US, o.t)) + cols.map { c -> v[c]?.let { "%.2f".format(Locale.US, it) } ?: "" }).joinToString(",") + "\n")
+                        ui.detail(
+                            "%.1f min · %s tr/min · charge %s %% · avance %s° · reprises en charge : %d".format(
+                                Locale.FRANCE, secs() / 60, v["regime"]?.let { "%.0f".format(it) } ?: "—", v["charge_calculee"]?.let { "%.0f".format(it) } ?: "—",
+                                v["avance_allumage"]?.let { "%.1f".format(Locale.FRANCE, it) } ?: "—", pulls,
+                            ),
+                        )
+                    }
+                    repeat(perRound) {
+                        val req = blocks[iRot++ % blocks.size]
+                        val a = ask(engine, req)
+                        if (a.ok) {
+                            lastAnswer = System.currentTimeMillis()
+                            mute = 0
+                            fB.write("%.3f,${engine.key},$req,${Explore.hex(a.payload)}\n".format(Locale.US, secs()))
+                            if (blockRows.size < 200_000) blockRows += KnockAnalysis.Block(secs(), "${engine.key}:$req", a.payload.drop(Explore.echoSize(req)).toIntArray())
+                            data.note(engine.key, req, a)
+                        } else if (++mute >= 10) {
+                            openSession(engine) // session retombée ?
+                            mute = 0
+                        }
+                    }
+                    fails = 0
+                } catch (c: CancellationException) {
+                    throw c
+                } catch (x: IOException) {
+                    fails++
+                    if (fails >= 12) { ui.line("❌ Liaison perdue pour de bon : enregistrement arrêté"); break }
+                    if (fails % 2 == 0) runCatching { prepare(); openSession(engine); direct = false }
+                    delay(1000)
+                    continue
+                }
+                val now = System.currentTimeMillis()
+                if (now - lastAnswer > 20_000) { ui.line("⏹ La voiture ne répond plus depuis 20 s (contact coupé ?) : enregistrement terminé"); break }
+                if (now - lastFlush > 15_000) { fM.flush(); fB.flush(); save(true); lastFlush = now }
+            }
+        } finally {
+            withContext(NonCancellable) {
+                runCatching { fM.close() }; runCatching { fB.close() }
+                val r = KnockAnalysis.analyze(obdRows, blockRows)
+                val minutes = secs() / 60
+                runCatching { File(out, "ANALYSE.md").writeText(KnockAnalysis.report(r, vehicle, version, minutes, folder)) }
+                runCatching { File(out, "candidats.csv").writeText(KnockAnalysis.candidatesCsv(r)) }
+                ui.line("💾 ${"%.1f".format(Locale.FRANCE, minutes)} min : ${r.obdSamples} mesures, ${r.blockSamples} blocs, ${r.pulls} reprise(s) en charge")
+                if (r.candidates.isEmpty()) ui.line("🔍 Aucun octet candidat pour l'instant (voir ANALYSE.md)")
+                else r.candidates.take(3).forEach { c -> ui.line("🎯 Candidat ${c.key} position ${c.index} : écarté ${"%.0f".format(c.loaded * 100)} % du temps en charge") }
+                finish(version, vehicle)
+            }
+        }
+    }
+
     private fun stampFile() = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
 
     /** Vitesse actuelle (km/h), ou null si la voiture ne répond pas. */

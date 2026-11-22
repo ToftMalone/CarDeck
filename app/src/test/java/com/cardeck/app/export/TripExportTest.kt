@@ -41,4 +41,30 @@ class TripExportTest {
         ZipFile(zip).use { z -> assertEquals(setOf("resume.json", "trace.gpx", "donnees.csv"), z.entries().toList().map { it.name }.toSet()) }
         dir.deleteRecursively()
     }
+
+    @Test fun historique() {
+        val v = com.cardeck.app.data.VehicleProfile(1, "suzuki-swift-sport-zc33s", "=Ma Swift", "AB-123-CD", "2020", null, null)
+        val priced = trip.copy(id = 2, start = t0 + 3_600_000, end = t0 + 3_600_000 + 1_800_000, distanceKm = 25.0, to = "Rue C", fuelType = com.cardeck.app.data.FuelType.SP98, fuelPrice = 1.9, fuelPriceInfo = "prix médian")
+        val rows = listOf(
+            TripExport.HistoryRow(priced, v, com.cardeck.app.data.FuelType.SP98, 1.5),
+            TripExport.HistoryRow(trip, v, com.cardeck.app.data.FuelType.SP98, null),
+        )
+        val lines = TripExport.historyCsv(rows).removePrefix("\uFEFF").trim().split("\r\n")
+        assertEquals(4, lines.size) // en-tête, 2 trajets, total
+        assertTrue(lines[0].startsWith("Véhicule;Immatriculation;Date"))
+        // Du plus ancien au plus récent ; nom piégé neutralisé (pas de formule à l'ouverture dans Excel).
+        assertTrue(lines[1].startsWith("'=Ma Swift;AB-123-CD;"))
+        assertTrue(lines[1].contains("\"Rue B; Reims\""))
+        val c = lines[2].split(";")
+        assertEquals("25", c[8]); assertEquals("1,5", c[12]); assertEquals("6", c[13]); assertEquals("1,9", c[14]); assertEquals("2,85", c[15])
+        assertTrue(lines[3].startsWith("Total (2 trajets);"))
+        assertTrue(lines[3].contains(";26,2;")) // 1,2 + 25 km
+    }
+
+    @Test fun formulesNeutralisees() {
+        assertEquals("'=1+1", TripExport.csvCell("=1+1"))
+        assertEquals("'+33 6", TripExport.csvCell("+33 6"))
+        assertEquals("'@SUM(A1)", TripExport.csvCell("@SUM(A1)"))
+        assertEquals("Rue A", TripExport.csvCell("Rue A"))
+    }
 }

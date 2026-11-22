@@ -58,6 +58,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.Route
+import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -146,6 +147,8 @@ fun TripsScreen(vm: AppViewModel) {
     var confirm by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val ctx = LocalContext.current
+    var exporting by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         if (selecting) Row(
@@ -158,8 +161,34 @@ fun TripsScreen(vm: AppViewModel) {
         } else BackBar("Trajets", scroll.value > 48, { vm.back() })
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             ScreenTitle("Trajets", "${v.nickname} · ${list.size} trajet${if (list.size > 1) "s" else ""} · ${fr(km, 1)} km")
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TRIP_FILTERS.forEach { (k, l) -> CdChip(l, tf == k) { vm.tripFilter = k } }
+            }
+            // Export pour un tableur : les trajets affichés (véhicule et période choisis), consommation et coût compris.
+            if (list.isNotEmpty() && !selecting) Box(Modifier.padding(bottom = 8.dp)) {
+                TextBtn(
+                    if (exporting) "Export en cours…" else "Exporter ${if (list.size > 1) "ces ${list.size} trajets" else "ce trajet"} (tableur)",
+                    {
+                        if (exporting) return@TextBtn
+                        exporting = true
+                        val trips = list
+                        val period = TRIP_FILTERS.firstOrNull { it.first == tf }?.second.orEmpty()
+                        scope.launch {
+                            val file = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    val rows = trips.map { t ->
+                                        val fuel = t.fuelType ?: vm.repo.fuelFor(t.vehicleId)
+                                        TripExport.HistoryRow(t, v, fuel, com.cardeck.app.data.TripFuel.liters(vm.repo.fuelSamples(t.id), fuel))
+                                    }
+                                    TripExport.writeHistory(java.io.File(ctx.cacheDir, "exports"), rows, "${v.nickname} $period")
+                                }.getOrNull()
+                            }
+                            exporting = false
+                            if (file == null) vm.showSnack("Échec de l'export de l'historique") else shareFile(ctx, file, "text/csv", "Exporter l'historique des trajets")
+                        }
+                    },
+                    Icons.Rounded.TableChart,
+                )
             }
             val loaded = all
             when {

@@ -33,6 +33,9 @@ et la consommation et le coût d'un trajet sont **calculés** à partir de ces m
   par tranches de 10 000, lecture mémoire, carte du bus CAN, codes défaut avant / après. Interrompu, il reprend là où il s'était arrêté ;
 - 🚗 **en roulant, enregistrement** : mesures OBD, blocs constructeur (et nouveaux blocs découverts en route) et trafic du bus, horodatés ensemble.
   Il s'arrête quand tu le demandes ou au contact coupé.
+- 💥 **recherche du cliquetis** (bouton à part, en roulant) : pendant des reprises franches en charge, l'avance à l'allumage, la charge et les
+  blocs du moteur sont lus au plus vite, puis CarDeck classe les octets qui réagissent comme un retard d'allumage dû au cliquetis
+  (au repos hors charge, écartés en charge, avance perdue à régime et charge égaux). Des candidats à confirmer, pas une mesure.
 - Résultat : un **rapport** (calculateurs, blocs vivants, réponses en clair, identifiants qui refusent, **pistes de décodage par corrélation**,
   **cartes moteur**) et toutes les données brutes, à partager en un fichier.
 
@@ -75,6 +78,8 @@ Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées, 
 **coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr, carburant au choix pour chaque véhicule),
 ainsi que les données du moteur relevées pendant le parcours.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
+L'**historique** s'exporte aussi d'un coup pour un tableur (Excel, LibreOffice) : une ligne par trajet de la période choisie (date, heures,
+lieux, distance, vitesses, carburant consommé, consommation, prix, coût) et une ligne de total, pratique pour les frais kilométriques.
 Dans l'historique, un appui long sur un trajet lance la **multi-sélection** : tu peux **fusionner** plusieurs trajets en un seul (mis bout à bout, tracé et données repris) ou les **supprimer**.
 
 ### ⏰ Réveil automatique

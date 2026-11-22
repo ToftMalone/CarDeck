@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,11 +57,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Résumé des découvertes enregistrées pour un véhicule. */
-private class Summary(val ecus: Int, val can11: Int, val can29: Int, val k: Int, val answers: Int, val blocks: Int, val bus: Int, val snaps: Int, val drives: Int, val uds: List<Pair<String, Int>>, val names: Map<String, String>)
+private class Summary(val ecus: Int, val can11: Int, val can29: Int, val k: Int, val answers: Int, val blocks: Int, val bus: Int, val snaps: Int, val drives: Int, val knocks: Int, val uds: List<Pair<String, Int>>, val names: Map<String, String>)
 
 private fun summarize(d: ExplorerData) = Summary(
     d.ecus.size, d.ecus.values.count { it.bus == Bus.Can11 }, d.ecus.values.count { it.bus == Bus.Can29 }, d.ecus.values.count { it.bus == Bus.K },
-    d.answers.size, d.dataBlocks().size, d.bus.size, d.history.size, d.drives.size,
+    d.answers.size, d.dataBlocks().size, d.bus.size, d.history.size, d.drives.size, d.knocks.size,
     d.ecus.values.filter { it.proto == "uds" && it.bus != Bus.K && it.key !in ExplorerData.UDS_SKIPPED }.map { it.key to (d.progress["22:${it.key}"] ?: 0) },
     d.names(),
 )
@@ -93,8 +94,8 @@ fun ExplorerScreen(vm: AppViewModel) {
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             T("Explorateur", 32, lineHeight = 40, modifier = Modifier.padding(top = 4.dp))
             T(
-                "Découvre tous les calculateurs de ${v.nickname} et tout ce qu'ils acceptent de donner. Un seul bouton : " +
-                    "voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, c'est l'enregistrement en roulant.",
+                "Découvre tous les calculateurs de ${v.nickname} et tout ce qu'ils acceptent de donner. Exploration : " +
+                    "voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, c'est l'enregistrement en roulant. Plus bas, la recherche du cliquetis.",
                 14, c.onv, lineHeight = 20,
             )
             Row(
@@ -132,6 +133,20 @@ fun ExplorerScreen(vm: AppViewModel) {
                         FilledBtn("Lancer l'exploration", { vm.startExplore() }, enabled = connected)
                     }
                     if (!connected) T("Connectez d'abord le boîtier OBD2.", 12, c.onv, modifier = Modifier.padding(top = 6.dp))
+                }
+                // Recherche ciblée : les octets des blocs du moteur qui réagissent comme un retard d'allumage dû au cliquetis.
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(72.dp).clip(CircleShape).background(c.tc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Whatshot, 36, c.otc) }
+                    T("💥 Recherche du cliquetis", 15, weight = 600, modifier = Modifier.padding(top = 14.dp))
+                    T(
+                        "Moteur chaud, en roulant : lancez, puis faites plusieurs reprises franches en 3e ou 4e, pied au plancher de 1 500 à 4 000 tr/min, " +
+                            "sur une route dégagée et sans regarder l'écran. CarDeck lit au plus vite l'avance à l'allumage, la charge et les blocs du moteur, " +
+                            "puis classe les octets qui réagissent comme un retard dû au cliquetis. Partagez ensuite les résultats.",
+                        13, c.onv, align = TextAlign.Center, lineHeight = 18, modifier = Modifier.padding(top = 4.dp),
+                    )
+                    Box(Modifier.padding(top = 16.dp)) {
+                        FilledBtn("Lancer la recherche", { vm.startExplore(knock = true) }, enabled = connected)
+                    }
                 }
                 summary?.let { s -> Results(s) }
                 if ((summary?.answers ?: 0) > 0 || (summary?.ecus ?: 0) > 0) {
@@ -203,6 +218,7 @@ private fun Results(s: Summary) {
         Line("Identifiants actifs sur le bus", "${s.bus}")
         Line("Instantanés pour la corrélation", "${s.snaps}")
         Line("Enregistrements en roulant", "${s.drives}")
+        if (s.knocks > 0) Line("Recherches du cliquetis", "${s.knocks}")
         s.uds.forEach { (k, n) -> Line("UDS $k", "$n / ${Explore.UDS_TOTAL}" + if (n >= Explore.UDS_TOTAL) " ✅" else "") }
         if (s.names.isNotEmpty()) {
             T("Identifiés", 13, weight = 600, modifier = Modifier.padding(top = 6.dp))

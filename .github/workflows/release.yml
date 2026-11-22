@@ -66,6 +66,15 @@ jobs:
           "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK"
           cp "$APK" "CarDeck-${{ steps.v.outputs.version }}.apk"
 
+      # Fichier de correspondance R8 : sans lui, une trace de plantage de la version obfusquée est illisible.
+      - name: Correspondance R8
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapping-${{ steps.v.outputs.version }}
+          path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 90
+          if-no-files-found: error
+
       - name: Publication
         env:
           GH_TOKEN: ${{ github.token }}

@@ -198,6 +198,14 @@ class Repo(ctx: Context) {
         }
     }
 
+    /** Débits utiles au calcul de la consommation (carburant PID 5E, air PID 10) : bien plus léger que [samples]. */
+    fun fuelSamples(tripId: Long): Map<String, List<Sample>> =
+        db.rawQuery("SELECT pid, t, value FROM trip_samples WHERE trip_id=? AND pid IN ('std5E', 'std10') ORDER BY t", arrayOf(tripId.toString())).use { c ->
+            val out = LinkedHashMap<String, MutableList<Sample>>()
+            while (c.moveToNext()) out.getOrPut(c.getString(0)) { mutableListOf() }.add(Sample(c.getLong(1), c.getDouble(2)))
+            out
+        }
+
     /** Historique des données moteur d'un trajet, par donnée, trié dans le temps. */
     fun samples(tripId: Long): Map<String, List<Sample>> =
         db.rawQuery("SELECT pid, t, value FROM trip_samples WHERE trip_id=? ORDER BY t", arrayOf(tripId.toString())).use { c ->

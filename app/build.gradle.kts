@@ -62,10 +62,18 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             resValue("string", "app_name", "CarDeck Debug")
+            // Essai du code obfusqué sur un téléphone, à côté de la version installée : ./gradlew assembleDebug -PminifyDebug
+            if (providers.gradleProperty("minifyDebug").isPresent) {
+                isMinifyEnabled = true
+                proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            }
         }
         release {
             resValue("string", "app_name", "CarDeck")
-            isMinifyEnabled = false
+            // R8 : code réduit, optimisé et obfusqué ; ressources inutilisées retirées. Correspondance dans build/outputs/mapping.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }

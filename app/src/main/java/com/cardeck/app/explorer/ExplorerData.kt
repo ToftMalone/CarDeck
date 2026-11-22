@@ -28,6 +28,8 @@ class ExplorerData {
     val faults = HashMap<String, Map<String, String>>()
     val history = ArrayList<Snapshot>()
     val drives = ArrayList<String>()
+    /** Recherches du cliquetis (dossiers cliquetis/<date>/, chacun avec son ANALYSE.md). */
+    val knocks = ArrayList<String>()
 
     /** Enregistre une réponse ; renvoie « ok », « refus! » (refus qui dit que l'identifiant existe) ou l'état. */
     fun note(ecu: String, req: String, a: Answer, now: String = stamp()): String {
@@ -187,6 +189,10 @@ class ExplorerData {
             a(); a("## Enregistrements en roulant"); a()
             drives.forEach { a("- `route/$it` (obd.csv, diag.csv, bus.csv)") }
         }
+        if (knocks.isNotEmpty()) {
+            a(); a("## Recherches du cliquetis"); a()
+            knocks.forEach { a("- `cliquetis/$it` : candidats dans ANALYSE.md (données brutes : mesures.csv, blocs.csv)") }
+        }
         a(); a("## Ce qu'il reste à faire"); a()
         val uds = ecus.values.filter { it.proto == "uds" && it.bus != Bus.K && it.key !in UDS_SKIPPED }
         if (uds.isEmpty()) a("- Aucun calculateur UDS à balayer.")
@@ -222,6 +228,7 @@ class ExplorerData {
             history.forEach { h -> arr.put(JSONObject().put("t", h.t).put("moment", h.moment).put("refs", JSONObject(h.refs as Map<*, *>)).put("blocs", JSONObject(h.blocks as Map<*, *>))) }
         })
         put("roulages", JSONArray(drives))
+        put("cliquetis", JSONArray(knocks))
     }
 
     fun save(file: File) {
@@ -257,6 +264,7 @@ class ExplorerData {
                 }
             }
             o.optJSONArray("roulages")?.let { arr -> for (i in 0 until arr.length()) d.drives += arr.getString(i) }
+            o.optJSONArray("cliquetis")?.let { arr -> for (i in 0 until arr.length()) d.knocks += arr.getString(i) }
             return d
         }
     }

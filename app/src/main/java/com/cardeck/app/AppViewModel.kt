@@ -429,9 +429,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Lance l'exploration du véhicule actif : enregistrement en roulant si la voiture roule à cet instant,
-     * balayage à l'arrêt sinon. Tout en lecture seule, quel que soit le modèle.
+     * balayage à l'arrêt sinon ; ou, avec [knock], la recherche du cliquetis (moteur tournant). Tout en lecture seule.
      */
-    fun startExplore() {
+    fun startExplore(knock: Boolean = false) {
         if (explorer.running) return
         val v = repo.active ?: return
         val dir = explorerDir(v.id)
@@ -448,8 +448,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     try {
                         explorer.step(0, 1, "Préparation du boîtier")
                         if (!ex.prepare()) return@use "Aucun calculateur ne répond : mettez le contact (moteur tournant de préférence)."
-                        val speed = ex.speed()
                         val name = "${v.nickname} (${v.template.fullName})"
+                        if (knock) {
+                            val rpm = ex.obdValues(listOf(0x0C), grouped = false)["regime"]
+                            if (rpm == null || rpm < 400) return@use "Démarrez le moteur : la recherche du cliquetis se fait en roulant."
+                            explorer.mode = "Recherche du cliquetis"
+                            explorer.line("💥 Recherche du cliquetis")
+                            ex.knock(BuildConfig.VERSION_NAME, name)
+                            return@use "Recherche du cliquetis terminée : les candidats sont dans les résultats, touchez « Partager les résultats »."
+                        }
+                        val speed = ex.speed()
                         if (speed != null && speed >= 3) {
                             explorer.mode = "Enregistrement en roulant"
                             explorer.line("🚗 La voiture roule (${speed.toInt()} km/h) : enregistrement en roulant")
@@ -470,7 +478,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 explorer.done = r ?: if (obd.state.value is com.cardeck.app.obd.ObdState.Connected) "Exploration terminée" else "Liaison avec le boîtier perdue : reconnectez-le et relancez, l'exploration reprendra où elle s'est arrêtée."
             } catch (c: kotlinx.coroutines.CancellationException) {
-                explorer.done = "Exploration arrêtée : relancez pour reprendre où elle s'est arrêtée."
+                explorer.done = if (knock) "Recherche du cliquetis arrêtée : les candidats sont dans les résultats, touchez « Partager les résultats »."
+                else "Exploration arrêtée : relancez pour reprendre où elle s'est arrêtée."
                 throw c
             } finally {
                 obd.exploring = false

@@ -1,5 +1,6 @@
 package com.cardeck.app.export
 
+import com.cardeck.app.data.FuelType
 import com.cardeck.app.data.StdPids
 import com.cardeck.app.data.Sample
 import com.cardeck.app.data.Trip
@@ -29,7 +30,14 @@ object TripExport {
     private fun num(v: Double, maxDecimals: Int = 3): String =
         if (v.isNaN() || v.isInfinite()) "" else BigDecimal(v).setScale(maxDecimals, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',')
 
-    private fun csvCell(s: String) = if (s.any { it == ';' || it == '"' || it == '\n' }) "\"" + s.replace("\"", "\"\"") + "\"" else s
+    /**
+     * Cellule de tableur. Un texte qui commence par = + - @ (ou une tabulation) serait pris pour une formule par Excel :
+     * un nom de véhicule ou de rue piégé (« =HYPERLINK(…) ») s'exécuterait à l'ouverture. Il est précédé d'une apostrophe.
+     */
+    internal fun csvCell(s: String): String {
+        val safe = if (s.isNotEmpty() && s[0] in "=+-@\t\r") "'$s" else s
+        return if (safe.any { it == ';' || it == '"' || it == '\n' || it == '\r' }) "\"" + safe.replace("\"", "\"\"") + "\"" else safe
+    }
 
     private fun xml(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
@@ -117,6 +125,57 @@ object TripExport {
   ]
 }
 """
+    }
+
+    /** Une ligne de l'historique : le trajet, son véhicule, le carburant retenu et les litres consommés (null si non mesurés). */
+    class HistoryRow(val trip: Trip, val vehicle: VehicleProfile?, val fuel: FuelType, val liters: Double?)
+
+    /**
+     * Historique des trajets pour un tableur (frais kilométriques, comptabilité) : une ligne par trajet, du plus ancien
+     * au plus récent, puis une ligne de total. Mêmes calculs que l'écran du trajet (consommation, coût).
+     */
+    fun historyCsv(rows: List<HistoryRow>): String = buildString {
+        val date = local("dd/MM/yyyy")
+        val hour = local("HH:mm")
+        append(BOM)
+        append(
+            listOf(
+                "Véhicule", "Immatriculation", "Date", "Heure de départ", "Heure d'arrivée", "Durée (min)", "Départ", "Arrivée",
+                "Distance (km)", "Vitesse moyenne (km/h)", "Vitesse max (km/h)", "Carburant", "Carburant consommé (L)",
+                "Consommation (L/100 km)", "Prix du carburant (€/L)", "Coût (€)", "Origine du prix",
+            ).joinToString(";") { csvCell(it) },
+        ).append("\r\n")
+        var km = 0.0; var minutes = 0.0; var liters = 0.0; var cost = 0.0
+        for (r in rows.sortedBy { it.trip.start }) {
+            val t = r.trip
+            val conso = r.liters?.takeIf { t.distanceKm > 0.5 }?.let { it / t.distanceKm * 100 }
+            val c = t.fuelPrice?.let { p -> r.liters?.let { it * p } }
+            val min = (t.end - t.start) / 60_000.0
+            km += t.distanceKm; minutes += min; r.liters?.let { liters += it }; c?.let { cost += it }
+            append(
+                listOf(
+                    csvCell(r.vehicle?.nickname.orEmpty()), csvCell(r.vehicle?.plate.orEmpty()),
+                    date.format(Date(t.start)), hour.format(Date(t.start)), hour.format(Date(t.end)), num(min, 0),
+                    csvCell(t.from), csvCell(t.to), num(t.distanceKm, 1), num(t.avgKmh, 0), num(t.maxKmh, 0),
+                    csvCell(r.fuel.label), r.liters?.let { num(it, 2) }.orEmpty(), conso?.let { num(it, 1) }.orEmpty(),
+                    t.fuelPrice?.let { num(it, 3) }.orEmpty(), c?.let { num(it, 2) }.orEmpty(), csvCell(t.fuelPriceInfo.orEmpty()),
+                ).joinToString(";"),
+            ).append("\r\n")
+        }
+        append(
+            listOf("Total (${rows.size} trajet${if (rows.size > 1) "s" else ""})", "", "", "", "", num(minutes, 0), "", "", num(km, 1), "", "", "",
+                num(liters, 2), "", "", num(cost, 2), "").joinToString(";") { csvCell(it) },
+        ).append("\r\n")
+    }
+
+    /** Écrit l'historique dans [dir] (anciens exports effacés) et renvoie le fichier. */
+    fun writeHistory(dir: File, rows: List<HistoryRow>, label: String): File {
+        dir.mkdirs()
+        dir.listFiles()?.forEach { it.delete() }
+        val safe = label.replace(Regex("[^A-Za-z0-9]+"), "_").trim('_').ifEmpty { "trajets" }
+        val out = File(dir, "CarDeck_historique_${safe}_${local("yyyy-MM-dd").format(Date())}.csv")
+        out.writeText(historyCsv(rows), Charsets.UTF_8)
+        return out
     }
 
     /** Écrit l'archive complète et renvoie le fichier. */
