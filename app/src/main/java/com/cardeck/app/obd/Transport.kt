@@ -93,14 +93,14 @@ class WifiTransport(private val ctx: Context, private val host: String, private 
     private var socket: Socket? = null
 
     override suspend fun open() = withContext(Dispatchers.IO) {
-        if (!WifiAddress.isLocal(host)) throw IOException(WifiAddress.REFUSED)
+        val address = WifiAddress.inet(host) ?: throw IOException(WifiAddress.REFUSED)
         val cm = ctx.getSystemService(ConnectivityManager::class.java)
         @Suppress("DEPRECATION")
         val wifi = cm.allNetworks.firstOrNull { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
             ?: throw IOException("Connectez d'abord le téléphone au Wi-Fi du boîtier")
         val s = wifi.socketFactory.createSocket()
         try {
-            s.connect(InetSocketAddress(host, port), 6000)
+            s.connect(InetSocketAddress(address, port), 6000)
         } catch (e: IOException) {
             runCatching { s.close() }
             throw IOException("Boîtier injoignable sur $host:$port", e)

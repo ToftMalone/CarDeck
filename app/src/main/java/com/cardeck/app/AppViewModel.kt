@@ -403,7 +403,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             withContext(Dispatchers.IO) {
-                runCatching { scanLogFile(v.id).apply { parentFile?.mkdirs() }.writeText(log.toString()) }
+                // Boîtier non connecté : rien n'a été échangé, le journal du scan précédent est gardé.
+                if (log.isNotEmpty()) runCatching { scanLogFile(v.id).apply { parentFile?.mkdirs() }.writeText(log.toString()) }
             }
             if (out == null) {
                 showSnack("Boîtier non connecté ou liaison perdue pendant le scan : reconnectez-le et relancez")

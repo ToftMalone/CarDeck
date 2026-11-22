@@ -72,9 +72,12 @@ class Elm327(private val t: ObdTransport) {
         buf.clear()
         t.send((cmd + "\r").toByteArray(Charsets.US_ASCII))
         val done = withTimeoutOrNull(timeoutMs) {
-            while (buf.indexOf(">") < 0) {
+            while (true) {
                 val chunk = t.incoming.receiveCatching().getOrNull() ?: throw IOException("Connexion au boîtier perdue")
                 buf.append(String(chunk, Charsets.US_ASCII))
+                if (chunk.any { it == '>'.code.toByte() }) break
+                // Un vrai boîtier répond en quelques kilo-octets : un flot sans fin (faux boîtier, Wi-Fi pirate) saturerait la mémoire.
+                if (buf.length > MAX_ANSWER) throw IOException("Réponse du boîtier anormalement longue : liaison coupée")
             }
         }
         if (done == null) {
@@ -300,13 +303,15 @@ class Elm327(private val t: ObdTransport) {
             while (true) {
                 val chunk = t.incoming.receiveCatching().getOrNull() ?: throw IOException("Connexion au boîtier perdue")
                 sb.append(String(chunk, Charsets.US_ASCII))
+                if (sb.length > MAX_LISTEN) break // écoute assez longue : la suite est ignorée
             }
         }
         t.send(" ".toByteArray(Charsets.US_ASCII))
         withTimeoutOrNull(3000) {
-            while (sb.indexOf(">") < 0) {
+            while (true) {
                 val chunk = t.incoming.receiveCatching().getOrNull() ?: throw IOException("Connexion au boîtier perdue")
-                sb.append(String(chunk, Charsets.US_ASCII))
+                if (sb.length <= MAX_LISTEN) sb.append(String(chunk, Charsets.US_ASCII))
+                if (chunk.any { it == '>'.code.toByte() }) break
             }
         }
         return sb.toString().replace(">", "")
@@ -841,6 +846,12 @@ class Elm327(private val t: ObdTransport) {
 
         /** Réponse à une commande refusée par la liste blanche (jamais envoyée). */
         const val BLOCKED = "BLOCKED"
+
+        /** Taille maximale d'une réponse à une commande (les plus longues, blocs constructeur ou balayages, font quelques Ko). */
+        internal const val MAX_ANSWER = 512 * 1024
+
+        /** Taille maximale gardée d'une écoute du bus (ATMA). */
+        internal const val MAX_LISTEN = 4 * 1024 * 1024
 
         private val READ_SERVICES = setOf("01", "02", "03", "05", "06", "07", "09", "0A", "12", "13", "17", "18", "1A", "21", "19", "22", "23", "24", "3E")
 

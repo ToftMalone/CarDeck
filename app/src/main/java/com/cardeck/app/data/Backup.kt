@@ -108,20 +108,20 @@ object Backup {
         val trustedCoding = header.mode == BackupCrypto.MODE_DEVICE
         // Un fichier en clair n'a pas d'authentification : un fichier qui n'est pas du gzip est signalé simplement.
         val gz = try { GZIPInputStream(plain, 64 * 1024) } catch (_: java.util.zip.ZipException) { throw BackupCrypto.BadBackup("Sauvegarde illisible") }
-        val d = DataInputStream(gz.buffered(64 * 1024))
+        val d = DataInputStream(Limited(gz, MAX_CONTENT).buffered(64 * 1024))
         var codingSkipped = 0
         d.use {
             if (d.readUTF() != "CarDeck" || d.readInt() != FORMAT) throw BackupCrypto.BadBackup("Sauvegarde illisible")
             if (d.readInt() > DB_VERSION) throw BackupCrypto.BadBackup("Sauvegarde d'une version plus récente de CarDeck : mettez l'application à jour")
             d.readLong(); d.readUTF()
-            val prefs = (0 until d.readInt()).associate { d.readUTF() to readValue(d) }
+            val prefs = (0 until count(d, 10_000)).associate { d.readUTF() to readValue(d) }
             val db = repo.sql
             db.beginTransaction()
             try {
                 TABLES.asReversed().forEach { db.delete(it, null, null) }
-                repeat(d.readInt()) {
+                repeat(count(d, 64)) {
                     val table = d.readUTF()
-                    val cols = (0 until d.readInt()).map { d.readUTF() }
+                    val cols = (0 until count(d, 256)).map { d.readUTF() }
                     // Colonnes inconnues de ce schéma (sauvegarde plus ancienne ou table retirée) : ignorées.
                     val known = if (table in TABLES && (table != "coding_backups" || trustedCoding)) db.rawQuery("PRAGMA table_info($table)", null).use { c -> buildSet { while (c.moveToNext()) add(c.getString(1)) } } else emptySet()
                     val keep = cols.indices.filter { cols[it] in known }
@@ -199,11 +199,34 @@ object Backup {
         }
     }
 
+    /**
+     * Limites de lecture : une sauvegarde peut venir de n'importe où (en clair, ou chiffrée avec la clé de l'application).
+     * Sans elles, un petit fichier compressé fabriqué exprès ferait allouer des centaines de Mo, ou remplirait le stockage.
+     * Une vraie sauvegarde n'a que de petites valeurs (textes, nombres) ; des années de trajets tiennent dans quelques centaines de Mo.
+     */
+    private const val MAX_VALUE = 1024 * 1024
+    private const val MAX_CONTENT = 2L * 1024 * 1024 * 1024
+
+    /** Nombre d'éléments annoncé par le fichier, refusé s'il est négatif ou dépasse [max]. */
+    private fun count(d: DataInputStream, max: Int): Int =
+        d.readInt().also { if (it < 0 || it > max) throw BackupCrypto.BadBackup("Sauvegarde illisible") }
+
+    /** Flux limité à [max] octets décompressés. */
+    private class Limited(input: InputStream, private val max: Long) : java.io.FilterInputStream(input) {
+        private var n = 0L
+        private fun add(k: Int): Int {
+            if (k > 0) { n += k; if (n > max) throw BackupCrypto.BadBackup("Sauvegarde anormalement volumineuse : restauration refusée") }
+            return k
+        }
+        override fun read(): Int = super.read().also { if (it >= 0) add(1) }
+        override fun read(b: ByteArray, off: Int, len: Int): Int = add(super.read(b, off, len))
+    }
+
     private fun bytes(d: DataOutputStream, b: ByteArray) { d.writeInt(b.size); d.write(b) }
 
     private fun readBytes(d: DataInputStream): ByteArray {
         val n = d.readInt()
-        if (n < 0 || n > 64 * 1024 * 1024) throw BackupCrypto.BadBackup("Sauvegarde illisible")
+        if (n < 0 || n > MAX_VALUE) throw BackupCrypto.BadBackup("Sauvegarde illisible")
         return ByteArray(n).also { d.readFully(it) }
     }
 
@@ -216,7 +239,7 @@ object Backup {
         5 -> d.readBoolean()
         6 -> d.readInt()
         7 -> d.readFloat()
-        8 -> (0 until d.readInt()).map { String(readBytes(d), Charsets.UTF_8) }.toSet()
+        8 -> (0 until count(d, 10_000)).map { String(readBytes(d), Charsets.UTF_8) }.toSet()
         else -> throw BackupCrypto.BadBackup("Sauvegarde illisible")
     }
 }

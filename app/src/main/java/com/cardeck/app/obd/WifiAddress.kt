@@ -6,12 +6,22 @@ package com.cardeck.app.obd
  * (sauvegarde partagée, par exemple) ferait se connecter CarDeck à un serveur sur Internet à chaque utilisation.
  */
 object WifiAddress {
-    /** Octets d'une adresse IPv4 écrite en chiffres (« 192.168.0.10 »), ou null. */
-    private fun ipv4(host: String): List<Int>? {
+    /**
+     * Octets d'une adresse IPv4 écrite en décimal (« 192.168.0.10 »), ou null. Pas de zéro en tête (« 172.016.0.1 ») :
+     * certains analyseurs le lisent en octal (172.14.0.1, une adresse publique) ou le résolvent par le DNS.
+     */
+    internal fun ipv4(host: String): List<Int>? {
         val parts = host.split('.')
         if (parts.size != 4) return null
-        return parts.map { p -> if (p.isEmpty() || p.length > 3 || !p.all { it.isDigit() }) return null else p.toInt().takeIf { it <= 255 } ?: return null }
+        return parts.map { p ->
+            if (p.isEmpty() || p.length > 3 || !p.all { it in '0'..'9' } || (p.length > 1 && p[0] == '0')) return null
+            p.toInt().takeIf { it <= 255 } ?: return null
+        }
     }
+
+    /** Adresse réseau construite directement à partir des octets : aucune analyse ni résolution DNS par le système. */
+    fun inet(host: String): java.net.InetAddress? =
+        ipv4(host.trim())?.takeIf { isLocal(host) }?.let { b -> java.net.InetAddress.getByAddress(ByteArray(4) { b[it].toByte() }) }
 
     /** Vrai si [host] est une adresse IPv4 privée (10/8, 172.16/12, 192.168/16) ou locale de lien (169.254/16). */
     fun isLocal(host: String): Boolean {

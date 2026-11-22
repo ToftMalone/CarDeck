@@ -213,6 +213,17 @@ class Elm327Test {
         assertTrue("ATFCSD021003" !in fake.sent)
     }
 
+    @Test fun fauxBoitierReponseSansFin() = runBlocking {
+        // Faux boîtier qui répond par un flot sans « > » : la liaison est coupée au lieu de saturer la mémoire.
+        val flood = object : ObdTransport {
+            override val incoming = Channel<ByteArray>(Channel.UNLIMITED)
+            override suspend fun open() {}
+            override suspend fun send(data: ByteArray) { repeat(200) { incoming.trySend(ByteArray(4096) { 'A'.code.toByte() }) } }
+            override fun close() {}
+        }
+        try { Elm327(flood).raw("0100"); org.junit.Assert.fail() } catch (x: java.io.IOException) { assertTrue(x.message!!.contains("anormalement")) }
+    }
+
     @Test fun codageApplique() {
         val d = com.cardeck.app.data.CodingDef("t", "Confort", "Test", "", "BCM", "750", "758", 0xB001, 1, 0x0C,
             listOf(com.cardeck.app.data.CodingOption("A", 0x00), com.cardeck.app.data.CodingOption("B", 0x04)))

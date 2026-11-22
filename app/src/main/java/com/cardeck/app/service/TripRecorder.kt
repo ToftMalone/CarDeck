@@ -14,6 +14,22 @@ import com.cardeck.app.data.TripPoint
 import java.util.Locale
 import java.util.concurrent.Executors
 
+/** Distance GPS : un écart entre deux relevés compte-t-il comme un déplacement ? */
+internal object GpsDistance {
+    /** Vitesse en dessous de laquelle la voiture est considérée à l'arrêt (≈ 3,6 km/h). */
+    private const val STOPPED_MPS = 1f
+
+    /**
+     * [d] : écart en mètres depuis le dernier point compté ; [speedMps] et [accuracyM] : vitesse et précision du relevé, si connues.
+     * En mouvement, tout écart de plus de 2 m compte ; à l'arrêt, seulement un écart plus grand que l'imprécision du relevé.
+     */
+    fun counts(d: Float, speedMps: Float?, accuracyM: Float?): Boolean {
+        if (d <= 2f) return false
+        val moving = speedMps == null || speedMps >= STOPPED_MPS
+        return moving || d > maxOf(accuracyM ?: 10f, 10f)
+    }
+}
+
 /**
  * Enregistre un trajet : points GPS, distance, vitesses et données du moteur
  * (le tracé GPS est enregistré à part : pas de données GPS ni d'accélérations).
@@ -72,11 +88,17 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, private val
         if (firstFix == null) firstFix = loc
         val prev = last
         val kmh = if (loc.hasSpeed()) loc.speed * 3.6 else 0.0
-        if (prev != null) {
+        if (prev == null) {
+            last = loc
+        } else {
             val d = prev.distanceTo(loc)
-            if (d > 2f) gpsKm += d / 1000.0
+            // À l'arrêt (feu, bouchon), la position dérive de quelques mètres à chaque relevé : ces écarts ne comptent pas.
+            // Le point de référence ne bouge qu'avec un vrai déplacement, compté en entier une fois la dérive dépassée.
+            if (GpsDistance.counts(d, if (loc.hasSpeed()) loc.speed else null, if (loc.hasAccuracy()) loc.accuracy else null)) {
+                gpsKm += d / 1000.0
+                last = loc
+            }
         }
-        last = loc
         pending += TripPoint(loc.time, loc.latitude, loc.longitude, kmh)
         if (pending.size >= 10) flush()
     }

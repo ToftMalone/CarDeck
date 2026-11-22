@@ -124,6 +124,13 @@ class BackupCryptoTest {
         assertTrue(fails { open(file, legacy = mapOf(BackupCrypto.KEY_OFFICIAL to test)) }!!.message!!.contains("autre édition"))
     }
 
+    @Test fun iterationsDemesureesRefusees() {
+        // Fichier fabriqué avec un nombre d'itérations énorme : refusé sans calcul (sinon l'appli bloquerait).
+        val out = ByteArrayOutputStream()
+        BackupCrypto.encrypt(BackupLock.Password(pw.toCharArray()), out, iterations = BackupCrypto.MAX_ITERATIONS + 1).use { it.write(1) }
+        assertEquals("Sauvegarde endommagée", fails { open(out.toByteArray()) }?.message)
+    }
+
     @Test fun fichierEtranger() {
         assertEquals("Ce fichier n'est pas une sauvegarde CarDeck", fails { open("PK\u0003\u0004 zip quelconque".toByteArray() + ByteArray(64)) }?.message)
     }

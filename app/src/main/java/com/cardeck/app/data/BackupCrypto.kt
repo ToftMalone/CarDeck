@@ -65,6 +65,9 @@ object BackupCrypto {
     /** Itérations PBKDF2 : quelques dixièmes de seconde sur un téléphone, quelques secondes sur un autoradio d'entrée de gamme. */
     const val PASSWORD_ITERATIONS = 210_000
 
+    /** Plus grand nombre d'itérations accepté à la lecture (10 fois la valeur actuelle). */
+    const val MAX_ITERATIONS = 2_100_000
+
     private val MAGIC = "CDBK".toByteArray(Charsets.US_ASCII)
     private const val CHUNK = 64 * 1024
     private const val TAG = 16
@@ -191,7 +194,8 @@ object BackupCrypto {
                     val check = ByteArray(CHECK).also { inp.readFully(it) }
                     val labelBytes = ByteArray(inp.readUnsignedShort()).also { inp.readFully(it) }
                     if (mode !in listOf(MODE_PLAIN, MODE_APP, MODE_PASSWORD, MODE_DEVICE, MODE_APP_TEST)) throw BadBackup("Sauvegarde d'une version plus récente de CarDeck")
-                    if (mode == MODE_PASSWORD && iterations !in 1..10_000_000) throw BadBackup("Sauvegarde endommagée")
+                    // Nombre d'itérations lu dans le fichier : borné, sinon un fichier fabriqué bloquerait l'appli de longues minutes.
+                    if (mode == MODE_PASSWORD && iterations !in 1..MAX_ITERATIONS) throw BadBackup("Sauvegarde endommagée")
                     // En-tête tel qu'il est dans le fichier (authentifié avec chaque bloc).
                     val header = ByteArrayOutputStream().also { b ->
                         DataOutputStream(b).apply { write(start); writeByte(mode); write(salt); writeInt(iterations); write(check); writeShort(labelBytes.size); write(labelBytes) }
