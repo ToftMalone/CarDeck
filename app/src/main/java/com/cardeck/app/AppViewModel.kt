@@ -63,6 +63,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun go(s: Screen) { stack.add(s) }
 
+    /** Dock des rubriques masqué (sélection multiple des trajets, qui a sa propre barre en bas). */
+    var dockHidden by mutableStateOf(false)
+
+    /** Passe d'une rubrique à une autre (dock) sans empiler : le retour ramène à l'accueil. */
+    fun switchTo(s: Screen) { if (stack.isNotEmpty() && stack.last() != s) stack[stack.lastIndex] = s }
+
     /** @return true si le retour a été consommé. */
     fun back(): Boolean {
         if (stack.size > 1) {

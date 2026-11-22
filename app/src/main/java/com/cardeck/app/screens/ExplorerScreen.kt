@@ -92,7 +92,6 @@ fun ExplorerScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
         BackBar("Explorateur", scroll.value > 48, { vm.back() })
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            T("Explorateur", 32, lineHeight = 40, modifier = Modifier.padding(top = 4.dp))
             T(
                 "Découvre tous les calculateurs de ${v.nickname} et tout ce qu'ils acceptent de donner. Exploration : " +
                     "voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, c'est l'enregistrement en roulant. Plus bas, la recherche du cliquetis.",

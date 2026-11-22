@@ -200,6 +200,7 @@ fun AboutScreen(vm: AppViewModel) {
             }
             T(
                 "Cartes © contributeurs OpenStreetMap (osmdroid). Codes défaut OBD2 génériques SAE J2012. " +
+                    "Polices Google Sans Flex et Roboto Flex (SIL Open Font License 1.1). " +
                     "CarDeck lit les données du véhicule ; utilise-la à l'arrêt, jamais en tenant le téléphone en conduisant.",
                 12, c.onv, align = TextAlign.Center, lineHeight = 16, modifier = Modifier.padding(top = 24.dp),
             )

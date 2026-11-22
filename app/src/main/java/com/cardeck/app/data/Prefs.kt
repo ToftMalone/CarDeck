@@ -20,7 +20,7 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putString("themeMode", v.name).apply()
 
     var palette: Palette
-        get() = runCatching { Palette.valueOf(sp.getString("palette", null)!!) }.getOrDefault(Palette.Vert)
+        get() = runCatching { Palette.valueOf(sp.getString("palette", null)!!) }.getOrDefault(Palette.Dynamique)
         set(v) = sp.edit().putString("palette", v.name).apply()
 
     /** Niveau du diagnostic : complet (tous les calculateurs) ou simple (codes OBD classiques). */

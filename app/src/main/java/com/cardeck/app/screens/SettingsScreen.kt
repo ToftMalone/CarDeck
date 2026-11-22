@@ -64,7 +64,6 @@ import com.cardeck.app.ui.SectionLabel
 import com.cardeck.app.ui.Segmented
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.ThemeMode
-import com.cardeck.app.ui.oklch
 
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
@@ -78,7 +77,7 @@ fun SettingsScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
         BackBar("Paramètres", scroll.value > 48, { vm.back() })
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
-            T("Paramètres", 32, lineHeight = 40, modifier = Modifier.padding(top = 4.dp))
+            com.cardeck.app.ui.ScreenTitle("Paramètres", "CarDeck ${BuildConfig.VERSION_NAME}")
 
             SectionLabel("Garage")
             Group {
@@ -125,22 +124,13 @@ fun SettingsScreen(vm: AppViewModel) {
                     ) { vm.updateThemeMode(ThemeMode.entries[it]) }
                 }
                 Column(Modifier.fillMaxWidth().background(c.sf1).padding(16.dp)) {
-                    T("Couleur dynamique", 16)
-                    T("Toute la palette est dérivée d'une couleur source", 13, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 14.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Palette.entries.forEach { p ->
-                            val sel = p == vm.palette
-                            Column(
-                                Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).then(if (sel) Modifier.border(3.dp, c.on, RoundedCornerShape(16.dp)) else Modifier).clickable { vm.updatePalette(p) },
-                            ) {
-                                Box(Modifier.fillMaxWidth().weight(1f).background(oklch(.62, .14, p.hue)))
-                                Row(Modifier.fillMaxWidth().weight(1f)) {
-                                    Box(Modifier.weight(1f).fillMaxSize().background(oklch(.8, .06, p.hue)))
-                                    Box(Modifier.weight(1f).fillMaxSize().background(oklch(.72, .1, (p.hue + 60) % 360)))
-                                }
-                            }
-                        }
-                    }
+                    T("Couleurs", 16)
+                    T(
+                        if (com.cardeck.app.ui.dynamicColorAvailable) "Celles de ton fond d'écran (Material You), ou une palette fixe"
+                        else "Palette de l'application",
+                        13, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 14.dp),
+                    )
+                    PalettePicker(vm.palette) { vm.updatePalette(it) }
                 }
             }
             BackupSection(vm)
@@ -468,5 +458,40 @@ private fun BackupRow(icon: androidx.compose.ui.graphics.vector.ImageVector, tit
 
 @Composable
 private fun Group(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)), verticalArrangement = Arrangement.spacedBy(2.dp)) { content() }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)), verticalArrangement = Arrangement.spacedBy(2.dp)) { content() }
+}
+
+/** Choix des couleurs : fond d'écran (Android 12 et plus), Rose ou Neutre ; aperçu en trois teintes. */
+@Composable
+private fun PalettePicker(selected: Palette, onSelect: (Palette) -> Unit) {
+    val c = Cd.c
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val haptics = Cd.haptics
+    val options = Palette.entries.filter { it != Palette.Dynamique || com.cardeck.app.ui.dynamicColorAvailable }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        options.forEach { p ->
+            val scheme = when (p) {
+                Palette.Dynamique -> if (c.dark) androidx.compose.material3.dynamicDarkColorScheme(ctx) else androidx.compose.material3.dynamicLightColorScheme(ctx)
+                Palette.Rose -> if (c.dark) com.cardeck.app.ui.RoseDark else com.cardeck.app.ui.RoseLight
+                Palette.Neutre -> if (c.dark) com.cardeck.app.ui.NeutralDark else com.cardeck.app.ui.NeutralLight
+            }
+            val sel = p == selected
+            val ring by androidx.compose.animation.animateColorAsState(if (sel) c.on else androidx.compose.ui.graphics.Color.Transparent, label = "pal")
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).clickable { if (!sel) { haptics.segment(); onSelect(p) } }.padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(Modifier.size(64.dp).border(3.dp, ring, CircleShape).padding(6.dp).clip(CircleShape)) {
+                    Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.fillMaxWidth().weight(1f).background(scheme.primary))
+                        Row(Modifier.fillMaxWidth().weight(1f)) {
+                            Box(Modifier.weight(1f).fillMaxSize().background(scheme.primaryContainer))
+                            Box(Modifier.weight(1f).fillMaxSize().background(scheme.tertiary))
+                        }
+                    }
+                }
+                T(p.label, 13, if (sel) c.on else c.onv, if (sel) 600 else 500, Modifier.padding(top = 6.dp))
+            }
+        }
+    }
 }

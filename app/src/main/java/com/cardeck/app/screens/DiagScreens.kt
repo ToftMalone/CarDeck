@@ -71,6 +71,7 @@ import com.cardeck.app.ui.Radar
 import com.cardeck.app.ui.ScreenTitle
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.TextBtn
+import com.cardeck.app.ui.rise
 
 private data class SevStyle(val icon: ImageVector, val bg: Color, val fg: Color, val accent: Color)
 
@@ -192,7 +193,7 @@ fun DiagScreen(vm: AppViewModel) {
                             T("${items.size}", 14, c.onv)
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items.forEach { (fc, d) -> DtcRow(d, fc.status.label, fc.ecu) { vm.go(Screen.Dtc(d.code)) } }
+                            items.forEachIndexed { i, (fc, d) -> Box(Modifier.rise(i)) { DtcRow(d, fc.status.label, fc.ecu) { vm.go(Screen.Dtc(d.code)) } } }
                         }
                     }
                 }
@@ -210,6 +211,7 @@ fun DiagScreen(vm: AppViewModel) {
                     T("Toutes les questions posées à la voiture et ses réponses, à partager pour analyser un défaut qui ne serait pas trouvé.", 12, c.onv, align = TextAlign.Center, lineHeight = 16)
                 }
             }
+            com.cardeck.app.DockSpace()
         }
     }
 

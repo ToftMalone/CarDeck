@@ -126,6 +126,7 @@ fun ObdDataScreen(vm: AppViewModel) {
                 if (known != null) "${std.size + tpl.pids.size} valeurs fournies par le véhicule" else "${std.size + tpl.pids.size} valeurs lues par CarDeck (le véhicule n'a pas encore été interrogé)",
                 12, c.onv, align = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             )
+            com.cardeck.app.DockSpace()
         }
     }
 }

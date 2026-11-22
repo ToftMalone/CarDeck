@@ -35,6 +35,8 @@ import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.cardeck.app.ui.TextBtn
+import com.cardeck.app.ui.rise
+import androidx.compose.runtime.key
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -143,6 +145,9 @@ fun TripsScreen(vm: AppViewModel) {
     LaunchedEffect(tf, changes) { selected = selected.filter { id -> all.orEmpty().any { it.id == id } && tripInPeriod(all.orEmpty().first { it.id == id }, tf, now) }.toSet() }
     val chosen = list.filter { it.id in selected }
     val selecting = chosen.isNotEmpty()
+    // La barre de sélection prend la place du dock.
+    LaunchedEffect(selecting) { vm.dockHidden = selecting }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { vm.dockHidden = false } }
     BackHandler(enabled = selecting) { selected = emptySet() }
     var confirm by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -208,16 +213,21 @@ fun TripsScreen(vm: AppViewModel) {
                 else -> list.groupBy { dayLabel(it.start) }.forEach { (date, trips) ->
                     T(date, 14, c.onv, 500, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp))
                     Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        trips.forEach { t ->
-                            TripCard(
-                                t, selecting, t.id in selected,
-                                onClick = { if (selecting) selected = if (t.id in selected) selected - t.id else selected + t.id else vm.go(Screen.Trip(t.id)) },
-                                onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selected = selected + t.id },
-                            )
+                        trips.forEachIndexed { i, t ->
+                            key(t.id) {
+                                Box(Modifier.rise(i)) {
+                                    TripCard(
+                                        t, selecting, t.id in selected,
+                                        onClick = { if (selecting) selected = if (t.id in selected) selected - t.id else selected + t.id else vm.go(Screen.Trip(t.id)) },
+                                        onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selected = selected + t.id },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+            com.cardeck.app.DockSpace()
         }
         if (selecting) Row(
             Modifier.fillMaxWidth().background(c.sf2).padding(horizontal = 8.dp, vertical = 8.dp),

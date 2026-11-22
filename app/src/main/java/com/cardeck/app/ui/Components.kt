@@ -50,6 +50,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -77,6 +80,8 @@ fun T(
     maxLines: Int = Int.MAX_VALUE,
     spacing: Float = 0f,
 ) {
+    // Google Sans Flex pour les grands textes (titres, valeurs en direct, chiffres alignés), Roboto Flex pour le reste.
+    val big = size >= 20
     Text(
         text = text,
         modifier = modifier,
@@ -84,12 +89,12 @@ fun T(
         fontSize = size.sp,
         lineHeight = lineHeight.sp,
         fontWeight = FontWeight(weight),
-        fontFamily = if (mono) FontFamily.Monospace else null,
+        fontFamily = if (mono) FontFamily.Monospace else if (big) GoogleSansFlex else RobotoFlex,
         textAlign = align,
         maxLines = maxLines,
         overflow = if (maxLines == Int.MAX_VALUE) TextOverflow.Clip else TextOverflow.Ellipsis,
         letterSpacing = spacing.sp,
-        style = TextStyle.Default,
+        style = TextStyle(fontFeatureSettings = if (big && !mono) "tnum" else null),
     )
 }
 
@@ -100,76 +105,86 @@ fun Ico(icon: ImageVector, size: Int = 24, tint: Color = Cd.c.on, modifier: Modi
 
 @Composable
 fun IconBtn(icon: ImageVector, onClick: () -> Unit, tint: Color = Cd.c.on, bg: Color = Color.Transparent, modifier: Modifier = Modifier) {
+    val haptics = Cd.haptics
     Box(
-        modifier.size(48.dp).clip(CircleShape).background(bg).clickable(onClick = onClick),
+        modifier.size(48.dp).clip(CircleShape).background(bg).clickable { haptics.tick(); onClick() },
         contentAlignment = Alignment.Center,
     ) { Ico(icon, 24, tint) }
 }
 
-/** Barre supérieure avec bouton retour ; le titre apparaît quand la page défile. */
+/** Barre du haut des pages : retour, titre (Google Sans Flex 22) et, une fois la page défilée, une teinte de surface. */
 @Composable
 fun BackBar(title: String?, scrolled: Boolean, onBack: () -> Unit, trailing: @Composable RowScope.() -> Unit = {}) {
-    val bg by animateColorAsState(if (scrolled) Cd.c.sf2 else Cd.c.sf, tween(250), label = "bar")
-    val titleAlpha by animateFloatAsState(if (scrolled) 1f else 0f, tween(200), label = "barT")
+    val bg by animateColorAsState(if (scrolled) Cd.c.sf2 else Cd.c.sf, tween(250, easing = Motion.Emphasized), label = "bar")
     Row(
-        Modifier.fillMaxWidth().height(64.dp).background(bg).padding(start = 4.dp, end = 16.dp),
+        Modifier.fillMaxWidth().height(64.dp).background(bg).padding(start = 4.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         IconBtn(Icons.AutoMirrored.Rounded.ArrowBack, onBack)
-        if (title != null) T(title, 22, mono = false, modifier = Modifier.weight(1f).alpha(titleAlpha), lineHeight = 28) else Spacer(Modifier.weight(1f))
+        if (title != null) Text(title, Modifier.weight(1f), style = gs(22, 28, 500), color = Cd.c.on, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        else Spacer(Modifier.weight(1f))
         trailing()
     }
 }
 
+/** Sous-titre de page (le titre est dans la barre du haut, comme dans All Radio Tools). */
 @Composable
 fun ScreenTitle(title: String, sub: String? = null) {
-    Column(Modifier.padding(top = 4.dp)) {
-        T(title, 32, weight = 400, lineHeight = 40)
-        if (sub != null) T(sub, 14, Cd.c.onv, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
-    }
+    if (sub != null) Text(sub, Modifier.padding(start = 4.dp, top = 4.dp, bottom = 16.dp), style = rf(14, 20), color = Cd.c.onv)
+    else Spacer(Modifier.height(8.dp))
 }
 
+/** Titre de section, couleur de l'accent de la rubrique. */
 @Composable
 fun SectionLabel(text: String) {
-    T(text, 14, Cd.c.p, 500, Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp))
+    Text(text, Modifier.padding(start = 20.dp, end = 16.dp, top = 24.dp, bottom = 8.dp), style = rf(14, 20, 600), color = Cd.acc.accent)
 }
 
-/** Puce de filtre (M3 FilterChip). */
+/** Puce de filtre M3 : coche et conteneur de l'accent une fois choisie (200 ms). */
 @Composable
 fun CdChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val c = Cd.c
+    val acc = Cd.acc
+    val haptics = Cd.haptics
+    val bg by animateColorAsState(if (selected) acc.container else Color.Transparent, tween(200, easing = Motion.Emphasized), label = "chip")
     Row(
         Modifier
             .height(32.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (selected) c.sc else Color.Transparent)
+            .background(bg)
             .border(BorderStroke(1.dp, if (selected) Color.Transparent else c.olv), RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(start = if (selected) 8.dp else 12.dp, end = 12.dp),
+            .clickable { haptics.tick(); onClick() }
+            .padding(start = if (selected) 8.dp else 14.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        if (selected) Ico(Icons.Rounded.Check, 18, c.osc)
-        T(label, 14, if (selected) c.osc else c.onv, 500)
+        if (selected) Ico(Icons.Rounded.Check, 18, acc.onContainer)
+        Text(label, style = rf(13, 18, 600), color = if (selected) acc.onContainer else c.onv, maxLines = 1)
     }
 }
 
-/** Bouton segmenté (2 ou 3 options). */
+/** Choix unique en pilule : conteneur arrondi, choix rempli de l'accent (250 ms). */
 @Composable
 fun Segmented(options: List<Triple<String, ImageVector?, Boolean>>, onSelect: (Int) -> Unit) {
     val c = Cd.c
-    Row(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, c.ol, RoundedCornerShape(20.dp))) {
+    val acc = Cd.acc
+    val haptics = Cd.haptics
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.sf3).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         options.forEachIndexed { i, (label, icon, sel) ->
-            val bg by animateColorAsState(if (sel) c.sc else Color.Transparent, tween(200), label = "seg")
-            if (i > 0) Box(Modifier.width(1.dp).fillMaxSize().background(c.ol))
+            val bg by animateColorAsState(if (sel) acc.accent else Color.Transparent, tween(250, easing = Motion.Emphasized), label = "seg")
+            val fg by animateColorAsState(if (sel) acc.onAccent else c.onv, tween(250, easing = Motion.Emphasized), label = "segFg")
             Row(
-                Modifier.weight(1f).fillMaxSize().background(bg).clickable { onSelect(i) },
+                Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(16.dp)).background(bg)
+                    .clickable { if (!sel) { haptics.segment(); onSelect(i) } }.padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
-                if (icon != null) { Ico(icon, 18, if (sel) c.osc else c.on); Spacer(Modifier.width(6.dp)) }
-                T(label, 14, if (sel) c.osc else c.on, 500)
+                if (icon != null) { Ico(icon, 18, fg); Spacer(Modifier.width(4.dp)) }
+                Text(label, style = rf(14, 18, 600), color = fg, maxLines = 1)
             }
         }
     }
@@ -178,35 +193,76 @@ fun Segmented(options: List<Triple<String, ImageVector?, Boolean>>, onSelect: (I
 @Composable
 fun CdSwitch(checked: Boolean, onChange: () -> Unit) {
     val c = Cd.c
+    val acc = Cd.acc
+    val haptics = Cd.haptics
     Switch(
         checked = checked,
-        onCheckedChange = { onChange() },
+        onCheckedChange = { haptics.tick(); onChange() },
         colors = SwitchDefaults.colors(
-            checkedThumbColor = c.op, checkedTrackColor = c.p, checkedBorderColor = c.p,
+            checkedThumbColor = acc.onAccent, checkedTrackColor = acc.accent, checkedBorderColor = acc.accent,
             uncheckedThumbColor = c.ol, uncheckedTrackColor = c.sf4, uncheckedBorderColor = c.ol,
         ),
     )
 }
 
+/** Bouton pilule de 56 dp, rempli de l'accent. */
 @Composable
 fun FilledBtn(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val c = Cd.c
-    Box(
-        modifier.fillMaxWidth().height(56.dp).alpha(if (enabled) 1f else .38f).clip(RoundedCornerShape(28.dp)).background(c.p)
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { T(text, 16, c.op, 500) }
+    val acc = Cd.acc
+    val haptics = Cd.haptics
+    Row(
+        modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(28.dp))
+            .background(if (enabled) acc.accent else c.on.copy(alpha = 0.12f))
+            .clickable(enabled = enabled) { haptics.confirm(); onClick() }.padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) { Text(text, style = rf(16, 20, 600), color = if (enabled) acc.onAccent else c.on.copy(alpha = 0.38f), maxLines = 1) }
 }
 
+/** Action en texte (couleur de l'accent). */
 @Composable
-fun TextBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, color: Color = Cd.c.p, weight: Int = 500) {
+fun TextBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, color: Color = Cd.acc.accent, weight: Int = 600) {
+    val haptics = Cd.haptics
     Row(
-        Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).clickable { haptics.tick(); onClick() }.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon != null) Ico(icon, 18, color)
-        T(text, 14, color, weight)
+        Text(text, style = rf(14, 18, weight), color = color)
+    }
+}
+
+/** Carte des maquettes : surfaceContainerLow, coins de 24 dp. */
+@Composable
+fun SectionCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(24.dp),
+    color: Color = Cd.c.sf1,
+    padding: PaddingValues = PaddingValues(16.dp),
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier.fillMaxWidth().clip(shape).background(color)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(padding),
+        content = content,
+    )
+}
+
+/** Pastille d'état : point coloré (clignotant pendant une opération) sur la surface. */
+@Composable
+fun StatusChip(text: String, dot: Color, blink: Boolean = false, onClick: (() -> Unit)? = null) {
+    val c = Cd.c
+    Row(
+        Modifier.height(28.dp).clip(RoundedCornerShape(14.dp)).background(c.sf)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (blink) BlinkDot(dot, 8.dp) else Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+        Text(text, style = rf(12, 16, 500), color = c.on, maxLines = 1)
     }
 }
 
@@ -214,6 +270,7 @@ fun TextBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, color:
 @Composable
 fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, mono: Boolean = false, number: Boolean = false, password: Boolean = false) {
     val c = Cd.c
+    val acc = Cd.acc
     OutlinedTextField(
         value = value, onValueChange = onChange, label = { Text(label) }, singleLine = true,
         modifier = modifier.fillMaxWidth(),
@@ -224,12 +281,12 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Mo
             number -> KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
             else -> KeyboardOptions.Default
         },
-        textStyle = TextStyle(fontSize = 16.sp, fontFamily = if (mono) FontFamily.Monospace else null, letterSpacing = if (mono) 1.sp else 0.sp),
+        textStyle = TextStyle(fontSize = 16.sp, fontFamily = if (mono) FontFamily.Monospace else RobotoFlex, letterSpacing = if (mono) 1.sp else 0.sp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-            focusedIndicatorColor = c.p, unfocusedIndicatorColor = c.ol,
-            focusedLabelColor = c.p, unfocusedLabelColor = c.onv,
-            focusedTextColor = c.on, unfocusedTextColor = c.on, cursorColor = c.p,
+            focusedIndicatorColor = acc.accent, unfocusedIndicatorColor = c.ol,
+            focusedLabelColor = acc.accent, unfocusedLabelColor = c.onv,
+            focusedTextColor = c.on, unfocusedTextColor = c.on, cursorColor = acc.accent,
         ),
     )
 }
@@ -238,7 +295,7 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Mo
 @Composable
 fun ArcGauge(progress: Float, color: Color, strokeUnits: Float, modifier: Modifier = Modifier, durationMs: Int = 900) {
     val c = Cd.c
-    val p by animateFloatAsState(progress.coerceIn(0f, 1f), tween(durationMs, easing = FastOutSlowInEasing), label = "gauge")
+    val p by animateFloatAsState(progress.coerceIn(0f, 1f), Motion.standard(), label = "gauge")
     Canvas(modifier) {
         val k = size.minDimension / 100f
         val r = 42f * k
@@ -253,7 +310,7 @@ fun ArcGauge(progress: Float, color: Color, strokeUnits: Float, modifier: Modifi
 /** Radar animé (appairage / scan). */
 @Composable
 fun Radar(size: Dp, active: Boolean, icon: ImageVector? = null, label: String? = null) {
-    val c = Cd.c
+    val c = Cd.c.let { cc -> Cd.acc.let { a -> cc.copy(p = a.accent, op = a.onAccent) } }
     val inf = rememberInfiniteTransition(label = "radar")
     val pulses = (0..2).map { i ->
         inf.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), initialStartOffset = StartOffset(i * 800)), label = "p$i")
@@ -287,7 +344,7 @@ fun Radar(size: Dp, active: Boolean, icon: ImageVector? = null, label: String? =
 }
 
 @Composable
-fun Spinner(size: Dp = 24.dp, width: Dp = 3.dp, color: Color = Cd.c.p) {
+fun Spinner(size: Dp = 24.dp, width: Dp = 3.dp, color: Color = Cd.acc.accent) {
     val inf = rememberInfiniteTransition(label = "spin")
     val a by inf.animateFloat(0f, 360f, infiniteRepeatable(tween(800, easing = LinearEasing)), label = "a")
     Canvas(Modifier.size(size).rotate(a)) {
@@ -304,9 +361,5 @@ fun Skeleton(modifier: Modifier, radius: Dp = 6.dp) {
 }
 
 @Composable
-fun ConnDot() {
-    val inf = rememberInfiniteTransition(label = "dot")
-    val a by inf.animateFloat(1f, .3f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "a")
-    Box(Modifier.size(8.dp).alpha(a).clip(CircleShape).background(Cd.c.g))
-}
+fun ConnDot() = BlinkDot(Cd.c.g, 8.dp)
 
