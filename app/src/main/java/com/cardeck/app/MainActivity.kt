@@ -147,9 +147,6 @@ fun sectionOf(s: Screen): Section? = when (s) {
 /** Cartes de l'accueil d'où une page « grandit » (position à l'écran), par écran. */
 val LocalOrigins = staticCompositionLocalOf { HashMap<Screen, Rect>() }
 
-/** Place à garder sous le contenu des rubriques pour le dock flottant. */
-val DockScreens = listOf(Screen.Dash, Screen.ObdData, Screen.Diag, Screen.Trips)
-
 private enum class Move { None, Forward, Back, Through }
 
 @Composable
@@ -159,8 +156,7 @@ private fun CarDeckRoot(vm: AppViewModel) {
     CompositionLocalProvider(LocalOrigins provides origins) {
         Box(Modifier.fillMaxSize().background(c.sf).windowInsetsPadding(WindowInsets.systemBars)) {
             ScreenHost(vm, origins)
-            DockLayer(vm, Modifier.align(Alignment.BottomCenter))
-            Snack(vm.snack, vm.screen in DockScreens, Modifier.align(Alignment.BottomCenter))
+            Snack(vm.snack, Modifier.align(Alignment.BottomCenter))
             UpdateDialog(vm)
         }
     }
@@ -170,7 +166,7 @@ private fun CarDeckRoot(vm: AppViewModel) {
  * Hôte des écrans, avec les transitions d'All Radio Tools :
  *  - une carte de l'accueil s'agrandit jusqu'à devenir sa page (et y rentre au retour) ;
  *  - les autres pages glissent depuis la droite en fondu ;
- *  - entre deux rubriques du dock, fondu avec une légère montée ;
+ *  - entre deux écrans de même niveau, fondu avec une légère montée ;
  *  - retour prédictif : la page rétrécit sous le doigt et laisse voir la précédente.
  */
 @Composable
@@ -339,98 +335,10 @@ private class RoundRectShape(private val rect: Rect, private val radius: Float) 
         Outline.Rounded(RoundRect(rect, CornerRadius(radius)))
 }
 
-// ---------------------------------------------------------------- Dock flottant
-
-private data class DockTab(val screen: Screen, val icon: ImageVector, val label: String)
-
-private val Tabs = listOf(
-    DockTab(Screen.Dash, Icons.Rounded.Dashboard, "Tableau"),
-    DockTab(Screen.ObdData, Icons.Rounded.Memory, "Données"),
-    DockTab(Screen.Diag, Icons.Rounded.Troubleshoot, "Diagnostic"),
-    DockTab(Screen.Trips, Icons.Rounded.Route, "Trajets"),
-)
-
-/**
- * Dock flottant des rubriques (barre d'outils d'All Radio Tools) : bouton d'accueil puis les rubriques, l'active
- * s'élargit avec son nom. Il monte avec un ressort quand on ouvre une rubrique et se tasse à chaque changement.
- */
-@Composable
-private fun DockLayer(vm: AppViewModel, modifier: Modifier) {
-    val screen = vm.screen
-    val visible = screen in DockScreens && !vm.dockHidden
-    var last by remember { mutableStateOf(if (visible) screen else Screen.Dash) }
-    if (visible) last = screen
-    val density = LocalDensity.current
-    val hidden = with(density) { 180.dp.toPx() }
-    val offset = remember { Animatable(if (visible) 0f else hidden) }
-    LaunchedEffect(visible) {
-        if (visible) offset.animateTo(0f, spring(0.6f, 500f))
-        else offset.animateTo(hidden, tween(350, easing = Motion.EmphasizedAccelerate))
-    }
-    if (!visible && offset.value >= hidden) return
-    ProvideAccent(sectionOf(last)) {
-        val acc = Cd.acc
-        val haptics = Cd.haptics
-        val squash = remember { Animatable(0f) }
-        LaunchedEffect(last) {
-            squash.snapTo(1f)
-            squash.animateTo(0f, spring(0.5f, 500f))
-        }
-        Row(
-            modifier
-                .padding(bottom = 20.dp)
-                .graphicsLayer {
-                    translationY = offset.value
-                    scaleX = 1f + 0.06f * squash.value
-                    scaleY = 1f - 0.1f * squash.value
-                }
-                .shadow(14.dp, RoundedCornerShape(32.dp), ambientColor = Cd.c.shadow, spotColor = Cd.c.shadow)
-                .clip(RoundedCornerShape(32.dp))
-                .background(acc.container)
-                .height(64.dp)
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                Modifier.size(48.dp).clip(CircleShape).clickable {
-                    haptics.tick()
-                    while (vm.screen != Screen.Home && vm.stack.size > 1) vm.stack.removeAt(vm.stack.lastIndex)
-                },
-                contentAlignment = Alignment.Center,
-            ) { Box(Modifier.pop()) { Ico(Icons.Rounded.GridView, 24, acc.onContainer) } }
-            Tabs.forEach { t ->
-                DockButton(t, t.screen == last) {
-                    if (t.screen != vm.screen) { haptics.segment(); vm.switchTo(t.screen) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DockButton(t: DockTab, active: Boolean, onClick: () -> Unit) {
-    val acc = Cd.acc
-    val width by animateDpAsState(if (active) 128.dp else 48.dp, Motion.standard(), label = "tabW")
-    val bg by animateColorAsState(if (active) acc.accent else Color.Transparent, tween(250, easing = Motion.Emphasized), label = "tabBg")
-    val fg by animateColorAsState(if (active) acc.onAccent else acc.onContainer, tween(250, easing = Motion.Emphasized), label = "tabFg")
-    val labelAlpha by animateFloatAsState(if (active) 1f else 0f, tween(200, easing = Motion.Emphasized), label = "tabLabel")
-    Row(
-        Modifier.width(width).height(48.dp).clip(RoundedCornerShape(24.dp)).background(bg).clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Ico(t.icon, 24, fg)
-        if (labelAlpha > 0.01f) {
-            Text(t.label, Modifier.padding(start = 6.dp).graphicsLayer { alpha = labelAlpha }, style = rf(14, 20, 600), color = fg, maxLines = 1, softWrap = false)
-        }
-    }
-}
-
 // ---------------------------------------------------------------- Message (snackbar)
 
 @Composable
-private fun Snack(message: String?, dock: Boolean, modifier: Modifier) {
+private fun Snack(message: String?, modifier: Modifier) {
     val c = Cd.c
     val y = remember { Animatable(1f) }
     var text by remember { mutableStateOf("") }
@@ -445,7 +353,7 @@ private fun Snack(message: String?, dock: Boolean, modifier: Modifier) {
     if (y.value >= 1f && message == null) return
     Row(
         modifier
-            .padding(start = 16.dp, end = 16.dp, bottom = if (dock) 100.dp else 16.dp)
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
             .fillMaxWidth()
             .graphicsLayer {
                 translationY = y.value * 20.dp.toPx()
@@ -461,8 +369,3 @@ private fun Snack(message: String?, dock: Boolean, modifier: Modifier) {
     }
 }
 
-/** Hauteur à laisser sous le contenu d'une rubrique pour ne pas passer sous le dock. */
-@Composable
-fun DockSpace() {
-    androidx.compose.foundation.layout.Spacer(Modifier.height(104.dp))
-}

@@ -66,11 +66,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Défilement de l'accueil, gardé d'une visite à l'autre (les pages rentrent dans leur carte au retour). */
     val homeScroll = androidx.compose.foundation.ScrollState(0)
 
-    /** Dock des rubriques masqué (sélection multiple des trajets, qui a sa propre barre en bas). */
-    var dockHidden by mutableStateOf(false)
 
-    /** Passe d'une rubrique à une autre (dock) sans empiler : le retour ramène à l'accueil. */
-    fun switchTo(s: Screen) { if (stack.isNotEmpty() && stack.last() != s) stack[stack.lastIndex] = s }
 
     /** @return true si le retour a été consommé. */
     fun back(): Boolean {

@@ -147,9 +147,6 @@ fun TripsScreen(vm: AppViewModel) {
     LaunchedEffect(tf, changes) { selected = selected.filter { id -> all.orEmpty().any { it.id == id } && tripInPeriod(all.orEmpty().first { it.id == id }, tf, now) }.toSet() }
     val chosen = list.filter { it.id in selected }
     val selecting = chosen.isNotEmpty()
-    // La barre de sélection prend la place du dock.
-    LaunchedEffect(selecting) { vm.dockHidden = selecting }
-    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { vm.dockHidden = false } }
     BackHandler(enabled = selecting) { selected = emptySet() }
     var confirm by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -229,7 +226,6 @@ fun TripsScreen(vm: AppViewModel) {
                     }
                 }
             }
-            com.cardeck.app.DockSpace()
         }
         if (selecting) Row(
             Modifier.fillMaxWidth().background(c.sf2).padding(horizontal = 8.dp, vertical = 8.dp),

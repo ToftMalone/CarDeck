@@ -215,7 +215,6 @@ fun DiagScreen(vm: AppViewModel) {
                     T("Toutes les questions posées à la voiture et ses réponses, à partager pour analyser un défaut qui ne serait pas trouvé.", 12, c.onv, align = TextAlign.Center, lineHeight = 16)
                 }
             }
-            com.cardeck.app.DockSpace()
         }
     }
 

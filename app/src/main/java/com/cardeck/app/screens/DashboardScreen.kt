@@ -135,7 +135,6 @@ fun DashboardScreen(vm: AppViewModel) {
                     }
                 }
             }
-            com.cardeck.app.DockSpace()
         }
     }
 }
