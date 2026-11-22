@@ -42,6 +42,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -295,17 +297,25 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, modifier: Mo
 
 /** Jauge circulaire à 270° (viewBox 100×100, r=42 comme la maquette). */
 @Composable
-fun ArcGauge(progress: Float, color: Color, strokeUnits: Float, modifier: Modifier = Modifier, durationMs: Int = 900) {
-    val c = Cd.c
-    val p by animateFloatAsState(progress.coerceIn(0f, 1f), Motion.standard(), label = "gauge")
+fun ArcGauge(progress: Float, color: Color, strokeUnits: Float, modifier: Modifier = Modifier, durationMs: Int = 900, track: Color = Cd.c.sf4, knob: Color? = null) {
+    // À l'apparition, l'arc se remplit depuis zéro ; ensuite il suit chaque valeur avec le ressort de base.
+    val play = LocalEntrance.current
+    val p = remember { androidx.compose.animation.core.Animatable(if (play) 0f else progress.coerceIn(0f, 1f)) }
+    LaunchedEffect(progress) { p.animateTo(progress.coerceIn(0f, 1f), Motion.standard()) }
     Canvas(modifier) {
         val k = size.minDimension / 100f
         val r = 42f * k
         val sw = strokeUnits * k
         val tl = Offset(size.width / 2 - r, size.height / 2 - r)
         val sz = Size(r * 2, r * 2)
-        drawArc(c.sf4, 135f, 270f, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
-        if (p > 0.001f) drawArc(color, 135f, 270f * p, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
+        val v = p.value
+        drawArc(track, 135f, 270f, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
+        if (v > 0.001f) drawArc(color, 135f, 270f * v, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
+        if (knob != null) {
+            // Point au bout de l'arc, comme le point de la dernière mesure des courbes.
+            val a = Math.toRadians(135.0 + 270.0 * v)
+            drawCircle(knob, sw * 0.28f, Offset(size.width / 2 + (r * kotlin.math.cos(a)).toFloat(), size.height / 2 + (r * kotlin.math.sin(a)).toFloat()))
+        }
     }
 }
 
