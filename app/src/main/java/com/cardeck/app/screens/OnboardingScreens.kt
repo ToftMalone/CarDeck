@@ -317,8 +317,12 @@ fun PairScreen(vm: AppViewModel) {
                 }
                 Spacer(Modifier.height(16.dp))
                 val addr = "$host:$port"
-                DeviceRow(Icons.Rounded.Wifi, "Boîtier Wi-Fi", addr, connecting && selected == addr, connected?.address == addr) {
-                    connect(AdapterConfig(Transport.Wifi, addr, "Boîtier Wi-Fi"))
+                if (com.cardeck.app.obd.WifiAddress.parse(addr) == null) {
+                    T(com.cardeck.app.obd.WifiAddress.REFUSED, 13, c.e, lineHeight = 18)
+                } else {
+                    DeviceRow(Icons.Rounded.Wifi, "Boîtier Wi-Fi", addr, connecting && selected == addr, connected?.address == addr) {
+                        connect(AdapterConfig(Transport.Wifi, addr, "Boîtier Wi-Fi"))
+                    }
                 }
             }
 

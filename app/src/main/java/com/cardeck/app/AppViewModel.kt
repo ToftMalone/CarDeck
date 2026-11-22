@@ -326,7 +326,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private class ScanOut(val ecus: Int, val codes: List<FoundCode>, val ff: Pair<String, List<String>>?, val noAnswer: Boolean = false)
 
     /** Journal du dernier diagnostic (tous les échanges avec le boîtier), à partager en cas de problème ; null s'il n'existe pas. */
-    fun scanLog(): java.io.File? = java.io.File(java.io.File(ctx.cacheDir, "exports"), "CarDeck-diagnostic.txt").takeIf { it.exists() }
+    /** Journal du dernier scan de ce véhicule (un par véhicule, à part des exports qui sont vidés à chaque export de trajet). */
+    private fun scanLogFile(vehicleId: Long) = java.io.File(java.io.File(ctx.cacheDir, "journaux"), "CarDeck-diagnostic-$vehicleId.txt")
+
+    fun scanLog(vehicleId: Long): java.io.File? = scanLogFile(vehicleId).takeIf { it.exists() }
 
     fun startScan() {
         if (scanning) return
@@ -400,7 +403,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             withContext(Dispatchers.IO) {
-                runCatching { java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }.resolve("CarDeck-diagnostic.txt").writeText(log.toString()) }
+                runCatching { scanLogFile(v.id).apply { parentFile?.mkdirs() }.writeText(log.toString()) }
             }
             if (out == null) {
                 showSnack("Boîtier non connecté ou liaison perdue pendant le scan : reconnectez-le et relancez")

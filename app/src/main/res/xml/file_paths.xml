@@ -2,4 +2,5 @@
 <paths>
     <cache-path name="exports" path="exports/" />
     <cache-path name="updates" path="updates/" />
+    <cache-path name="journaux" path="journaux/" />
 </paths>

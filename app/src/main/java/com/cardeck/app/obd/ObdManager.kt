@@ -62,8 +62,11 @@ class ObdManager(private val ctx: Context) {
             Transport.Classic -> ClassicTransport(ctx, a.address)
             Transport.Ble -> BleTransport(ctx, a.address)
             Transport.Wifi -> {
-                val host = a.address.substringBefore(':')
-                val port = a.address.substringAfter(':', "35000").toIntOrNull() ?: 35000
+                // Contrôle à chaque connexion : l'adresse peut venir d'une sauvegarde restaurée.
+                val (host, port) = WifiAddress.parse(a.address) ?: run {
+                    _state.value = ObdState.Failed(a, WifiAddress.REFUSED)
+                    return@withLock Result.failure(java.io.IOException(WifiAddress.REFUSED))
+                }
                 WifiTransport(ctx, host, port)
             }
         }

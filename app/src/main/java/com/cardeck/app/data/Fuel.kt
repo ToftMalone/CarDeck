@@ -64,8 +64,11 @@ object FuelPrices {
     fun fetch(fuel: FuelType, lat: Double?, lon: Double?): FuelPrice {
         val f = "${fuel.field}_prix"
         if (lat != null && lon != null) {
+            // Position arrondie au centième de degré (≈ 1 km) : l'arrivée d'un trajet est souvent le domicile ou le travail,
+            // elle ne doit pas partir précise sur Internet. Sans effet sur la recherche des stations à 10 ou 30 km.
+            val (la, lo) = coarse(lat) to coarse(lon)
             for (km in listOf(10, 30)) {
-                val where = "within_distance(geom, geom'POINT(${"%.5f".format(java.util.Locale.US, lon)} ${"%.5f".format(java.util.Locale.US, lat)})', ${km}km) AND $f IS NOT NULL"
+                val where = "within_distance(geom, geom'POINT($lo $la)', ${km}km) AND $f IS NOT NULL"
                 val res = get("select=$f&where=${enc(where)}&limit=100").optJSONArray("results") ?: continue
                 val prices = (0 until res.length()).mapNotNull { res.getJSONObject(it).optDouble(f).takeIf { p -> p.isFinite() && p > 0 } }.sorted()
                 if (prices.isEmpty()) continue
@@ -86,6 +89,9 @@ object FuelPrices {
         repo.setTripFuel(trip.id, fuel, p)
         return trip.copy(fuelType = fuel, fuelPrice = p.perLiter, fuelPriceInfo = p.source)
     }
+
+    /** Coordonnée arrondie à 2 décimales (≈ 1 km), telle qu'envoyée au service des prix. */
+    internal fun coarse(deg: Double): String = "%.2f".format(java.util.Locale.US, deg)
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 

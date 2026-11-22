@@ -93,6 +93,7 @@ class WifiTransport(private val ctx: Context, private val host: String, private 
     private var socket: Socket? = null
 
     override suspend fun open() = withContext(Dispatchers.IO) {
+        if (!WifiAddress.isLocal(host)) throw IOException(WifiAddress.REFUSED)
         val cm = ctx.getSystemService(ConnectivityManager::class.java)
         @Suppress("DEPRECATION")
         val wifi = cm.allNetworks.firstOrNull { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }

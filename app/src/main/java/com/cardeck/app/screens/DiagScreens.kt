@@ -204,7 +204,7 @@ fun DiagScreen(vm: AppViewModel) {
             // Journal du dernier scan : tous les échanges avec le boîtier, pour comprendre un défaut non trouvé.
             if (!vm.scanning && q.isEmpty()) {
                 val ctx = androidx.compose.ui.platform.LocalContext.current
-                val log = remember(scan?.id) { vm.scanLog() }
+                val log = remember(v.id, scan?.id) { vm.scanLog(v.id) }
                 if (log != null) Column(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     TextBtn("Partager le journal du scan", { shareFile(ctx, log, "text/plain", "Journal du diagnostic") }, Icons.Rounded.Share)
                     T("Toutes les questions posées à la voiture et ses réponses, à partager pour analyser un défaut qui ne serait pas trouvé.", 12, c.onv, align = TextAlign.Center, lineHeight = 16)
