@@ -37,7 +37,7 @@ import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Troubleshoot
-import androidx.compose.material3.Text
+import com.cardeck.app.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -111,6 +111,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Langue du téléphone (relue ici : l'écran est recréé quand elle change).
+        com.cardeck.app.data.I18n.lang = com.cardeck.app.data.Lang.system()
         // Nouveau message d'accueil à chaque lancement (pas à la rotation de l'écran).
         if (savedInstanceState == null || vm.greeting.isEmpty()) vm.newGreeting()
         // Recherche d'une mise à jour sur GitHub à chaque lancement : proposée si une version plus récente existe.

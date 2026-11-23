@@ -8,7 +8,7 @@ import java.util.Locale
 
 /** Formatage à la française : 2 140 / 6,4 */
 fun fr(n: Number, decimals: Int = 0): String {
-    val f = NumberFormat.getNumberInstance(Locale.FRANCE)
+    val f = NumberFormat.getNumberInstance(I18n.locale)
     f.minimumFractionDigits = decimals
     f.maximumFractionDigits = decimals
     return f.format(n)
@@ -87,10 +87,10 @@ fun dayLabel(ts: Long): String {
     if (sameDay(c, now)) return "Aujourd'hui"
     now.add(Calendar.DAY_OF_YEAR, -1)
     if (sameDay(c, now)) return "Hier"
-    return SimpleDateFormat("EEEE d MMM", Locale.FRANCE).format(Date(ts)).replaceFirstChar { it.uppercase() }
+    return SimpleDateFormat("EEEE d MMM", I18n.locale).format(Date(ts)).replaceFirstChar { it.uppercase() }
 }
 
-fun timeHm(ts: Long): String = SimpleDateFormat("HH:mm", Locale.FRANCE).format(Date(ts))
+fun timeHm(ts: Long): String = SimpleDateFormat("HH:mm", I18n.locale).format(Date(ts))
 
 fun durationLabel(ms: Long): String {
     val min = (ms / 60000).toInt()

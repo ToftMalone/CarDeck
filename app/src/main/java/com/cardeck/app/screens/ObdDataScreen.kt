@@ -89,7 +89,7 @@ fun ObdDataScreen(vm: AppViewModel) {
             val cached = remember(v.id, supported) { vm.repo.supportedPids(v.id) }
             val known = supported ?: cached
             val std = known?.let { StdPids.forSupported(it) } ?: StdPids.all
-            androidx.compose.material3.Text("Toutes les valeurs du véhicule", Modifier.padding(start = 4.dp, top = 24.dp, bottom = 4.dp), style = com.cardeck.app.ui.gs(22, 28, 500), color = c.on)
+            com.cardeck.app.ui.Text("Toutes les valeurs du véhicule", Modifier.padding(start = 4.dp, top = 24.dp, bottom = 4.dp), style = com.cardeck.app.ui.gs(22, 28, 500), color = c.on)
             when {
                 !connected -> T("Boîtier non connecté : les valeurs s'afficheront dès la connexion.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
                 supported == null -> T("Mets le contact : CarDeck interroge le véhicule pour savoir quelles données il fournit.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))

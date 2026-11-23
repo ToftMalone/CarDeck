@@ -370,7 +370,7 @@ private fun ScanButton(enabled: Boolean, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
         ) {
             Ico(Icons.Rounded.Troubleshoot, 56, c.op)
-            androidx.compose.material3.Text("Scanner", style = com.cardeck.app.ui.rf(15, 20, 600), color = c.op)
+            com.cardeck.app.ui.Text("Scanner", style = com.cardeck.app.ui.rf(15, 20, 600), color = c.op)
         }
     }
 }
@@ -398,10 +398,10 @@ private fun DtcRow(d: DtcInfo, tag: String, ecu: String?, shape: androidx.compos
                 Box(
                     Modifier.height(24.dp).clip(RoundedCornerShape(8.dp)).border(1.dp, c.olv, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
-                ) { androidx.compose.material3.Text(tag, style = com.cardeck.app.ui.rf(11, 14, 600), color = c.onv, maxLines = 1) }
+                ) { com.cardeck.app.ui.Text(tag, style = com.cardeck.app.ui.rf(11, 14, 600), color = c.onv, maxLines = 1) }
                 if (ecu != null) T(ecu, 12, c.onv, maxLines = 1)
             }
-            androidx.compose.material3.Text(d.title, Modifier.padding(top = 2.dp), style = com.cardeck.app.ui.rf(14, 20), color = c.on)
+            com.cardeck.app.ui.Text(d.title, Modifier.padding(top = 2.dp), style = com.cardeck.app.ui.rf(14, 20), color = c.on)
         }
         Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.onv)
     }
@@ -436,7 +436,7 @@ fun DtcDetailScreen(vm: AppViewModel, code: String) {
                 Column { T("Système concerné", 12, c.onv); T(d.sys.label, 16, weight = 600) }
             }
             Column(Modifier.fillMaxWidth().rise(1).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp)) {
-                androidx.compose.material3.Text("Description", Modifier.padding(bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.p)
+                com.cardeck.app.ui.Text("Description", Modifier.padding(bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.p)
                 T(
                     d.desc ?: if (d.known) d.title + "." else "Ce code n'est pas encore décrit dans la base de CarDeck.",
                     14, c.onv, lineHeight = 22,
@@ -444,7 +444,7 @@ fun DtcDetailScreen(vm: AppViewModel, code: String) {
             }
             if (d.causes.isNotEmpty()) {
                 Column(Modifier.fillMaxWidth().rise(2).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    androidx.compose.material3.Text("Causes possibles", Modifier.padding(bottom = 2.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.p)
+                    com.cardeck.app.ui.Text("Causes possibles", Modifier.padding(bottom = 2.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.p)
                     d.causes.forEachIndexed { i, t ->
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.size(24.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { T("${i + 1}", 12, c.opc, 700) }
@@ -455,7 +455,7 @@ fun DtcDetailScreen(vm: AppViewModel, code: String) {
             }
             if (d.recos.isNotEmpty()) {
                 Column(Modifier.fillMaxWidth().rise(3).clip(RoundedCornerShape(24.dp)).background(c.pc).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    androidx.compose.material3.Text("Recommandations", Modifier.padding(bottom = 2.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.opc)
+                    com.cardeck.app.ui.Text("Recommandations", Modifier.padding(bottom = 2.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = c.opc)
                     d.recos.forEach { r ->
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { Ico(Icons.Rounded.Check, 20, c.opc); T(r, 14, c.opc, lineHeight = 20, modifier = Modifier.weight(1f)) }
                     }

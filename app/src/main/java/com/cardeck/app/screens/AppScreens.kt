@@ -48,7 +48,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private fun dateFr(t: Long) = if (t == 0L) "" else SimpleDateFormat("d MMMM yyyy", Locale.FRANCE).format(Date(t))
+private fun dateFr(t: Long) = if (t == 0L) "" else SimpleDateFormat("d MMMM yyyy", com.cardeck.app.data.I18n.locale).format(Date(t))
 
 /** Notes d'une version : Markdown GitHub simplifié (titres et puces) en texte lisible. */
 internal fun notesText(md: String): String = md.lines().joinToString("\n") { l ->

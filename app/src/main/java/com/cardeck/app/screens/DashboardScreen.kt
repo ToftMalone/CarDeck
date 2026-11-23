@@ -30,7 +30,7 @@ import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
-import androidx.compose.material3.Text
+import com.cardeck.app.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState

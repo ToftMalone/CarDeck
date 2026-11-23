@@ -35,6 +35,7 @@
     <!-- Pas de sauvegarde automatique Android (Google Drive) : elle emporterait tout l'historique GPS.
          Les données se sauvegardent par Paramètres → Sauvegarde, dans un fichier chiffré. -->
     <application
+        android:localeConfig="@xml/locales_config"
         android:name=".CarDeckApp"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"

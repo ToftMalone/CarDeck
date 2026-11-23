@@ -130,6 +130,12 @@ Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lanc
 
 La liste est un point de départ : elle n'a pas été testée sur chaque voiture, seule la Swift Sport l'a été.
 
+## Langues
+
+CarDeck est en **français, anglais, allemand, russe et espagnol**. Il suit la **langue du téléphone** (anglais si elle n'est pas
+proposée). Sur Android 13 et plus, on peut aussi choisir la langue de CarDeck seule : réglages Android › Applis › CarDeck › Langue.
+Les traductions sont dans `app/src/main/assets/i18n/strings.tsv` (un texte français par ligne, puis chaque traduction).
+
 ## Boîtier OBD2
 
 CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Bluetooth LE** ou **Wi-Fi**. Branche-le sur la prise diagnostic

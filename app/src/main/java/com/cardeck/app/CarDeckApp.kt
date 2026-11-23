@@ -18,6 +18,9 @@ class CarDeckApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Traductions ; la langue est celle du téléphone (anglais si elle n'est pas proposée).
+        runCatching { com.cardeck.app.data.I18n.load(assets.open("i18n/strings.tsv").bufferedReader().readText()) }
+        com.cardeck.app.data.I18n.lang = com.cardeck.app.data.Lang.system()
         repo = Repo(this)
         obd = ObdManager(this)
         Configuration.getInstance().apply {

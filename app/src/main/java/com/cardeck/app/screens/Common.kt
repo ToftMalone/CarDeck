@@ -80,5 +80,5 @@ internal fun shareFile(ctx: android.content.Context, file: java.io.File, mime: S
         putExtra(android.content.Intent.EXTRA_SUBJECT, file.nameWithoutExtension)
         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    ctx.startActivity(android.content.Intent.createChooser(send, title))
+    ctx.startActivity(android.content.Intent.createChooser(send, com.cardeck.app.data.tr(title)))
 }

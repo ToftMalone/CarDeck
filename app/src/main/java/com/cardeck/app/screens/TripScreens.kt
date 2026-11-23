@@ -210,7 +210,7 @@ fun TripsScreen(vm: AppViewModel) {
                     if (loaded.isEmpty()) T("Les trajets sont enregistrés automatiquement dès que le moteur démarre avec le boîtier branché.", 13, c.onv, align = TextAlign.Center, modifier = Modifier.padding(top = 6.dp), lineHeight = 18)
                 }
                 else -> list.groupBy { dayLabel(it.start) }.forEach { (date, trips) ->
-                    androidx.compose.material3.Text(date, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = Cd.acc.accent)
+                    com.cardeck.app.ui.Text(date, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = Cd.acc.accent)
                     Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         trips.forEachIndexed { i, t ->
                             key(t.id) {
@@ -302,7 +302,7 @@ private fun TripCard(t: Trip, selecting: Boolean, selected: Boolean, onClick: ()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(16.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            androidx.compose.material3.Text("${timeHm(t.start)} – ${timeHm(t.end)}", style = com.cardeck.app.ui.gs(20, 26, 500, tnum = true), color = fg)
+            com.cardeck.app.ui.Text("${timeHm(t.start)} – ${timeHm(t.end)}", style = com.cardeck.app.ui.gs(20, 26, 500, tnum = true), color = fg)
             if (selecting) Box(Modifier.pop(key = selected)) { Ico(if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, 24, if (selected) acc.accent else c.onv) }
         }
         Row(Modifier.padding(top = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -312,8 +312,8 @@ private fun TripCard(t: Trip, selecting: Boolean, selected: Boolean, onClick: ()
                 Box(Modifier.size(10.dp).clip(CircleShape).background(acc.accent))
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                androidx.compose.material3.Text(t.from, style = com.cardeck.app.ui.rf(14, 20), color = fg, maxLines = 1)
-                androidx.compose.material3.Text(t.to, style = com.cardeck.app.ui.rf(14, 20), color = fg, maxLines = 1)
+                com.cardeck.app.ui.Text(t.from, style = com.cardeck.app.ui.rf(14, 20), color = fg, maxLines = 1)
+                com.cardeck.app.ui.Text(t.to, style = com.cardeck.app.ui.rf(14, 20), color = fg, maxLines = 1)
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(if (selected) acc.onContainer.copy(alpha = .2f) else c.olv))
@@ -323,8 +323,8 @@ private fun TripCard(t: Trip, selecting: Boolean, selected: Boolean, onClick: ()
                 "Vit. moy." to "${fr(t.avgKmh)} km/h", "Vit. max" to "${fr(t.maxKmh)} km/h",
             ).forEach { (l, v) ->
                 Column(Modifier.weight(1f)) {
-                    androidx.compose.material3.Text(l, style = com.cardeck.app.ui.rf(11, 14), color = if (selected) acc.onContainer.copy(alpha = .8f) else c.onv)
-                    androidx.compose.material3.Text(v, style = com.cardeck.app.ui.rf(14, 20, 600, tnum = true), color = fg, maxLines = 1)
+                    com.cardeck.app.ui.Text(l, style = com.cardeck.app.ui.rf(11, 14), color = if (selected) acc.onContainer.copy(alpha = .8f) else c.onv)
+                    com.cardeck.app.ui.Text(v, style = com.cardeck.app.ui.rf(14, 20, 600, tnum = true), color = fg, maxLines = 1)
                 }
             }
         }

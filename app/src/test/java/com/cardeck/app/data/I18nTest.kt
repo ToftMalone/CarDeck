@@ -1,0 +1,97 @@
+package com.cardeck.app.data
+
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.BeforeClass
+import org.junit.Test
+import java.io.File
+
+class I18nTest {
+    companion object {
+        @BeforeClass @JvmStatic
+        fun load() = I18n.load(File("src/main/assets/i18n/strings.tsv").readText())
+    }
+
+    @After
+    fun reset() { I18n.lang = Lang.Fr }
+
+    private fun en(s: String): String { I18n.lang = Lang.En; return tr(s) }
+
+    @Test
+    fun francaisInchange() {
+        I18n.lang = Lang.Fr
+        assertEquals("Tableau de bord", tr("Tableau de bord"))
+    }
+
+    @Test
+    fun textesSimples() {
+        assertEquals("Dashboard", en("Tableau de bord"))
+        I18n.lang = Lang.De; assertEquals("Armaturenbrett", tr("Tableau de bord"))
+        I18n.lang = Lang.Ru; assertEquals("Приборная панель", tr("Tableau de bord"))
+        I18n.lang = Lang.Es; assertEquals("Panel", tr("Tableau de bord"))
+        // Absent de la table : reste en français ; sans lettres : tel quel.
+        assertEquals("Texte inconnu", en("Texte inconnu"))
+        assertEquals("812", en("812"))
+    }
+
+    @Test
+    fun gabarits() {
+        assertEquals("Step 3/13 · ECUs on 11-bit CAN", en("Étape 3/13 · Calculateurs CAN 11 bits"))
+        assertEquals("Trip in progress · 12,5 km", en("Trajet en cours · 12,5 km"))
+        // Ordre changé ({1}, {3}…) : le suffixe du pluriel français est ignoré.
+        I18n.lang = Lang.De
+        assertEquals("3 Code(s) · Scan heute", tr("3 codes · scan heute"))
+    }
+
+    @Test
+    fun pluriels() {
+        assertEquals("Backup CarDeck.cdbak saved · 2 vehicles, 1 trip", en("Sauvegarde CarDeck.cdbak enregistrée · 2 véhicules, 1 trajet"))
+        I18n.lang = Lang.Ru
+        assertEquals("Резервная копия CarDeck.cdbak сохранена · автомобилей: 2, поездок: 1", tr("Sauvegarde CarDeck.cdbak enregistrée · 2 véhicules, 1 trajet"))
+        // Nom choisi par l'utilisateur : repris tel quel.
+        I18n.lang = Lang.Es
+        assertEquals("¿Eliminar «Ma petite Clio»?", tr("Supprimer « Ma petite Clio » ?"))
+        assertEquals("1 dispositivo(s) encontrado(s)", tr("1 appareil trouvé"))
+    }
+
+    @Test
+    fun textesAssembles() {
+        assertEquals("Engine · Ignition", en("Moteur · Allumage"))
+        assertEquals("Misfire detected, cylinder 3", en("Raté d'allumage détecté, cylindre 3"))
+        assertEquals("Fuel level sensor A: signal low", en("Capteur de niveau de carburant A : signal bas"))
+    }
+
+    @Test
+    fun tousLesCodesDefautTraduits() {
+        val titles = File("src/main/resources/dtc_p0.txt").readLines().filter { it.isNotBlank() }.map { it.split('|')[1] }
+        for (l in Lang.entries.drop(1)) {
+            I18n.lang = l
+            val missing = titles.filter { tr(it) == it }
+            assertTrue("${l.code} : ${missing.size} titres non traduits, ex. ${missing.take(5)}", missing.isEmpty())
+            // Aucun morceau resté en français (repéré par ses mots courants).
+            val mixed = titles.map { tr(it) }.filter { Regex("\\b(signal bas|circuit de|défaut|capteur)\\b", RegexOption.IGNORE_CASE).containsMatchIn(it) }
+            assertTrue("${l.code} : ${mixed.take(5)}", mixed.isEmpty())
+        }
+    }
+
+    @Test
+    fun codesDetaillesTraduits() {
+        val info = DtcCatalog.info("P0420")
+        I18n.lang = Lang.En
+        assertTrue(tr(info.title) != info.title)
+        assertTrue(info.causes.all { tr(it) != it })
+        assertTrue(info.recos.all { tr(it) != it })
+        assertTrue(tr(info.sys.label) != info.sys.label)
+    }
+
+    @Test
+    fun langueDuTelephone() {
+        val saved = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.GERMANY); assertEquals(Lang.De, Lang.system())
+            java.util.Locale.setDefault(java.util.Locale.JAPAN); assertEquals(Lang.En, Lang.system())
+            java.util.Locale.setDefault(java.util.Locale.FRANCE); assertEquals(Lang.Fr, Lang.system())
+        } finally { java.util.Locale.setDefault(saved) }
+    }
+}

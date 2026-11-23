@@ -44,7 +44,7 @@ class TripService : Service() {
     override fun onCreate() {
         super.onCreate()
         val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, "Suivi du véhicule", NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, com.cardeck.app.data.tr("Suivi du véhicule"), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
         if (!goForeground("Recherche du boîtier OBD2…")) stopSelf()
     }
 
@@ -80,7 +80,7 @@ class TripService : Service() {
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_car)
             .setContentTitle("CarDeck")
-            .setContentText(text)
+            .setContentText(com.cardeck.app.data.tr(text))
             .setOngoing(true)
             .setSilent(true)
             .setContentIntent(pi)
