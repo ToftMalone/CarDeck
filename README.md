@@ -121,9 +121,9 @@ Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lanc
 - **Une liste de plus de 2 000 motorisations**, de 48 marques (Peugeot, Renault, Citroën, Volkswagen, Toyota, Suzuki, BMW, Audi, Porsche, Ferrari…) avec leurs modèles, générations et motorisations essence, diesel, hybrides et GPL.
 - Ces véhicules utilisent les **données OBD2 standard** (régime, vitesse, températures, pressions, diagnostic des défauts, trajets et coût). Le protocole est détecté automatiquement à la connexion.
 - Ton véhicule n'est pas dans la liste ? Choisis **Autre véhicule** : toute voiture essence depuis 2001 ou diesel depuis 2004 a une prise OBD2.
-- Certains véhicules sont passés par la **rétro-ingénierie** de CarDeck, avec des données propres au modèle :
+- Certains véhicules sont **rétro-ingéniés** par CarDeck, avec des données propres au modèle :
 
-| Modèle | Rétro-ingénierie |
+| Modèle | Rétro-ingénié |
 |---|---|
 | Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Lecture seule (sauf l'effacement des codes que tu demandes), huile, carburant, kilométrage |
 | Renault Clio V 1.0 TCe 90 ch | ✅ Les 15 calculateurs relevés (OBD en CAN 29 bits), interrogés par le diagnostic ; moteur et ABS / ESP identifiés |
