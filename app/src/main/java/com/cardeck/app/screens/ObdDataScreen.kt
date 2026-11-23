@@ -23,8 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.TravelExplore
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,9 +43,6 @@ import com.cardeck.app.ui.IconBtn
 import com.cardeck.app.ui.T
 import com.cardeck.app.ui.rise
 import com.cardeck.app.ui.rf
-import com.cardeck.app.ui.spinning
-import com.cardeck.app.ui.rememberSpin
-import com.cardeck.app.ui.cloverShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.cardeck.app.ui.TextBtn
 
@@ -71,30 +66,9 @@ fun ObdDataScreen(vm: AppViewModel) {
             com.cardeck.app.ui.StatusChip(connLabel, connDot(connKind), blink = connKind != ConnKind.Off)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
-            // Explorateur : découverte de tous les calculateurs et de leurs données (carte à sa couleur).
-            val ex = com.cardeck.app.ui.accentRoles(com.cardeck.app.ui.Section.Explorer, c.dark)
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 12.dp).rise(0).clip(RoundedCornerShape(28.dp)).background(ex.container)
-                    .clickable { vm.go(com.cardeck.app.Screen.Explorer) }.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                    com.cardeck.app.ui.PulseRing(ex.accent, 40.dp, periodMs = 1600)
-                    Box(Modifier.size(44.dp).spinning(rememberSpin(20_000)).clip(cloverShape()).background(ex.accent))
-                    Ico(Icons.Rounded.TravelExplore, 24, ex.onAccent)
-                }
-                Column(Modifier.weight(1f)) {
-                    androidx.compose.material3.Text("Explorateur", style = rf(16, 22, 600), color = ex.onContainer)
-                    androidx.compose.material3.Text(
-                        if (vm.explorer.running) "En cours · ${vm.explorer.mode ?: "préparation"}" else "Tous les calculateurs et leurs données · à l'arrêt ou en roulant",
-                        style = rf(13, 18), color = ex.onContainer.copy(alpha = .85f),
-                    )
-                }
-                Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, ex.onContainer)
-            }
             // Liaison
             val a = v.adapter
-            com.cardeck.app.ui.InfoList("Liaison OBD2", Modifier.rise(1)) {
+            com.cardeck.app.ui.InfoList("Liaison OBD2", Modifier.rise(0)) {
                 if (a == null) {
                     T("Aucun boîtier n'est associé à ce véhicule.", 14, c.onv, modifier = Modifier.padding(vertical = 8.dp))
                     TextBtn("Associer un boîtier", { vm.pairActive() })

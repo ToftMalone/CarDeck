@@ -40,6 +40,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.Troubleshoot
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
@@ -132,14 +133,17 @@ fun HomeScreen(vm: AppViewModel) {
         Tile("diag", "Diagnostic", "Codes défaut, effacement et contrôle technique", Icons.Rounded.Troubleshoot, Section.Diag, Screen.Diag, { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("trips", "Trajets", "Tracés, consommation et coût de chaque trajet", Icons.Rounded.Route, Section.Trips, Screen.Trips, { vm.go(Screen.Trips) }),
         Tile("pair", "Boîtier OBD2", "Associer, changer ou reconnecter le boîtier", Icons.Rounded.SettingsInputHdmi, Section.Adapter, Screen.Pair, { vm.pairActive() }),
-        Tile("settings", "Paramètres", "Garage, apparence, sauvegarde et mises à jour", Icons.Rounded.Settings, Section.Settings, Screen.Settings, { vm.go(Screen.Settings) }),
+        Tile("contribution", "Contribution", "Explorez votre voiture et aidez à l'intégrer dans CarDeck", Icons.Rounded.VolunteerActivism, Section.Explorer, Screen.Explorer, { vm.go(Screen.Explorer) }),
     )
     Column(Modifier.fillMaxSize().background(c.sf)) {
         // Défilement gardé par le ViewModel : au retour d'une page, chaque carte est là où la page va rentrer.
         Column(Modifier.weight(1f).verticalScroll(vm.homeScroll)) {
-            Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp)) {
-                Text("CarDeck", style = gs(32, 40, 500, -0.3f), color = c.on, maxLines = 1)
-                Text(vm.greeting, Modifier.padding(top = 4.dp), style = rf(14, 20), color = c.onv)
+            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f)) {
+                    Text("CarDeck", style = gs(32, 40, 500, -0.3f), color = c.on, maxLines = 1)
+                    Text(vm.greeting, Modifier.padding(top = 4.dp), style = rf(14, 20), color = c.onv)
+                }
+                IconBtn(Icons.Rounded.Settings, { vm.go(Screen.Settings) }, c.onv, c.sf3)
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (v != null) {

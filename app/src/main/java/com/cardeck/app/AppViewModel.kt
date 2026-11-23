@@ -471,6 +471,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             explorer.mode = "Balayage à l'arrêt"
                             explorer.line("🅿️ La voiture est à l'arrêt : balayage complet")
                             ex.stationary(BuildConfig.VERSION_NAME, name)
+                            explorer.offerContribution = data.ecus.isNotEmpty()
                         }
                         null
                     } finally {
@@ -512,6 +513,63 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         return out
+    }
+
+    /** Résultat de la préparation d'un envoi au développeur : adresse du ticket et fichier enregistré (ou à partager). */
+    class Contribution(val url: String, val fileName: String, val savedToDownloads: Boolean, val file: java.io.File)
+
+    /**
+     * Prépare l'envoi des découvertes au développeur : zip anonymisé (numéro de série du VIN et surnom retirés),
+     * enregistré dans Téléchargements, et ticket GitHub prérempli avec le résumé.
+     */
+    fun prepareContribution(vehicleId: Long): Contribution? {
+        val dir = explorerDir(vehicleId)
+        if (!dir.exists()) return null
+        val v = repo.vehicles.value.find { it.id == vehicleId } ?: return null
+        val t = v.template
+        val data = com.cardeck.app.explorer.ExplorerData.load(java.io.File(dir, "decouvertes.json"))
+        val C = com.cardeck.app.explorer.Contribution
+        // VIN du profil et VIN lus par l'explorateur (service 09 ou identifiant F190).
+        val vins = setOfNotNull(com.cardeck.app.data.Vin.normalize(v.vin)) + C.vinsIn(data)
+        val label = t.fullName
+        fun clean(s: String) = C.scrub(s, vins, v.nickname.takeIf { it != label }, label)
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date())
+        val name = "CarDeck_${com.cardeck.app.data.slug(label).ifEmpty { "vehicule" }}_$stamp.zip"
+        val out = java.io.File(java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }, name)
+        java.util.zip.ZipOutputStream(java.io.FileOutputStream(out)).use { zip ->
+            zip.putNextEntry(java.util.zip.ZipEntry("RAPPORT.md"))
+            zip.write(clean(data.report(label, BuildConfig.VERSION_NAME)).toByteArray())
+            zip.closeEntry()
+            dir.walkTopDown().filter { it.isFile && !it.name.endsWith(".tmp") && it.relativeTo(dir).path != "RAPPORT.md" }.forEach { f ->
+                zip.putNextEntry(java.util.zip.ZipEntry(f.relativeTo(dir).path))
+                // Fichiers texte (JSON, CSV, rapports) nettoyés ; les autres sont copiés tels quels.
+                if (f.extension.lowercase() in setOf("json", "csv", "md", "txt", "log")) zip.write(clean(f.readText()).toByteArray())
+                else f.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+        }
+        val vin = vins.firstOrNull()
+        val url = C.issueUrl(t, v.year, vin, BuildConfig.VERSION_NAME, C.findings(data), name)
+        return Contribution(url, name, saveToDownloads(out), out)
+    }
+
+    /** Copie un fichier dans Téléchargements (Android 10 et plus, sans autorisation). */
+    private fun saveToDownloads(f: java.io.File): Boolean {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) return false
+        return runCatching {
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, f.name)
+                put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/zip")
+                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val resolver = ctx.contentResolver
+            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return false
+            resolver.openOutputStream(uri)?.use { o -> f.inputStream().use { it.copyTo(o) } } ?: return false
+            values.clear()
+            values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            true
+        }.getOrDefault(false)
     }
 
     fun clearExplorer(vehicleId: Long) {
