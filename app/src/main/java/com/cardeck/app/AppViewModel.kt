@@ -536,10 +536,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date())
         val name = "CarDeck_${com.cardeck.app.data.slug(label).ifEmpty { "vehicule" }}_$stamp.zip"
         val out = java.io.File(java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }, name)
+        val findings = C.findings(data)
+        val active = repo.active?.id == vehicleId
+        val sheet = com.cardeck.app.explorer.Contribution.Sheet(
+            template = t, year = v.year, vin = vins.firstOrNull(), version = BuildConfig.VERSION_NAME,
+            android = "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})",
+            adapter = v.adapter?.let { "${it.name} · ${it.transport.label}" },
+            protocol = if (active) obd.protocol.value else null,
+            supported = if (active) obd.supported.value else null,
+            live = if (active) obd.live.value else emptyMap(),
+            generated = java.text.SimpleDateFormat("dd/MM/yyyy 'à' HH:mm", java.util.Locale.FRANCE).format(java.util.Date()),
+        )
         java.util.zip.ZipOutputStream(java.io.FileOutputStream(out)).use { zip ->
-            zip.putNextEntry(java.util.zip.ZipEntry("RAPPORT.md"))
-            zip.write(clean(data.report(label, BuildConfig.VERSION_NAME)).toByteArray())
-            zip.closeEntry()
+            fun put(path: String, text: String) { zip.putNextEntry(java.util.zip.ZipEntry(path)); zip.write(clean(text).toByteArray()); zip.closeEntry() }
+            put("VEHICULE.md", C.sheetMarkdown(sheet, findings))
+            put("vehicule.json", C.sheetJson(sheet, findings))
+            put("RAPPORT.md", data.report(label, BuildConfig.VERSION_NAME))
+            scanLog(vehicleId)?.let { runCatching { put("diagnostic.txt", it.readText()) } }
             dir.walkTopDown().filter { it.isFile && !it.name.endsWith(".tmp") && it.relativeTo(dir).path != "RAPPORT.md" }.forEach { f ->
                 zip.putNextEntry(java.util.zip.ZipEntry(f.relativeTo(dir).path))
                 // Fichiers texte (JSON, CSV, rapports) nettoyés ; les autres sont copiés tels quels.
@@ -549,7 +562,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         val vin = vins.firstOrNull()
-        val url = C.issueUrl(t, v.year, vin, BuildConfig.VERSION_NAME, C.findings(data), name)
+        val url = C.issueUrl(t, v.year, vin, BuildConfig.VERSION_NAME, findings, name)
         return Contribution(url, name, saveToDownloads(out), out)
     }
 

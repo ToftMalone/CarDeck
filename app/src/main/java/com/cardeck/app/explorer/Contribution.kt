@@ -77,6 +77,109 @@ object Contribution {
         }
     }.toSet()
 
+    /** Tout ce qui décrit la voiture et la liaison, pour la fiche jointe au relevé. */
+    class Sheet(
+        val template: VehicleTemplate,
+        val year: String,
+        val vin: String?,
+        val version: String,
+        val android: String,
+        val adapter: String?,
+        val protocol: String?,
+        /** PID du service 01 que la voiture déclare fournir (null = jamais lus). */
+        val supported: Set<Int>?,
+        /** Dernières valeurs lues (identifiant → valeur). */
+        val live: Map<String, Double>,
+        val generated: String,
+    )
+
+    private fun json(s: String?) = if (s == null) "null" else "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
+
+    /** Fiche lisible du véhicule (VEHICULE.md), en tête du relevé. */
+    fun sheetMarkdown(s: Sheet, f: Findings): String {
+        val t = s.template
+        val sb = StringBuilder()
+        fun a(x: String = "") = sb.append(x).append('\n')
+        a("# Fiche du véhicule — ${t.fullName}")
+        a()
+        a("Relevé préparé le ${s.generated} par CarDeck ${s.version} pour intégrer ce véhicule. Numéro de série du VIN et surnom retirés.")
+        a()
+        a("## Véhicule")
+        a()
+        a("| | |")
+        a("|---|---|")
+        a("| Marque | ${t.brand.ifBlank { "—" }} |")
+        a("| Modèle | ${t.model} |")
+        a("| Génération / code | ${t.code.ifBlank { "—" }} |")
+        a("| Moteur | ${t.engine.ifBlank { "—" }} |")
+        a("| Puissance | ${t.power.ifBlank { "—" }} |")
+        a("| Énergie | ${t.fuel.ifBlank { "—" }} |")
+        a("| Année | ${s.year.ifBlank { "—" }} |")
+        a("| Début du VIN | ${s.vin?.let { "`${maskVin(it)}`" } ?: "non lu"} |")
+        a("| Identifiant CarDeck | `${t.id}` |")
+        a("| Profil dédié | ${if (t.dedicated) "oui" else "non (données OBD2 standard)"} |")
+        a()
+        a("## Liaison")
+        a()
+        a("| | |")
+        a("|---|---|")
+        a("| Boîtier | ${s.adapter ?: "—"} |")
+        a("| Protocole détecté | ${s.protocol ?: "—"} |")
+        a("| Protocole connu du modèle | ${t.protocol} |")
+        a("| Android | ${s.android} |")
+        a()
+        a("## Découvertes")
+        a()
+        a("- Calculateurs : ${f.ecus.size} · réponses positives : ${f.answers} · blocs constructeur : ${f.blocks} · identifiants sur le bus : ${f.busIds}")
+        a("- Enregistrements en roulant : ${f.drives} · recherches du cliquetis : ${f.knocks}")
+        a()
+        a("## Données OBD2 standard fournies (service 01)")
+        a()
+        val sup = s.supported
+        if (sup == null) a("Pas encore lues (connectez le boîtier, contact mis, avant d'envoyer).")
+        else a(sup.sorted().joinToString(" ") { "%02X".format(it) }.ifEmpty { "aucune" })
+        if (s.live.isNotEmpty()) {
+            a()
+            a("## Dernières valeurs lues")
+            a()
+            a("| Donnée | Valeur |")
+            a("|---|---|")
+            for ((k, v) in s.live.toSortedMap()) a("| `$k` | ${"%.2f".format(java.util.Locale.US, v)} |")
+        }
+        a()
+        a("## Contenu du fichier")
+        a()
+        a("- `VEHICULE.md` / `vehicule.json` : cette fiche")
+        a("- `RAPPORT.md` : rapport de l'explorateur (calculateurs, blocs, pistes de décodage)")
+        a("- `decouvertes.json` : toutes les réponses des calculateurs")
+        a("- `diagnostic.txt` : dernier diagnostic (codes défaut), s'il y en a un")
+        a("- autres dossiers : enregistrements en roulant et recherches du cliquetis, s'il y en a")
+        return sb.toString()
+    }
+
+    /** Même fiche, lisible par un programme (vehicule.json). */
+    fun sheetJson(s: Sheet, f: Findings): String {
+        val t = s.template
+        val ecus = f.ecus.joinToString(",") { e ->
+            "{\"adresse\":${json(e.label)},\"liaison\":${json(e.bus.name)},\"protocole\":${json(e.proto)},\"nom\":${json(f.names[e.key])}}"
+        }
+        val live = s.live.toSortedMap().entries.joinToString(",") { "${json(it.key)}:${if (it.value.isFinite()) it.value else "null"}" }
+        return "{" + listOf(
+            "\"format\":1",
+            "\"genere\":${json(s.generated)}",
+            "\"cardeck\":${json(s.version)}",
+            "\"android\":${json(s.android)}",
+            "\"vehicule\":{\"id\":${json(t.id)},\"marque\":${json(t.brand)},\"modele\":${json(t.model)},\"code\":${json(t.code)}," +
+                "\"moteur\":${json(t.engine)},\"puissance\":${json(t.power)},\"energie\":${json(t.fuel)},\"annee\":${json(s.year)}," +
+                "\"vin_debut\":${json(s.vin?.let(::maskVin))},\"profil_dedie\":${t.dedicated}}",
+            "\"liaison\":{\"boitier\":${json(s.adapter)},\"protocole_detecte\":${json(s.protocol)},\"protocole_modele\":${json(t.protocol)}}",
+            "\"pid01_fournis\":" + (s.supported?.sorted()?.joinToString(",", "[", "]") { json("%02X".format(it)) } ?: "null"),
+            "\"valeurs\":{$live}",
+            "\"calculateurs\":[$ecus]",
+            "\"compteurs\":{\"reponses\":${f.answers},\"blocs\":${f.blocks},\"bus\":${f.busIds},\"roulage\":${f.drives},\"cliquetis\":${f.knocks}}",
+        ).joinToString(",") + "}\n"
+    }
+
     /** Titre du ticket. */
     fun title(t: VehicleTemplate, year: String): String =
         "Véhicule à intégrer : ${t.fullName}" + listOf(t.engine, t.power).filter { it.isNotBlank() }.joinToString(" ", " ") + (if (year.isNotBlank()) " ($year)" else "")

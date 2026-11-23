@@ -54,6 +54,21 @@ class ContributionTest {
     }
 
     @Test
+    fun ficheDuVehicule() {
+        val ecus = listOf(Ecu("E0", Bus.Can29, 0x18DA15F1, 0x18DAF115, "uds"))
+        val f = Contribution.Findings(ecus, mapOf("E0" to "Moteur"), 12, 3, 4, 0, 0)
+        val s = Contribution.Sheet(CLIO_V_TCE90, "2021", vin, "0.6", "Android 14 (API 34)", "OBDII · Bluetooth", "ISO 15765-4 CAN 29/500", setOf(0x0C, 0x05), mapOf("regime" to 812.0), "23/11/2026 à 10:20")
+        val md = Contribution.sheetMarkdown(s, f)
+        assertTrue(md.contains("| Marque | Renault |") && md.contains("| Moteur | 1.0 TCe |") && md.contains("| Année | 2021 |"))
+        assertTrue(md.contains("05 0C") && md.contains("`regime` | 812.00"))
+        assertFalse(md.contains("2345678"))
+        val js = Contribution.sheetJson(s, f)
+        assertTrue(js.contains("\"marque\":\"Renault\"") && js.contains("\"pid01_fournis\":[\"05\",\"0C\"]") && js.contains("\"nom\":\"Moteur\""))
+        assertTrue(js.contains("\"vin_debut\":\"VF1RJA0051*******\""))
+        org.json.JSONObject(js) // JSON valide
+    }
+
+    @Test
     fun ticketPrerempli() {
         val ecus = (0 until 400).map { Ecu("E$it", Bus.Can11, 0x700 + it, 0x708 + it, "uds") }
         val f = Contribution.Findings(ecus, mapOf("E0" to "Moteur"), 1200, 30, 45, 2, 0)
