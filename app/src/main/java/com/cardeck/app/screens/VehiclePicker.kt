@@ -30,9 +30,9 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.Engineering
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.OutlinedTextField
 import com.cardeck.app.ui.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -281,8 +281,8 @@ private fun VariantRow(t: VehicleTemplate, context: String?, onPick: (VehicleTem
 private fun DedicatedBadge() {
     val c = Cd.c
     Row(Modifier.clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Ico(Icons.Rounded.Verified, 14, c.op)
-        T("Profil dédié", 11, c.op, 600)
+        Ico(Icons.Rounded.Engineering, 14, c.op)
+        T("Rétro-ingénierie", 11, c.op, 600)
     }
 }
 
@@ -332,10 +332,13 @@ private fun VehicleDetails(vm: AppViewModel, tpl: VehicleTemplate, onChange: () 
             }
             val fromVin = vm.vinResult?.takeIf { it.templateId == tpl.id }
             Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Ico(if (tpl.dedicated) Icons.Rounded.Verified else Icons.Rounded.Info, 20, c.onv)
+                Ico(if (tpl.dedicated) Icons.Rounded.Engineering else Icons.Rounded.Info, 20, c.onv)
+                // Deux phrases traduites séparément (assemblées, elles ne correspondraient à aucune ligne de la table).
                 T(
-                    (if (fromVin != null) "Reconnue grâce au VIN ${fromVin.vin}. " else "") + if (tpl.dedicated) "Profil dédié : données constructeur en plus des données OBD2 standard. ${tpl.protocol}."
-                    else "Données OBD2 standard : régime, vitesse, températures, pressions, diagnostic… Le protocole est détecté automatiquement à la connexion.",
+                    (if (fromVin != null) com.cardeck.app.data.tr("Reconnue grâce au VIN ${fromVin.vin}. ") else "") + com.cardeck.app.data.tr(
+                        if (tpl.dedicated) "Rétro-ingénierie : données constructeur décodées par CarDeck, en plus des données OBD2 standard. ${tpl.protocol}."
+                        else "Données OBD2 standard : régime, vitesse, températures, pressions, diagnostic… Le protocole est détecté automatiquement à la connexion.",
+                    ),
                     13, c.onv, lineHeight = 18,
                 )
             }

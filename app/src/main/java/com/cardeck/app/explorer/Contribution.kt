@@ -117,7 +117,7 @@ object Contribution {
         a("| Année | ${s.year.ifBlank { "—" }} |")
         a("| Début du VIN | ${s.vin?.let { "`${maskVin(it)}`" } ?: "non lu"} |")
         a("| Identifiant CarDeck | `${t.id}` |")
-        a("| Profil dédié | ${if (t.dedicated) "oui" else "non (données OBD2 standard)"} |")
+        a("| Rétro-ingénierie | ${if (t.dedicated) "oui" else "non (données OBD2 standard)"} |")
         a()
         a("## Liaison")
         a()
