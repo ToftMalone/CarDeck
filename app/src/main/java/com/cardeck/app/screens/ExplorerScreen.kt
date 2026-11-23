@@ -98,7 +98,7 @@ fun ExplorerScreen(vm: AppViewModel) {
             T(
                 "Aidez à intégrer ${v.nickname} complètement dans CarDeck : l'explorateur découvre tous ses calculateurs et tout ce qu'ils " +
                     "acceptent de donner, puis vous pouvez envoyer ces découvertes au développeur. Exploration : " +
-                    "voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, c'est l'enregistrement en roulant. Plus bas, la recherche du cliquetis.",
+                    "voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, c'est l'enregistrement en roulant.",
                 14, c.onv, lineHeight = 20,
             )
             Row(
@@ -140,7 +140,8 @@ fun ExplorerScreen(vm: AppViewModel) {
                     if (!connected) T("Connectez d'abord le boîtier OBD2.", 12, c.onv, modifier = Modifier.padding(top = 6.dp))
                 }
                 // Recherche ciblée : les octets des blocs du moteur qui réagissent comme un retard d'allumage dû au cliquetis.
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                // Réservée aux voitures qui ont été rétro-ingéniées pour ça (Swift Sport ZC33S).
+                if (v.template.knockSearch) Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(72.dp).clip(CircleShape).background(c.tc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.Whatshot, 36, c.otc) }
                     T("💥 Recherche du cliquetis", 15, weight = 600, modifier = Modifier.padding(top = 14.dp))
                     T(

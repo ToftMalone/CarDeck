@@ -91,6 +91,8 @@ data class VehicleTemplate(
     val dashSport: List<String> = emptyList(),
     /** Calculateurs connus du modèle : le diagnostic les interroge tous, y compris hors du protocole OBD de la voiture. */
     val ecus: List<KnownEcu> = emptyList(),
+    /** Recherche du cliquetis proposée : seulement sur les voitures où le bloc moteur a été rétro-ingénié pour ça. */
+    val knockSearch: Boolean = false,
 ) {
     /** Noms des calculateurs identifiés, par en-tête de réponse. */
     val ecuNames: Map<String, String> get() = ecus.filter { it.name != null }.associate { it.header to it.name!! }
@@ -156,6 +158,7 @@ val SWIFT_SPORT_ZC33S = VehicleTemplate(
     ) + SWIFT_BUS,
     // Fonctions de codage Swift Sport à intégrer (données à fournir).
     codings = emptyList(),
+    knockSearch = true,
 )
 
 /**

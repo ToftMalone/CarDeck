@@ -74,13 +74,37 @@ private fun generic(brand: String, model: String, gen: GenBuilder, e: Engine) = 
     pids = emptyList(),
 )
 
+/** Clé de tri « naturelle » : sans accents ni majuscules, nombres comparés comme des nombres (« 2008 » après « 208 », « Série 2 » avant « Série 10 »). */
+internal fun sortKey(s: String): List<Comparable<*>> =
+    Regex("\\d+|\\D+").findAll(slug(s).replace('-', ' ')).map { m -> m.value.toIntOrNull() ?: m.value }.toList()
+
+internal val NATURAL: Comparator<String> = Comparator { a, b ->
+    val x = sortKey(a)
+    val y = sortKey(b)
+    var r = 0
+    for (i in 0 until minOf(x.size, y.size)) {
+        val p = x[i]
+        val q = y[i]
+        r = when {
+            p is Int && q is Int -> p.compareTo(q)
+            p is Int -> -1 // un nombre avant du texte
+            q is Int -> 1
+            else -> (p as String).compareTo(q as String)
+        }
+        if (r != 0) break
+    }
+    if (r != 0) r else x.size.compareTo(y.size)
+}
+
 private fun brand(name: String, block: BrandBuilder.() -> Unit): CatalogBrand {
     val b = BrandBuilder(name).apply(block)
     return CatalogBrand(
         b.name,
-        b.models.map { m ->
+        // Modèles par ordre alphabétique, générations de la plus ancienne à la plus récente (sans année : à la fin).
+        b.models.sortedWith(compareBy(NATURAL) { it.name }).map { m ->
             // Une motorisation qui a un profil dédié (même identifiant) est remplacée par lui, à la même place dans la liste.
-            CatalogModel(m.name, m.gens.map { g -> CatalogGeneration(g.name, g.years, g.dedicated + g.engines.map { generic(b.name, m.name, g, it) }.map { t -> DEDICATED.firstOrNull { it.id == t.id } ?: t }) })
+            CatalogModel(m.name, m.gens.sortedBy { g -> Regex("\\d{4}").find(g.years)?.value?.toInt() ?: Int.MAX_VALUE }
+                .map { g -> CatalogGeneration(g.name, g.years, g.dedicated + g.engines.map { generic(b.name, m.name, g, it) }.map { t -> DEDICATED.firstOrNull { it.id == t.id } ?: t }) })
         },
     )
 }

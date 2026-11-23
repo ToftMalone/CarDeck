@@ -439,6 +439,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun startExplore(knock: Boolean = false) {
         if (explorer.running) return
         val v = repo.active ?: return
+        if (knock && !v.template.knockSearch) return
         val dir = explorerDir(v.id)
         explorer.reset()
         explorer.running = true

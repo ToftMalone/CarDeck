@@ -33,7 +33,7 @@ et la consommation et le coût d'un trajet sont **calculés** à partir de ces m
   par tranches de 10 000, lecture mémoire, carte du bus CAN, codes défaut avant / après. Interrompu, il reprend là où il s'était arrêté ;
 - 🚗 **en roulant, enregistrement** : mesures OBD, blocs constructeur (et nouveaux blocs découverts en route) et trafic du bus, horodatés ensemble.
   Il s'arrête quand tu le demandes ou au contact coupé.
-- 💥 **recherche du cliquetis** (bouton à part, en roulant) : pendant des reprises franches en charge, l'avance à l'allumage, la charge et les
+- 💥 **recherche du cliquetis** (bouton à part, en roulant ; proposée uniquement sur la Swift Sport ZC33S, la seule voiture rétro-ingéniée pour ça) : pendant des reprises franches en charge, l'avance à l'allumage, la charge et les
   blocs du moteur sont lus au plus vite, puis CarDeck classe les octets qui réagissent comme un retard d'allumage dû au cliquetis
   (au repos hors charge, écartés en charge, avance perdue à régime et charge égaux). Des candidats à confirmer, pas une mesure.
 - Résultat : un **rapport** (calculateurs, blocs vivants, réponses en clair, identifiants qui refusent, **pistes de décodage par corrélation**,

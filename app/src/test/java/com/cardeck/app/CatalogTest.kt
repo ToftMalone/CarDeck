@@ -29,6 +29,34 @@ class CatalogTest {
     }
 
     @Test
+    fun modelesParOrdreAlphabetique() {
+        for (b in CATALOG) {
+            val names = b.models.map { it.name }
+            assertEquals("Modèles de ${b.name} non triés", names.sortedWith(com.cardeck.app.data.NATURAL), names)
+        }
+        // Exemples : Suzuki commence par Across (et non par Swift), les nombres se comparent comme des nombres.
+        assertEquals("Across", CATALOG.first { it.name == "Suzuki" }.models.first().name)
+        val peugeot = CATALOG.first { it.name == "Peugeot" }.models.map { it.name }
+        assertTrue(peugeot.indexOf("208") < peugeot.indexOf("308") && peugeot.indexOf("308") < peugeot.indexOf("2008") && peugeot.indexOf("2008") < peugeot.indexOf("3008"))
+        val bmw = CATALOG.first { it.name == "BMW" }.models.map { it.name }
+        assertTrue(bmw.indexOf("Série 1") < bmw.indexOf("Série 2") && bmw.indexOf("Série 3") < bmw.indexOf("X1"))
+    }
+
+    @Test
+    fun generationsDeLaPlusAncienneALaPlusRecente() {
+        val swift = CATALOG.first { it.name == "Suzuki" }.models.first { it.name == "Swift" }
+        val starts = swift.generations.map { g -> com.cardeck.app.data.Vin.years(g)?.first ?: Int.MAX_VALUE }
+        assertEquals(starts.sorted(), starts)
+        assertEquals("III", swift.generations.first().name)
+    }
+
+    @Test
+    fun rechercheDuCliquetisSeulementSurLaSwiftSportZC33S() {
+        assertTrue(SWIFT_SPORT_ZC33S.knockSearch)
+        assertEquals(listOf(SWIFT_SPORT_ZC33S.id), TEMPLATES.filter { it.knockSearch }.map { it.id })
+    }
+
+    @Test
     fun swiftSportDansSuzukiSwift() {
         val swift = CATALOG.first { it.name == "Suzuki" }.models.first { it.name == "Swift" }
         assertTrue(swift.generations.any { g -> SWIFT_SPORT_ZC33S in g.variants })
@@ -127,8 +155,9 @@ class CatalogTest {
         assertTrue(c2019.none { it.first.name == "Swift" && it.second.any { g -> g.name == "IV" } })
         // Tolérance d'un an sur l'année modèle.
         assertTrue(com.cardeck.app.data.Vin.candidates(suzuki, 2025).any { it.first.name == "Swift" })
-        assertEquals(2012 to 2017, com.cardeck.app.data.Vin.years(suzuki.models.first().generations.first { it.name == "Sport ZC32S" }))
-        assertEquals(2018 to 2024, com.cardeck.app.data.Vin.years(suzuki.models.first().generations.first { it.name == "Sport ZC33S" }))
+        val swift = suzuki.models.first { it.name == "Swift" }
+        assertEquals(2012 to 2017, com.cardeck.app.data.Vin.years(swift.generations.first { it.name == "Sport ZC32S" }))
+        assertEquals(2018 to 2024, com.cardeck.app.data.Vin.years(swift.generations.first { it.name == "Sport ZC33S" }))
     }
 
     // ------------------------------------------------------------ Base de codes défaut
