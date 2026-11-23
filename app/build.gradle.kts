@@ -117,6 +117,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("org.osmdroid:osmdroid-android:6.1.20")
+    // Gemini Nano sur l'appareil (AICore), via l'API Prompt de ML Kit. La beta2 reste compatible avec Kotlin 2.0
+    // (les versions suivantes demandent Kotlin 2.3 et plus).
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     // Vrai org.json pour les tests (celui d'Android n'existe pas hors appareil).

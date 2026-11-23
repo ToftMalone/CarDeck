@@ -117,6 +117,8 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null || vm.greeting.isEmpty()) vm.newGreeting()
         // Recherche d'une mise à jour sur GitHub à chaque lancement : proposée si une version plus récente existe.
         if (savedInstanceState == null) vm.checkUpdate(prompt = true)
+        // Gemini Nano disponible sur ce téléphone ? (l'assistant n'apparaît que s'il l'est)
+        vm.checkAi()
         setContent {
             val dark = isDark(vm.themeMode)
             SideEffect {
@@ -139,6 +141,7 @@ fun sectionOf(s: Screen): Section? = when (s) {
     Screen.Dash -> Section.Dash
     Screen.ObdData -> Section.Obd
     Screen.Explorer -> Section.Explorer
+    Screen.Assistant -> null
     Screen.Diag, is Screen.Dtc, Screen.Coding -> Section.Diag
     Screen.Trips, is Screen.Trip -> Section.Trips
     Screen.Settings, Screen.Changelog, Screen.About -> Section.Settings
@@ -326,6 +329,7 @@ private fun ScreenContent(vm: AppViewModel, screen: Screen) {
         Screen.Changelog -> ChangelogScreen(vm)
         Screen.About -> AboutScreen(vm)
         Screen.Explorer -> com.cardeck.app.screens.ExplorerScreen(vm)
+        Screen.Assistant -> com.cardeck.app.screens.AssistantScreen(vm)
     }
 }
 
