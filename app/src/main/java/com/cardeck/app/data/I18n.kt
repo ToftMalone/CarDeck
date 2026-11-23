@@ -38,6 +38,9 @@ object I18n {
         val fixed get() = parts.sumOf { it.length }
     }
 
+    /** {1}, {2}… dans une traduction. Accolade fermante échappée : le moteur d'expressions d'Android l'exige. */
+    private val INDEX = Regex("\\{(\\d)\\}")
+
     private val exact = HashMap<String, Array<String?>>()
     private val patterns = ArrayList<Pattern>()
     private val cache = object : LinkedHashMap<String, String>(512, 0.75f, true) {
@@ -122,7 +125,7 @@ object I18n {
 
     /** Remplace les {} de la traduction par les valeurs, dans l'ordre (ou {1}, {2}… pour changer l'ordre). */
     private fun fill(template: String, values: List<String>): String {
-        if (Regex("\\{\\d}").containsMatchIn(template)) return Regex("\\{(\\d)}").replace(template) { values.getOrElse(it.groupValues[1].toInt() - 1) { "" } }
+        if (INDEX.containsMatchIn(template)) return INDEX.replace(template) { values.getOrElse(it.groupValues[1].toInt() - 1) { "" } }
         val sb = StringBuilder()
         var i = 0
         var k = 0
