@@ -42,7 +42,6 @@ sealed interface Screen {
     data object Changelog : Screen
     data object About : Screen
     data object Explorer : Screen
-    data object Assistant : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -585,98 +584,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             true
         }.getOrDefault(false)
     }
-
-    // ---- Assistant (Gemini Nano, sur l'appareil) ----
-    val gemini = com.cardeck.app.ai.GeminiNano()
-
-    /** Disponibilité de Gemini Nano : l'assistant n'apparaît que sur les téléphones compatibles. */
-    var aiStatus by mutableStateOf<com.cardeck.app.ai.AiStatus>(com.cardeck.app.ai.AiStatus.Checking)
-        private set
-
-    /** Une question et sa réponse (qui arrive au fil de l'eau). */
-    class AiMessage(val question: String) {
-        var answer by mutableStateOf("")
-        var error by mutableStateOf<String?>(null)
-        var done by mutableStateOf(false)
-    }
-
-    val aiChat = mutableStateListOf<AiMessage>()
-    var aiBusy by mutableStateOf(false)
-        private set
-    private var aiJob: Job? = null
-    private var aiDownloadJob: Job? = null
-
-    fun checkAi() {
-        viewModelScope.launch {
-            val st = gemini.status()
-            // Un téléchargement en cours dans l'appli garde son avancement.
-            if (aiDownloadJob?.isActive != true) aiStatus = st
-        }
-    }
-
-    /** Téléchargement du modèle par Android (une fois, quelques centaines de Mo, de préférence en Wi-Fi). */
-    fun downloadAi() {
-        if (aiDownloadJob?.isActive == true) return
-        aiStatus = com.cardeck.app.ai.AiStatus.Downloading(0)
-        aiDownloadJob = viewModelScope.launch {
-            try {
-                gemini.download().collect { d ->
-                    when (d) {
-                        is com.cardeck.app.ai.AiDownload.Progress -> aiStatus = com.cardeck.app.ai.AiStatus.Downloading(d.bytes)
-                        com.cardeck.app.ai.AiDownload.Done -> aiStatus = com.cardeck.app.ai.AiStatus.Ready
-                        is com.cardeck.app.ai.AiDownload.Failed -> { aiStatus = com.cardeck.app.ai.AiStatus.Downloadable; showSnack("Téléchargement de Gemini impossible : ${d.message}") }
-                    }
-                }
-            } catch (c: kotlinx.coroutines.CancellationException) {
-                throw c
-            } catch (e: Exception) {
-                aiStatus = com.cardeck.app.ai.AiStatus.Downloadable
-                showSnack("Téléchargement de Gemini impossible : ${e.message ?: ""}")
-            }
-        }
-    }
-
-    /** Ce que CarDeck sait du véhicule actif, pour l'assistant. */
-    private fun aiSnapshot(): com.cardeck.app.ai.Assistant.Snapshot? {
-        val v = repo.active ?: return null
-        return com.cardeck.app.ai.Assistant.Snapshot(
-            template = v.template, year = v.year,
-            connected = obd.state.value is com.cardeck.app.obd.ObdState.Connected,
-            live = obd.live.value,
-            lastScan = repo.lastScan(v.id),
-            readiness = readiness?.takeIf { it.first == v.id }?.second,
-            trips = repo.trips(v.id).take(30),
-        )
-    }
-
-    fun askAi(question: String) {
-        val q = question.trim()
-        if (q.isEmpty() || aiBusy || aiStatus != com.cardeck.app.ai.AiStatus.Ready) return
-        val msg = AiMessage(q)
-        val previous = aiChat.lastOrNull { it.done && it.error == null && it.answer.isNotBlank() }?.let { it.question to it.answer }
-        aiChat += msg
-        aiBusy = true
-        aiJob = viewModelScope.launch {
-            try {
-                val snap = withContext(Dispatchers.IO) { aiSnapshot() }
-                if (snap == null) { msg.error = "Ajoutez d'abord un véhicule"; return@launch }
-                val prompt = com.cardeck.app.ai.Assistant.prompt(snap, q, com.cardeck.app.data.I18n.lang, previous)
-                gemini.ask(prompt).collect { msg.answer += it }
-                if (msg.answer.isBlank()) msg.error = "Gemini n'a pas donné de réponse"
-            } catch (c: kotlinx.coroutines.CancellationException) {
-                throw c
-            } catch (e: Exception) {
-                msg.error = gemini.describe(e)
-            } finally {
-                msg.done = true
-                aiBusy = false
-            }
-        }
-    }
-
-    fun stopAi() { aiJob?.cancel() }
-
-    fun clearAiChat() { if (!aiBusy) aiChat.clear() }
 
     fun clearExplorer(vehicleId: Long) {
         explorerDir(vehicleId).deleteRecursively()

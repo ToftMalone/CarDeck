@@ -143,15 +143,6 @@ fun HomeScreen(vm: AppViewModel) {
                     Text("CarDeck", style = gs(32, 40, 500, -0.3f), color = c.on, maxLines = 1)
                     Text(vm.greeting, Modifier.padding(top = 4.dp), style = rf(14, 20), color = c.onv)
                 }
-                // Assistant Gemini : seulement si Gemini Nano est (ou peut être) sur ce téléphone ; toujours en développement.
-                val ai = vm.aiStatus
-                if (ai is com.cardeck.app.ai.AiStatus.Ready || ai is com.cardeck.app.ai.AiStatus.Downloadable || ai is com.cardeck.app.ai.AiStatus.Downloading || com.cardeck.app.BuildConfig.DEBUG) {
-                    val haptics = com.cardeck.app.ui.Cd.haptics
-                    Box(
-                        Modifier.padding(end = 8.dp).size(48.dp).clip(CircleShape).background(c.sf3).clickable { haptics.tick(); vm.go(Screen.Assistant) },
-                        contentAlignment = Alignment.Center,
-                    ) { com.cardeck.app.screens.GeminiLogo(26) }
-                }
                 IconBtn(Icons.Rounded.Settings, { vm.go(Screen.Settings) }, c.onv, c.sf3)
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

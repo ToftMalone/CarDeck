@@ -72,10 +72,8 @@ object I18n {
     private fun column(l: Lang) = l.ordinal - 1
 
     /** Traduction de [s] dans la langue affichée. */
-    fun tr(s: String): String = trIn(s, lang)
-
-    /** Traduction de [s] dans une langue donnée (l'assistant décrit la voiture en anglais à Gemini). */
-    fun trIn(s: String, l: Lang): String {
+    fun tr(s: String): String {
+        val l = lang
         if (l == Lang.Fr || s.isEmpty() || s.none { it.isLetter() }) return s
         val key = "${l.ordinal}\u0000$s"
         synchronized(cache) { cache[key] }?.let { return it }
