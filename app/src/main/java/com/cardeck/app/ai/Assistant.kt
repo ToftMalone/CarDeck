@@ -33,15 +33,6 @@ object Assistant {
         val now: Long = System.currentTimeMillis(),
     )
 
-    /** Questions toutes prêtes (en français : traduites à l'affichage). */
-    val SUGGESTIONS = listOf(
-        "Comment va mon moteur ?",
-        "Mes codes défaut sont-ils graves ?",
-        "Ma voiture passera-t-elle le contrôle technique ?",
-        "Mon dernier trajet était-il économique ?",
-        "Que dois-je surveiller avant un long trajet ?",
-    )
-
     private val LANGUAGE = mapOf(Lang.Fr to "French", Lang.En to "English", Lang.De to "German", Lang.Ru to "Russian", Lang.Es to "Spanish")
 
     private fun en(s: String) = I18n.trIn(s, Lang.En)
@@ -159,7 +150,7 @@ object Assistant {
         append("- Answer ONLY from the FACTS below. Never invent values, fault codes or history.\n")
         append("- If the facts do not answer the question, say so and suggest what to do in CarDeck (connect the adapter, run a diagnosis scan, check the emissions readiness).\n")
         append("- Values marked in [brackets] are CarDeck's own assessment: trust them.\n")
-        append("- Be short (at most 120 words), friendly and concrete, with short bullet points when useful.\n")
+        append("- Be short (at most 100 words), friendly and concrete, with short bullet points when useful.\n")
         append("- You are not a mechanic: for anything serious or unclear, advise seeing a professional. If something is dangerous (overheating, oil pressure, critical code), say it first.\n")
         append("- Never tell the driver to use the phone while driving.\n")
         append("- Answer in ${LANGUAGE[lang] ?: "English"}.\n\n")

@@ -2,12 +2,9 @@ package com.cardeck.app.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,8 +45,6 @@ import androidx.compose.ui.unit.dp
 import com.cardeck.app.AppViewModel
 import com.cardeck.app.R
 import com.cardeck.app.ai.AiStatus
-import com.cardeck.app.ai.Assistant
-import com.cardeck.app.data.tr
 import com.cardeck.app.obd.ObdState
 import com.cardeck.app.ui.BackBar
 import com.cardeck.app.ui.Cd
@@ -111,9 +106,7 @@ fun AssistantScreen(vm: AppViewModel) {
                 AiStatus.Ready -> {
                     Intro()
                     if (st !is ObdState.Connected) Note("Boîtier non connecté : Gemini se base sur le dernier diagnostic et les trajets enregistrés.")
-                    if (vm.aiChat.isEmpty()) Suggestions(vm)
                     vm.aiChat.forEach { m -> Exchange(m) }
-                    if (vm.aiChat.isNotEmpty() && !vm.aiBusy) Suggestions(vm)
                 }
             }
         }
@@ -140,21 +133,6 @@ private fun Intro() {
                 "Gemini Nano, sur votre téléphone : rien ne part sur Internet. Réponses indicatives, à partir de ce que CarDeck a lu ; pas un diagnostic de garage.",
                 12, c.onv, lineHeight = 16, modifier = Modifier.padding(top = 2.dp),
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun Suggestions(vm: AppViewModel) {
-    val c = Cd.c
-    val haptics = Cd.haptics
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Assistant.SUGGESTIONS.forEach { q ->
-            Box(
-                Modifier.clip(RoundedCornerShape(18.dp)).background(c.sf2).clickable(enabled = !vm.aiBusy) { haptics.tick(); vm.askAi(tr(q)) }
-                    .padding(horizontal = 14.dp, vertical = 9.dp),
-            ) { T(q, 13, c.on, 500) }
         }
     }
 }

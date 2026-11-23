@@ -58,7 +58,8 @@ class GeminiNano {
         val request = generateContentRequest(TextPart(prompt)) {
             temperature = 0.2f
             topK = 16
-            maxOutputTokens = 400
+            // Gemini Nano accepte au plus 256 jetons en sortie.
+            maxOutputTokens = 256
         }
         return model.generateContentStream(request).map { r -> r.candidates.firstOrNull()?.text.orEmpty() }
     }
