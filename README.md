@@ -88,22 +88,30 @@ Pour chaque véhicule, tu choisis si CarDeck sort de veille à la connexion Blue
 l'appli te le demande quand tu actives l'option.
 
 ### 💾 Sauvegarde
-Toutes tes données (véhicules, trajets, diagnostics, codages d'origine, réglages) se sauvegardent dans un fichier, puis se restaurent
-depuis **Paramètres → Sauvegarde**. À chaque sauvegarde, tu choisis la protection :
+Toutes tes données (véhicules, trajets, diagnostics, réglages) se sauvegardent dans un fichier ou sur un serveur de ton réseau, puis se
+restaurent depuis **Paramètres → Sauvegarde**. À chaque sauvegarde, tu choisis la protection :
 
-- 🔓 **Sans protection** : fichier en clair, sans mot de passe. Toute personne qui récupère le fichier peut lire toutes tes données,
-  trajets GPS compris.
 - 🔐 **Chiffrée par CarDeck** : chiffrée (AES-256) avec la clé de l'application, sans mot de passe, restaurable sur n'importe quel
   appareil avec CarDeck.
-- 🔑 **Mot de passe** : chiffré (AES-256) avec le mot de passe de ton choix, restaurable sur n'importe quel appareil. Une jauge indique
-  sa force, à titre de conseil seulement : c'est toi qui décides. Oublié, il ne peut pas être retrouvé.
-- 📱 **Liée à cet appareil** : chiffrée avec une empreinte de l'appareil (son identifiant Android et ses caractéristiques matérielles),
-  sans mot de passe. Elle ne se restaure que sur cet appareil, tant qu'il n'est pas réinitialisé. Idéal pour un **autoradio Android qui
-  reste dans la voiture** : une copie du fichier ne sert à rien ailleurs.
+- 🔓 **Sans protection** : fichier en clair, sans mot de passe. Toute personne qui récupère le fichier peut lire toutes tes données,
+  trajets GPS compris.
 
-Un fichier chiffré modifié ou abîmé est refusé à la restauration. Par sécurité, les **codages d'origine** ne sont repris que depuis une
-sauvegarde liée à l'appareil (un fichier en clair ou à mot de passe peut avoir été fabriqué par quelqu'un d'autre). CarDeck n'utilise
+Un fichier chiffré modifié ou abîmé est refusé à la restauration. Les anciennes sauvegardes protégées par mot de passe ou liées à
+l'appareil se restaurent toujours, mais on n'en crée plus. Les **codages d'origine** ne sont plus sauvegardés : ils ne sont repris que
+depuis une ancienne sauvegarde liée à l'appareil (un fichier en clair peut avoir été fabriqué par quelqu'un d'autre). CarDeck n'utilise
 pas la sauvegarde automatique d'Android (Google Drive) pour tes données.
+
+#### 🗄️ Serveur SMB (NAS, PC, box)
+**Paramètres → Sauvegarde → Serveur SMB** : renseigne le serveur (nom ou adresse IP), le **partage**, le **dossier** (par défaut
+`CarDeck`) et ton compte. On peut aussi coller l'adresse telle quelle (`smb://nas/Sauvegardes/CarDeck`). Le bouton **Tester la connexion**
+vérifie l'identification, le partage et le droit d'écrire. Ensuite, **Sauvegarder sur le serveur** envoie un fichier `CarDeck-date.cdbak`
+et **Restaurer depuis le serveur** liste les sauvegardes du dossier, la plus récente d'abord.
+
+- 🔒 SMB 2 et 3 seulement (le SMB 1, obsolète, n'est pas géré), identification NTLM, **échanges signés** : un appareil du réseau ne peut ni
+  altérer ni imiter le serveur.
+- 🔑 Le mot de passe du serveur est **chiffré par une clé de l'Android Keystore**, gardée à part des réglages : il n'est **jamais écrit
+  dans une sauvegarde** et une restauration n'y touche pas.
+- 📶 Le téléphone doit joindre le serveur : même réseau Wi-Fi, ou VPN. N'ouvre pas ton serveur SMB à Internet.
 
 ### 🏠 Un garage pour plusieurs voitures
 Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Pour le créer, tu choisis ton véhicule **en trois listes** : la **marque**, le **modèle**, puis la **génération et la motorisation**.
@@ -147,7 +155,7 @@ CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Blu
   dans la voiture, à part l'effacement des codes défaut quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
 - 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
   d'arrivée du trajet, arrondie au kilomètre), les cartes OpenStreetMap et la recherche de mises à jour.
-- 🔐 Tes sauvegardes sont protégées comme tu le choisis : **chiffrées par CarDeck**, **mot de passe**, **liées à l'appareil**, ou en clair si tu le veux.
+- 🔐 Tes sauvegardes sont **chiffrées par CarDeck**, ou en clair si tu le veux, dans un fichier ou sur ton propre serveur SMB.
 - 🛡️ Sur les voitures qui se codent, le **codage d'origine** est enregistré avec le numéro de série (VIN) de la voiture : CarDeck refuse de le
   réécrire sur une autre voiture, et relit chaque réglage juste avant de l'écrire.
 - 🔄 Les mises à jour sont proposées au lancement et installables depuis **Paramètres → Application**, où tu retrouves aussi le journal des nouveautés.

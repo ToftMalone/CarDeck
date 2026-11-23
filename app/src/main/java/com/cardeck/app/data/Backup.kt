@@ -16,7 +16,8 @@ import java.util.zip.GZIPOutputStream
 
 /**
  * Sauvegarde complète de l'application (véhicules, trajets, diagnostics, codages d'origine, préférences),
- * protégée au choix de l'utilisateur ([BackupLock]) : en clair, par mot de passe, ou liée à cet appareil.
+ * protégée au choix de l'utilisateur ([BackupLock]) : en clair ou chiffrée par CarDeck. Les anciennes sauvegardes protégées par mot de passe
+ * ou liées à un appareil restent lisibles (restauration), mais on n'en crée plus.
  */
 object Backup {
     private const val FORMAT = 1
@@ -80,8 +81,10 @@ object Backup {
             d.writeInt(prefs.size)
             prefs.forEach { (k, v) -> d.writeUTF(k); writeValue(d, v) }
             val db = repo.sql
-            d.writeInt(TABLES.size)
-            for (t in TABLES) {
+            // Les codages d'origine ne sont plus sauvegardés : ils ne sont repris que depuis une ancienne sauvegarde liée à l'appareil.
+            val tables = TABLES.filter { it != "coding_backups" }
+            d.writeInt(tables.size)
+            for (t in tables) {
                 d.writeUTF(t)
                 db.rawQuery("SELECT * FROM $t", null).use { c ->
                     d.writeInt(c.columnCount)

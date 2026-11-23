@@ -86,6 +86,34 @@ class I18nTest {
     }
 
     @Test
+    fun messagesDuServeurSmbTraduits() {
+        fun api(st: com.hierynomus.mserref.NtStatus) = com.hierynomus.mssmb2.SMBApiException(st.value, com.hierynomus.mssmb2.SMB2MessageCommandCode.SMB2_SESSION_SETUP, null)
+        val fr = listOf(
+            SmbBackup.describe(api(com.hierynomus.mserref.NtStatus.STATUS_LOGON_FAILURE)),
+            SmbBackup.describe(api(com.hierynomus.mserref.NtStatus.STATUS_BAD_NETWORK_NAME)),
+            SmbBackup.describe(api(com.hierynomus.mserref.NtStatus.STATUS_ACCESS_DENIED)),
+            SmbBackup.describe(api(com.hierynomus.mserref.NtStatus.STATUS_DISK_FULL)),
+            SmbBackup.describe(java.net.UnknownHostException("nas")),
+            SmbBackup.describe(java.net.ConnectException("refused")),
+            SmbBackup.describe(java.net.SocketTimeoutException()),
+            SmbServer.problem("", null, "P", "", "u")!!, SmbServer.problem("nas", 0, "P", "", "u")!!, SmbServer.problem("nas", null, "", "", "u")!!,
+            SmbServer.problem("nas", null, "P", "..", "u")!!, SmbServer.problem("nas", null, "P", "", "")!!,
+            "Connexion réussie. 3 sauvegardes sur le serveur.", "Connexion réussie. 1 sauvegarde sur le serveur.",
+            "Sauvegarde envoyée sur le serveur · 2 véhicules, 1 trajet",
+        )
+        for (l in Lang.entries.drop(1)) {
+            I18n.lang = l
+            val missing = fr.filter { tr(it) == it }
+            assertTrue("${l.code} : $missing", missing.isEmpty())
+        }
+        // Phrases assemblées : le préfixe et le message du serveur sont traduits séparément.
+        assertEquals("Backup to the server failed: Access denied: this account is not allowed to write to this folder",
+            en("Sauvegarde sur le serveur impossible : Accès refusé : ce compte n'a pas le droit d'écrire dans ce dossier"))
+        assertEquals("Server saved: \\\\nas\\Partage", en("Serveur enregistré : \\\\nas\\Partage"))
+        assertEquals("Connection successful. 3 backup(s) on the server.", en("Connexion réussie. 3 sauvegardes sur le serveur."))
+    }
+
+    @Test
     fun langueDuTelephone() {
         val saved = java.util.Locale.getDefault()
         try {

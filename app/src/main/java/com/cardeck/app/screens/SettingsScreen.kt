@@ -23,15 +23,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BrightnessAuto
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
-import androidx.compose.material.icons.rounded.Password
-import androidx.compose.material.icons.rounded.PhonelinkLock
 import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Restore
@@ -53,6 +54,9 @@ import com.cardeck.app.BuildConfig
 import com.cardeck.app.Screen
 import com.cardeck.app.data.BackupCrypto
 import com.cardeck.app.data.BackupLock
+import com.cardeck.app.data.SmbBackupFile
+import com.cardeck.app.data.SmbServer
+import com.cardeck.app.data.fr
 import com.cardeck.app.data.VehicleProfile
 import com.cardeck.app.data.WakeConfig
 import com.cardeck.app.ui.BackBar
@@ -263,47 +267,61 @@ private fun bondedDevices(ctx: android.content.Context): List<Pair<String, Strin
 @Composable
 private fun BackupSection(vm: AppViewModel) {
     val c = Cd.c
-    var choosing by remember { mutableStateOf(false) }
+    // Où va la sauvegarde choisie : un fichier (choix de l'emplacement) ou le serveur SMB.
+    var choosing by remember { mutableStateOf<Boolean?>(null) }
     var pendingLock by remember { mutableStateOf<BackupLock?>(null) }
+    var showSmb by remember { mutableStateOf(false) }
+    var showSmbFiles by remember { mutableStateOf(false) }
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         val lock = pendingLock
         pendingLock = null
-        if (uri != null && lock != null) vm.backupTo(uri, lock) else (lock as? BackupLock.Password)?.password?.fill('\u0000')
+        if (uri != null && lock != null) vm.backupTo(uri, lock)
     }
     val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { vm.prepareRestore(it) } }
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadSmb() }
     val busy = vm.backupBusy
+    val smb = vm.smb
     SectionLabel("Sauvegarde")
     Group {
-        BackupRow(Icons.Rounded.Lock, "Sauvegarder les données", "Véhicules, trajets, diagnostics, codages d'origine et réglages, dans un fichier", busy == null) {
-            choosing = true
+        BackupRow(Icons.Rounded.Lock, "Sauvegarder les données", "Véhicules, trajets, diagnostics et réglages, dans un fichier", busy == null) {
+            choosing = false
         }
         BackupRow(Icons.Rounded.Restore, "Restaurer une sauvegarde", "Remplace toutes les données actuelles", busy == null) {
             open.launch(arrayOf("*/*"))
         }
+        BackupRow(
+            Icons.Rounded.Dns, "Serveur SMB",
+            smb?.label ?: "Sauvegarder sur un NAS ou un PC du réseau (partage Windows / Samba)", true,
+        ) { vm.clearSmbTest(); showSmb = true }
+        if (smb != null) {
+            BackupRow(Icons.Rounded.CloudUpload, "Sauvegarder sur le serveur", smb.label, busy == null) { choosing = true }
+            BackupRow(Icons.Rounded.CloudDownload, "Restaurer depuis le serveur", "Choisir une sauvegarde du serveur", busy == null) {
+                vm.refreshSmbFiles(); showSmbFiles = true
+            }
+        }
     }
     T(
-        busy ?: "Au moment de sauvegarder, tu choisis la protection : aucune, chiffrée par CarDeck, mot de passe, ou liée à cet appareil.",
+        busy ?: "Au moment de sauvegarder, tu choisis la protection : aucune ou chiffrée par CarDeck.",
         12, if (busy != null) c.p else c.onv, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), lineHeight = 16,
     )
 
-    if (choosing) BackupProtectionDialog(vm, onDismiss = { choosing = false }) { lock ->
-        choosing = false
-        pendingLock = lock
-        save.launch(vm.backupName())
+    choosing?.let { toServer ->
+        BackupProtectionDialog(toServer, onDismiss = { choosing = null }) { lock ->
+            choosing = null
+            if (toServer) vm.backupToSmb(lock) else { pendingLock = lock; save.launch(vm.backupName()) }
+        }
     }
+    if (showSmb) SmbDialog(vm, onDismiss = { showSmb = false })
+    if (showSmbFiles) SmbFilesDialog(vm, onDismiss = { showSmbFiles = false }) { showSmbFiles = false; vm.restoreFromSmb(it) }
 
     vm.restoreRequest?.let { req -> RestoreDialog(vm, req) }
 }
 
-/** Choix de la protection d'une nouvelle sauvegarde. */
+/** Choix de la protection d'une nouvelle sauvegarde : aucune, ou chiffrée par CarDeck. */
 @Composable
-private fun BackupProtectionDialog(vm: AppViewModel, onDismiss: () -> Unit, onConfirm: (BackupLock) -> Unit) {
+private fun BackupProtectionDialog(toServer: Boolean, onDismiss: () -> Unit, onConfirm: (BackupLock) -> Unit) {
     val c = Cd.c
-    val device = vm.deviceBackupLock
-    var mode by remember { mutableStateOf(BackupCrypto.MODE_PASSWORD) }
-    var pw by remember { mutableStateOf("") }
-    var pw2 by remember { mutableStateOf("") }
-    val pwOk = pw.isNotEmpty() && pw == pw2
+    var mode by remember { mutableStateOf(BackupCrypto.MODE_APP) }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
@@ -311,52 +329,22 @@ private fun BackupProtectionDialog(vm: AppViewModel, onDismiss: () -> Unit, onCo
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ProtectionOption(
-                    Icons.Rounded.LockOpen, "Sans protection", "Fichier en clair, aucun mot de passe. ⚠️ Toute personne qui récupère ce fichier " +
-                        "peut lire toutes tes données : véhicules, trajets avec positions GPS, diagnostics, réglages.",
-                    mode == BackupCrypto.MODE_PLAIN, true,
-                ) { mode = BackupCrypto.MODE_PLAIN }
-                ProtectionOption(
                     Icons.Rounded.Lock, "Chiffrée par CarDeck", "Chiffrée (AES-256) avec la clé de l'application, sans mot de passe. " +
                         "Restaurable sur n'importe quel appareil avec CarDeck." +
                         if (BuildConfig.BACKUP_KEY.isEmpty()) " Version de développement : clé de test, réservée aux essais." else "",
                     mode == BackupCrypto.MODE_APP, true,
                 ) { mode = BackupCrypto.MODE_APP }
                 ProtectionOption(
-                    Icons.Rounded.Password, "Mot de passe", "Chiffré avec le mot de passe de ton choix, restaurable sur n'importe quel appareil. " +
-                        "Sans lui, la sauvegarde est perdue : CarDeck ne peut pas le retrouver.",
-                    mode == BackupCrypto.MODE_PASSWORD, true,
-                ) { mode = BackupCrypto.MODE_PASSWORD }
-                if (mode == BackupCrypto.MODE_PASSWORD) {
-                    Column(Modifier.padding(start = 8.dp, end = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Field("Mot de passe", pw, { pw = it }, password = true)
-                        StrengthMeter(pw)
-                        Field("Confirmer le mot de passe", pw2, { pw2 = it }, password = true)
-                        if (pw2.isNotEmpty() && pw != pw2) T("Les deux mots de passe sont différents.", 12, c.e)
-                    }
-                }
-                ProtectionOption(
-                    Icons.Rounded.PhonelinkLock, "Liée à cet appareil",
-                    if (device != null) "Chiffré avec l'empreinte de ${device.label}, sans mot de passe. Restaurable uniquement sur cet appareil, " +
-                        "tant qu'il n'est pas réinitialisé : sur un autre téléphone, ou après une réinitialisation, le fichier est illisible. " +
-                        "Idéal pour un autoradio Android qui reste dans la voiture : une copie du fichier ne sert à rien ailleurs."
-                    else "Indisponible : cet appareil ne fournit pas d'identifiant assez fiable pour lier une sauvegarde.",
-                    mode == BackupCrypto.MODE_DEVICE, device != null,
-                ) { mode = BackupCrypto.MODE_DEVICE }
+                    Icons.Rounded.LockOpen, "Sans protection", "Fichier en clair, aucun mot de passe. ⚠️ Toute personne qui récupère ce fichier " +
+                        "peut lire toutes tes données : véhicules, trajets avec positions GPS, diagnostics, réglages.",
+                    mode == BackupCrypto.MODE_PLAIN, true,
+                ) { mode = BackupCrypto.MODE_PLAIN }
             }
         },
         confirmButton = {
-            val enabled = mode != BackupCrypto.MODE_PASSWORD || pwOk
-            TextButton(
-                {
-                    when (mode) {
-                        BackupCrypto.MODE_PLAIN -> onConfirm(BackupLock.None)
-                        BackupCrypto.MODE_APP -> onConfirm(com.cardeck.app.data.Backup.appLock())
-                        BackupCrypto.MODE_PASSWORD -> onConfirm(BackupLock.Password(pw.toCharArray()))
-                        else -> device?.let(onConfirm)
-                    }
-                },
-                enabled = enabled,
-            ) { T("Choisir l'emplacement", 14, if (enabled) c.p else c.onv, 600) }
+            TextButton({ onConfirm(if (mode == BackupCrypto.MODE_PLAIN) BackupLock.None else com.cardeck.app.data.Backup.appLock()) }) {
+                T(if (toServer) "Envoyer sur le serveur" else "Choisir l'emplacement", 14, c.p, 600)
+            }
         },
         dismissButton = { TextButton(onDismiss) { T("Annuler", 14, c.p, 500) } },
     )
@@ -381,26 +369,96 @@ private fun ProtectionOption(icon: androidx.compose.ui.graphics.vector.ImageVect
     }
 }
 
-/** Force du mot de passe, à titre indicatif : aucun mot de passe n'est refusé. */
+/** Réglage du serveur SMB : adresse, partage, dossier, compte ; essai de connexion avant d'enregistrer. */
 @Composable
-private fun StrengthMeter(pw: String) {
+private fun SmbDialog(vm: AppViewModel, onDismiss: () -> Unit) {
     val c = Cd.c
-    if (pw.isEmpty()) return
-    val score = BackupCrypto.passwordStrength(pw)
-    val (label, color) = when (score) {
-        0 -> "Très faible" to c.e
-        1 -> "Faible" to c.e
-        2 -> "Moyen" to c.w
-        3 -> "Fort" to c.g
-        else -> "Très fort" to c.g
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        repeat(5) { i -> Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(if (i <= score) color else c.sf4)) }
-    }
-    T(
-        "Force : $label" + if (score < 3) " · conseil : 12 caractères ou plus, en mêlant lettres, chiffres et symboles (ce n'est pas obligatoire)." else "",
-        12, color, lineHeight = 16,
+    val saved = vm.smb
+    var host by remember { mutableStateOf(saved?.let { it.host + if (it.port != 445) ":${it.port}" else "" }.orEmpty()) }
+    var share by remember { mutableStateOf(saved?.share.orEmpty()) }
+    var folder by remember { mutableStateOf(saved?.folder ?: SmbServer.DEFAULT_FOLDER) }
+    var user by remember { mutableStateOf(saved?.user.orEmpty()) }
+    var pw by remember { mutableStateOf("") }
+    var domain by remember { mutableStateOf(saved?.domain.orEmpty()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val built = SmbServer.build(host, share, folder, user, pw, domain, saved)
+    val test = vm.smbTest
+    AlertDialog(
+        onDismissRequest = { if (!vm.smbTesting) onDismiss() },
+        containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+        title = { T("Serveur SMB", 22, lineHeight = 28) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                T(
+                    "Un NAS, un PC ou une box avec un partage de fichiers (SMB). Le téléphone doit être sur le même réseau, en Wi-Fi ou par VPN. " +
+                        "Les échanges sont signés et le mot de passe est gardé chiffré sur ce téléphone, jamais dans les sauvegardes.",
+                    12, c.onv, lineHeight = 16,
+                )
+                Field("Serveur (nom ou adresse IP)", host, { host = it; error = null; vm.clearSmbTest() })
+                Field("Partage", share, { share = it; error = null; vm.clearSmbTest() })
+                Field("Dossier (dans le partage)", folder, { folder = it; error = null; vm.clearSmbTest() })
+                Field("Utilisateur", user, { user = it; error = null; vm.clearSmbTest() })
+                Field("Mot de passe", pw, { pw = it; error = null; vm.clearSmbTest() }, password = true)
+                if (saved != null && !vm.smbPasswordLost) T("Laissez vide pour garder le mot de passe enregistré.", 12, c.onv)
+                if (vm.smbPasswordLost) T("Le mot de passe enregistré n'est plus lisible : saisissez-le à nouveau.", 12, c.e)
+                Field("Domaine (facultatif)", domain, { domain = it; error = null; vm.clearSmbTest() })
+                (error ?: built.error.takeIf { host.isNotBlank() && it != null && (share.isNotBlank() || user.isNotBlank()) })?.let { T(it, 13, c.e, 500) }
+                if (vm.smbTesting) T("Essai de connexion…", 13, c.p, 500)
+                test?.let { (ok, msg) -> T((if (ok) "✅ " else "❌ ") + com.cardeck.app.data.tr(msg), 13, if (ok) c.g else c.e, 500, lineHeight = 18) }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton({
+                        val s = built.server
+                        if (s == null) error = built.error else vm.testSmb(s)
+                    }, enabled = !vm.smbTesting) { T("Tester la connexion", 14, c.p, 500) }
+                    if (saved != null) TextButton({ vm.forgetSmb(); onDismiss() }, enabled = !vm.smbTesting) { T("Oublier", 14, c.e, 500) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton({
+                val s = built.server
+                if (s == null) error = built.error else { vm.saveSmb(s); onDismiss() }
+            }, enabled = !vm.smbTesting) { T("Enregistrer", 14, c.p, 600) }
+        },
+        dismissButton = { TextButton(onDismiss, enabled = !vm.smbTesting) { T("Annuler", 14, c.p, 500) } },
     )
+}
+
+/** Sauvegardes présentes sur le serveur : toucher l'une d'elles prépare sa restauration. */
+@Composable
+private fun SmbFilesDialog(vm: AppViewModel, onDismiss: () -> Unit, onPick: (SmbBackupFile) -> Unit) {
+    val c = Cd.c
+    val files = vm.smbFiles
+    val err = vm.smbListError
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
+        title = { T("Sauvegardes du serveur", 22, lineHeight = 28) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                when {
+                    err != null -> T(err, 14, c.e, lineHeight = 20)
+                    files == null -> T("Chargement…", 14, c.onv)
+                    files.isEmpty() -> T("Aucune sauvegarde sur le serveur pour l'instant.", 14, c.onv, lineHeight = 20)
+                    else -> files.forEach { f ->
+                        val date = java.text.SimpleDateFormat("d MMM yyyy HH:mm", com.cardeck.app.data.I18n.locale).format(java.util.Date(f.modified))
+                        Column(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.sf1).clickable { onPick(f) }.padding(12.dp),
+                        ) {
+                            T(date, 15, weight = 500)
+                            T(f.name + " · " + sizeText(f.size), 12, c.onv)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onDismiss) { T("Fermer", 14, c.p, 600) } },
+    )
+}
+
+private fun sizeText(bytes: Long): String = when {
+    bytes >= 1_000_000 -> fr(bytes / 1_000_000.0, 1) + " MB"
+    else -> fr(maxOf(1L, bytes / 1000).toDouble(), 0) + " kB"
 }
 
 /** Confirmation de la restauration, avec le mot de passe si la sauvegarde en demande un. */
@@ -428,7 +486,7 @@ private fun RestoreDialog(vm: AppViewModel, req: AppViewModel.RestoreRequest) {
                 )
                 T("Toutes les données actuelles (véhicules, trajets, diagnostics, réglages) seront remplacées par celles de la sauvegarde.", 14, c.onv, lineHeight = 20)
                 if (h.mode != BackupCrypto.MODE_DEVICE) {
-                    T("Les codages d'origine ne sont repris que depuis une sauvegarde liée à cet appareil.", 12, c.onv, lineHeight = 16)
+                    T("Les codages d'origine ne sont pas repris depuis ce fichier.", 12, c.onv, lineHeight = 16)
                 }
                 if (h.needsPassword) Field("Mot de passe", pw, { pw = it }, password = true)
                 req.error?.let { T(it, 13, c.e, 500) }

@@ -15,3 +15,16 @@
 # osmdroid (cartes) : sources de tuiles et fournisseurs chargés en partie par réflexion.
 -keep class org.osmdroid.** { *; }
 -dontwarn org.osmdroid.**
+
+# Sauvegardes sur un serveur SMB (smbj) : le bus d'événements (mbassador, méthodes @Handler) et la lecture des messages
+# ASN.1 / SMB passent par la réflexion ; on garde ces bibliothèques entières (le code de BouncyCastle, lui, est appelé
+# directement et reste réduit). Ce que Android n'a pas (Kerberos, expressions) n'est jamais utilisé : NTLM seulement.
+-keep class com.hierynomus.** { *; }
+-keep class net.engio.mbassy.** { *; }
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-dontwarn javax.el.**
+-dontwarn org.ietf.jgss.**
+-dontwarn javax.security.auth.kerberos.**
+-dontwarn org.slf4j.**
+-dontwarn org.bouncycastle.**
+-dontwarn com.hierynomus.**

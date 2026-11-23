@@ -856,9 +856,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Nom proposé pour le fichier de sauvegarde. */
     fun backupName(): String = "CarDeck-" + java.text.SimpleDateFormat("yyyy-MM-dd-HHmm", java.util.Locale.FRANCE).format(java.util.Date()) + ".cdbak"
 
-    /** Protection « liée à cet appareil », ou null si l'appareil ne la permet pas. */
-    val deviceBackupLock: com.cardeck.app.data.BackupLock.Device? by lazy { com.cardeck.app.data.Backup.deviceLock(ctx) }
-
     fun backupTo(uri: android.net.Uri, lock: com.cardeck.app.data.BackupLock) {
         if (backupBusy != null) return
         backupBusy = "Sauvegarde en cours…"
@@ -905,7 +902,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun cancelRestore() { restoreRequest = null }
+    fun cancelRestore() { dropDownloaded(restoreRequest?.uri); restoreRequest = null }
+
+    /** Supprime la sauvegarde téléchargée du serveur une fois la restauration terminée ou annulée. */
+    private fun dropDownloaded(uri: android.net.Uri?) {
+        if (uri?.scheme == "file") runCatching { java.io.File(uri.path!!).takeIf { it.name == SMB_TMP && it.parentFile?.parentFile?.canonicalPath == ctx.cacheDir.canonicalPath }?.delete() }
+    }
 
     /** Restaure la sauvegarde de [restoreRequest] ; [password] pour une sauvegarde protégée par mot de passe. */
     fun restoreFrom(password: CharArray? = null) {
@@ -926,6 +928,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val wrong = r.exceptionOrNull() as? com.cardeck.app.data.BackupCrypto.WrongPassword
             restoreRequest = if (wrong != null) RestoreRequest(req.uri, req.header, wrong.message) else null
             if (wrong != null) return@launch
+            dropDownloaded(req.uri)
             r.onSuccess { s ->
                 themeMode = prefs.themeMode
                 palette = prefs.palette
@@ -944,11 +947,126 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 showSnack(
                     "Sauvegarde restaurée · ${s.vehicles} véhicule${if (s.vehicles > 1) "s" else ""}, ${s.trips} trajet${if (s.trips > 1) "s" else ""}" +
-                        if (s.codingSkipped > 0) ". Codages d'origine non restaurés : seule une sauvegarde liée à cet appareil les reprend." else "",
+                        if (s.codingSkipped > 0) ". Codages d'origine non restaurés : seule une ancienne sauvegarde liée à cet appareil les reprend." else "",
                 )
             }.onFailure {
                 showSnack(if (it is com.cardeck.app.data.BackupCrypto.BadBackup) it.message ?: "Sauvegarde illisible" else "Restauration impossible : ${it.message}")
             }
+        }
+    }
+
+    // ---- Serveur SMB (NAS, PC…) ----
+    private val smbStore by lazy { com.cardeck.app.data.SmbStore(ctx) }
+
+    /** Serveur enregistré (mot de passe compris, en mémoire seulement), null s'il n'y en a pas. */
+    var smb by mutableStateOf<com.cardeck.app.data.SmbServer?>(null)
+        private set
+
+    /** Le mot de passe enregistré n'est plus lisible : à ressaisir. */
+    var smbPasswordLost by mutableStateOf(false)
+        private set
+
+    /** Résultat du dernier essai de connexion : (réussi, message), null tant qu'aucun essai. */
+    var smbTest by mutableStateOf<Pair<Boolean, String>?>(null)
+        private set
+    var smbTesting by mutableStateOf(false)
+        private set
+
+    /** Sauvegardes trouvées sur le serveur (null = pas encore chargées) et erreur éventuelle. */
+    var smbFiles by mutableStateOf<List<com.cardeck.app.data.SmbBackupFile>?>(null)
+        private set
+    var smbListError by mutableStateOf<String?>(null)
+        private set
+
+    fun loadSmb() {
+        viewModelScope.launch {
+            val (s, lost) = withContext(Dispatchers.IO) { runCatching { smbStore.load() to smbStore.passwordLost() }.getOrDefault(null to false) }
+            smb = s
+            smbPasswordLost = lost
+        }
+    }
+
+    fun clearSmbTest() { smbTest = null }
+
+    fun saveSmb(s: com.cardeck.app.data.SmbServer) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { smbStore.save(s) }
+            smb = s
+            smbPasswordLost = false
+            smbFiles = null
+            showSnack("Serveur enregistré : ${s.label}")
+        }
+    }
+
+    fun forgetSmb() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { smbStore.clear() }
+            smb = null
+            smbPasswordLost = false
+            smbFiles = null
+            smbTest = null
+            showSnack("Serveur oublié")
+        }
+    }
+
+    /** Essaie la connexion (identification, partage, droit d'écrire dans le dossier). */
+    fun testSmb(s: com.cardeck.app.data.SmbServer) {
+        if (smbTesting) return
+        smbTesting = true
+        smbTest = null
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { com.cardeck.app.data.SmbBackup.test(s) } }
+            smbTesting = false
+            smbTest = r.fold(
+                { n -> true to if (n == 0) "Connexion réussie. Aucune sauvegarde sur le serveur pour l'instant." else "Connexion réussie. $n sauvegarde${if (n > 1) "s" else ""} sur le serveur." },
+                { false to com.cardeck.app.data.SmbBackup.describe(it) },
+            )
+        }
+    }
+
+    /** Sauvegarde les données et les envoie sur le serveur. */
+    fun backupToSmb(lock: com.cardeck.app.data.BackupLock) {
+        val s = smb ?: return
+        if (backupBusy != null) return
+        backupBusy = "Envoi de la sauvegarde sur le serveur…"
+        viewModelScope.launch {
+            val tmp = java.io.File(java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }, SMB_TMP)
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val sum = java.io.FileOutputStream(tmp).use { com.cardeck.app.data.Backup.write(ctx, repo, it, lock) }
+                    com.cardeck.app.data.SmbBackup.upload(s, tmp, backupName())
+                    sum
+                }.also { tmp.delete() }
+            }
+            backupBusy = null
+            smbFiles = null
+            r.onSuccess { showSnack("Sauvegarde envoyée sur le serveur · ${it.vehicles} véhicule${if (it.vehicles > 1) "s" else ""}, ${it.trips} trajet${if (it.trips > 1) "s" else ""}") }
+                .onFailure { showSnack("Sauvegarde sur le serveur impossible : ${com.cardeck.app.data.SmbBackup.describe(it)}") }
+        }
+    }
+
+    /** Liste les sauvegardes du serveur. */
+    fun refreshSmbFiles() {
+        val s = smb ?: return
+        smbFiles = null
+        smbListError = null
+        viewModelScope.launch {
+            val r = withContext(Dispatchers.IO) { runCatching { com.cardeck.app.data.SmbBackup.list(s) } }
+            r.onSuccess { smbFiles = it }.onFailure { smbListError = com.cardeck.app.data.SmbBackup.describe(it) }
+        }
+    }
+
+    /** Télécharge une sauvegarde du serveur puis prépare sa restauration (même fenêtre de confirmation qu'un fichier local). */
+    fun restoreFromSmb(file: com.cardeck.app.data.SmbBackupFile) {
+        val s = smb ?: return
+        if (backupBusy != null) return
+        backupBusy = "Téléchargement de la sauvegarde…"
+        viewModelScope.launch {
+            val tmp = java.io.File(java.io.File(ctx.cacheDir, "exports").apply { mkdirs() }, SMB_TMP)
+            val r = withContext(Dispatchers.IO) { runCatching { com.cardeck.app.data.SmbBackup.download(s, file.name, tmp) } }
+            backupBusy = null
+            r.onSuccess { prepareRestore(android.net.Uri.fromFile(tmp)) }
+                .onFailure { tmp.delete(); showSnack("Téléchargement impossible : ${com.cardeck.app.data.SmbBackup.describe(it)}") }
         }
     }
 
@@ -961,5 +1079,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         snack = msg
         snackJob?.cancel()
         snackJob = viewModelScope.launch { delay(3500); snack = null }
+    }
+
+    private companion object {
+        /** Sauvegarde du serveur, le temps de la restaurer (dans le dossier de cache de l'appli). */
+        const val SMB_TMP = "serveur.cdbak.tmp"
     }
 }
