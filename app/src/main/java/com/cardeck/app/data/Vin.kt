@@ -10,7 +10,7 @@ import java.util.Calendar
  */
 data class VinInfo(
     val vin: String,
-    /** Constructeur d'après le WMI, même s'il n'est pas dans le catalogue (Tesla, Porsche…). */
+    /** Constructeur d'après le WMI, même s'il n'est pas dans le catalogue (Tesla, Ferrari…). */
     val maker: String?,
     /** Nom de la marque dans le catalogue, si elle y figure. */
     val brand: String?,
@@ -48,19 +48,19 @@ object Vin {
         add("BMW", "BMW", "WBA", "WBS", "WBY", "WBX", "4US", "5UX", "5UM")
         add("Mini", "Mini", "WMW", "WMZ")
         add("Mercedes-Benz", "Mercedes-Benz", "WDB", "WDC", "WDD", "WDF", "WD1", "WD2", "WD3", "WD4", "W1K", "W1N", "W1V", "W1W", "W1X", "W1Y", "4JG", "55S")
-        add("Smart", null, "WME")
-        add("Porsche", null, "WP0", "WP1")
+        add("Smart", "Smart", "WME")
+        add("Porsche", "Porsche", "WP0", "WP1")
         add("Ford", "Ford", "WF0", "WFO", "VS6", "NM0", "MAJ", "1FA", "1FB", "1FC", "1FD", "1FM", "1FT", "3FA", "3FM", "2FM", "SFA")
         add("Fiat", "Fiat", "ZFA", "ZFC", "ZFB", "3C3")
         add("Alfa Romeo", "Alfa Romeo", "ZAR")
-        add("Lancia", null, "ZLA")
+        add("Lancia", "Lancia", "ZLA")
         add("Ferrari", null, "ZFF")
         add("Maserati", null, "ZAM")
         add("Lamborghini", null, "ZHW")
         add("Jeep", "Jeep", "1J4", "1J8", "1C4", "ZAC", "3C4")
         add("Volvo", "Volvo", "YV1", "YV4", "LVV")
         add("Toyota", "Toyota", "JTD", "JTE", "JTM", "JTN", "JTK", "JT1", "JT2", "JT3", "JT4", "JT6", "JT7", "JT8", "SB1", "VNK", "NMT", "MR0", "AHT", "4T1", "5TD", "2T1", "TW1", "6T1")
-        add("Lexus", null, "JTH", "JTJ", "2T2")
+        add("Lexus", "Lexus", "JTH", "JTJ", "2T2")
         add("Honda", "Honda", "JHM", "JHL", "JHG", "SHH", "SHS", "1HG", "2HG", "MRH", "NLA", "93H")
         add("Nissan", "Nissan", "JN1", "JN8", "SJN", "5N1", "3N1", "MNT", "VSK", "SJK")
         add("Infiniti", null, "JNK", "JNR")
@@ -70,18 +70,18 @@ object Vin {
         add("Hyundai", "Hyundai", "KMH", "KMF", "TMA", "NLH", "MAL", "5NP", "5NM", "KMC")
         add("Kia", "Kia", "KNA", "KNC", "KND", "KNE", "KNJ", "U5Y", "U6Y", "5XY")
         add("Tesla", null, "5YJ", "7SA", "LRW", "XP7", "SFZ")
-        add("Land Rover", null, "SAL")
-        add("Jaguar", null, "SAJ")
-        add("Subaru", null, "JF1", "JF2", "4S3", "4S4")
-        add("Saab", null, "YS3")
+        add("Land Rover", "Land Rover", "SAL")
+        add("Jaguar", "Jaguar", "SAJ")
+        add("Subaru", "Subaru", "JF1", "JF2", "4S3", "4S4")
+        add("Saab", "Saab", "YS3")
         add("Lada", null, "XTA")
-        add("Chevrolet", null, "1G1", "1GC", "KL1", "3G1")
+        add("Chevrolet", "Chevrolet", "1G1", "1GC", "KL1", "3G1")
         add("Chrysler", null, "1C3", "2C3")
         add("Dodge", null, "1B3", "2B3")
         add("Cadillac", null, "1G6")
         add("Isuzu", null, "JAA", "JAL")
         add("Daihatsu", null, "JDA", "ACV")
-        add("MG", null, "LSJ", "SDL")
+        add("MG", "MG", "LSJ", "SDL")
         add("BYD", null, "LGX")
         add("Geely / Polestar", null, "LB3", "LPS", "YSM")
         add("Smart / Mercedes", null, "WMX")

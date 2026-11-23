@@ -89,6 +89,12 @@ private fun brand(name: String, block: BrandBuilder.() -> Unit): CatalogBrand {
 val CATALOG: List<CatalogBrand> by lazy {
     listOf(
         brand("Alfa Romeo") {
+            model("147") {
+                gen("147", "2000–2010") { e("1.6 TS", 105, P); e("1.6 TS", 120, P); e("2.0 TS", 150, P); e("3.2 V6 GTA", 250, P); e("1.9 JTD", 115, D); e("1.9 JTDm", 150, D) }
+            }
+            model("159") {
+                gen("159", "2005–2011") { e("1.9 JTS", 160, P); e("2.2 JTS", 185, P); e("1750 TBi", 200, P); e("1.9 JTDm", 120, D); e("1.9 JTDm", 150, D); e("2.0 JTDm", 170, D); e("2.4 JTDm", 200, D) }
+            }
             model("MiTo") {
                 gen("MiTo", "2008–2018") { e("1.4", 78, P); e("1.4 TB", 120, P); e("1.4 MultiAir", 135, P); e("1.4 MultiAir QV", 170, P); e("1.3 JTDm", 85, D); e("1.3 JTDm", 95, D) }
             }
@@ -97,6 +103,12 @@ val CATALOG: List<CatalogBrand> by lazy {
             }
             model("Giulia") {
                 gen("Giulia", "2016–") { e("2.0 Turbo", 200, P); e("2.0 Turbo", 280, P); e("2.9 V6 Quadrifoglio", 510, P); e("2.2 Diesel", 160, D); e("2.2 Diesel", 190, D); e("2.2 Diesel", 210, D) }
+            }
+            model("Stelvio") {
+                gen("Stelvio", "2017–") { e("2.0 Turbo", 200, P); e("2.0 Turbo", 280, P); e("2.9 V6 Quadrifoglio", 510, P); e("2.2 Diesel", 160, D); e("2.2 Diesel", 190, D); e("2.2 Diesel", 210, D) }
+            }
+            model("Tonale") {
+                gen("Tonale", "2022–") { e("1.5 Hybrid", 130, H); e("1.5 Hybrid", 160, H); e("1.3 Plug-in Q4", 280, R); e("1.6 Diesel", 130, D) }
             }
         },
         brand("Audi") {
@@ -113,8 +125,27 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("B8", "2008–2015") { e("1.8 TFSI", 120, P); e("1.8 TFSI", 170, P); e("2.0 TFSI", 211, P); e("2.0 TDI", 143, D); e("2.0 TDI", 177, D); e("3.0 TDI", 245, D) }
                 gen("B9", "2015–2024") { e("35 TFSI", 150, P); e("40 TFSI", 204, P); e("45 TFSI", 265, P); e("30 TDI", 136, D); e("35 TDI", 163, D); e("40 TDI", 204, D); e("50 TDI", 286, D) }
             }
+            model("A5") {
+                gen("8T", "2007–2016") { e("1.8 TFSI", 170, P); e("2.0 TFSI", 211, P); e("2.0 TDI", 177, D); e("3.0 TDI", 245, D) }
+                gen("F5", "2016–2024") { e("40 TFSI", 204, P); e("45 TFSI", 265, P); e("35 TDI", 163, D); e("40 TDI", 204, D) }
+            }
+            model("A6") {
+                gen("C7", "2011–2018") { e("2.0 TFSI", 252, P); e("2.0 TDI", 190, D); e("3.0 TDI", 218, D); e("3.0 TDI", 272, D) }
+                gen("C8", "2018–") { e("45 TFSI", 245, P); e("40 TDI", 204, D); e("50 TDI", 286, D); e("55 TFSI e", 367, R) }
+            }
+            model("Q2") {
+                gen("GA", "2016–") { e("30 TFSI", 116, P); e("35 TFSI", 150, P); e("SQ2 2.0 TFSI", 300, P); e("30 TDI", 116, D); e("35 TDI", 150, D) }
+            }
             model("Q3") {
                 gen("F3", "2018–") { e("35 TFSI", 150, P); e("40 TFSI", 190, P); e("35 TDI", 150, D); e("40 TDI", 200, D); e("45 TFSI e", 245, R) }
+            }
+            model("Q5") {
+                gen("8R", "2008–2017") { e("2.0 TFSI", 211, P); e("2.0 TDI", 150, D); e("2.0 TDI", 177, D); e("3.0 TDI", 240, D) }
+                gen("FY", "2017–") { e("40 TFSI", 204, P); e("40 TDI", 204, D); e("50 TFSI e", 299, R) }
+            }
+            model("TT") {
+                gen("8J", "2006–2014") { e("1.8 TFSI", 160, P); e("2.0 TFSI", 200, P); e("2.5 TFSI RS", 340, P); e("2.0 TDI", 170, D) }
+                gen("8S", "2014–2023") { e("1.8 TFSI", 180, P); e("2.0 TFSI", 230, P); e("2.0 TFSI S", 310, P); e("2.0 TDI", 184, D) }
             }
         },
         brand("BMW") {
@@ -128,8 +159,35 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("F30", "2012–2019") { e("316i", 136, P); e("320i", 184, P); e("330i", 252, P); e("335i", 306, P); e("316d", 116, D); e("318d", 150, D); e("320d", 190, D); e("330d", 258, D); e("330e", 252, R) }
                 gen("G20", "2019–") { e("318i", 156, P); e("320i", 184, P); e("330i", 258, P); e("M340i", 374, P); e("318d", 150, D); e("320d", 190, D); e("330d", 286, D); e("330e", 292, R) }
             }
+            model("Série 2") {
+                gen("F22 Coupé", "2014–2021") { e("218i", 136, P); e("220i", 184, P); e("M240i", 340, P); e("218d", 150, D); e("220d", 190, D) }
+                gen("F45 Active Tourer", "2014–2021") { e("218i", 136, P); e("216d", 116, D); e("218d", 150, D); e("225xe", 224, R) }
+            }
+            model("Série 5") {
+                gen("F10", "2010–2017") { e("520i", 184, P); e("528i", 245, P); e("535i", 306, P); e("520d", 184, D); e("525d", 218, D); e("530d", 258, D) }
+                gen("G30", "2017–2023") { e("520i", 184, P); e("530i", 252, P); e("540i", 340, P); e("520d", 190, D); e("530d", 265, D); e("530e", 252, R) }
+            }
             model("X1") {
+                gen("E84", "2009–2015") { e("sDrive18i", 150, P); e("sDrive20i", 184, P); e("sDrive18d", 143, D); e("xDrive20d", 184, D) }
                 gen("F48", "2015–2022") { e("sDrive18i", 140, P); e("sDrive20i", 192, P); e("sDrive18d", 150, D); e("xDrive20d", 190, D); e("xDrive25e", 220, R) }
+            }
+            model("X3") {
+                gen("F25", "2010–2017") { e("xDrive20i", 184, P); e("xDrive28i", 245, P); e("sDrive18d", 150, D); e("xDrive20d", 190, D); e("xDrive30d", 258, D) }
+                gen("G01", "2017–2024") { e("xDrive20i", 184, P); e("xDrive30i", 252, P); e("M40i", 360, P); e("xDrive20d", 190, D); e("xDrive30d", 286, D); e("xDrive30e", 292, R) }
+            }
+        },
+        brand("Chevrolet") {
+            model("Spark") {
+                gen("M300", "2010–2015") { e("1.0", 68, P); e("1.2", 82, P) }
+            }
+            model("Aveo") {
+                gen("T300", "2011–2015") { e("1.2", 86, P); e("1.4", 100, P); e("1.3 VCDi", 95, D) }
+            }
+            model("Cruze") {
+                gen("J300", "2009–2015") { e("1.6", 124, P); e("1.8", 141, P); e("2.0 VCDi", 163, D) }
+            }
+            model("Captiva") {
+                gen("C140", "2011–2015") { e("2.4", 167, P); e("2.2 VCDi", 163, D); e("2.2 VCDi", 184, D) }
             }
         },
         brand("Citroën") {
@@ -148,6 +206,17 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("II", "2010–2018") { e("1.4 VTi", 95, P); e("1.6 VTi", 120, P); e("1.6 THP", 155, P); e("1.2 PureTech", 130, P); e("1.6 HDi", 92, D); e("1.6 e-HDi", 115, D); e("1.6 BlueHDi", 120, D) }
                 gen("III", "2020–") { e("1.2 PureTech", 100, P); e("1.2 PureTech", 130, P); e("1.2 PureTech", 155, P); e("1.5 BlueHDi", 110, D); e("1.5 BlueHDi", 130, D); e("1.2 Hybrid", 136, H) }
             }
+            model("C4 Cactus") {
+                gen("I", "2014–2020") { e("1.2 PureTech", 82, P); e("1.2 PureTech", 110, P); e("1.2 PureTech", 130, P); e("1.6 BlueHDi", 100, D); e("1.5 BlueHDi", 120, D) }
+            }
+            model("C4 Picasso") {
+                gen("I", "2006–2013") { e("1.8 16V", 125, P); e("1.6 THP", 155, P); e("1.6 HDi", 110, D); e("2.0 HDi", 150, D) }
+                gen("II", "2013–2018") { e("1.2 PureTech", 130, P); e("1.6 THP", 165, P); e("1.6 BlueHDi", 120, D); e("2.0 BlueHDi", 150, D) }
+            }
+            model("C5") {
+                gen("X7", "2008–2017") { e("1.6 VTi", 120, P); e("1.6 THP", 156, P); e("1.6 HDi", 110, D); e("2.0 HDi", 140, D); e("2.0 HDi", 163, D); e("2.2 HDi", 204, D) }
+                gen("X", "2021–") { e("1.2 PureTech", 130, P); e("1.6 Hybrid", 225, R) }
+            }
             model("C5 Aircross") {
                 gen("I", "2018–") { e("1.2 PureTech", 130, P); e("1.6 PureTech", 180, P); e("1.5 BlueHDi", 130, D); e("2.0 BlueHDi", 180, D); e("1.6 Hybrid", 225, R) }
             }
@@ -155,13 +224,21 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("II", "2008–2018") { e("1.6 VTi", 120, P); e("1.6 HDi", 75, D); e("1.6 HDi", 90, D); e("1.6 BlueHDi", 100, D); e("1.6 BlueHDi", 120, D) }
                 gen("III", "2018–") { e("1.2 PureTech", 110, P); e("1.5 BlueHDi", 75, D); e("1.5 BlueHDi", 100, D); e("1.5 BlueHDi", 130, D) }
             }
+            model("Jumpy") {
+                gen("III", "2016–") { e("1.5 BlueHDi", 120, D); e("2.0 BlueHDi", 145, D); e("2.0 BlueHDi", 180, D) }
+            }
+            model("Xsara Picasso") {
+                gen("Xsara Picasso", "1999–2012") { e("1.6", 95, P); e("1.8 16V", 115, P); e("2.0 HDi", 90, D); e("1.6 HDi", 110, D) }
+            }
         },
         brand("Dacia") {
             model("Sandero") {
+                gen("I", "2008–2012") { e("1.2 16V", 75, P); e("1.4 MPI", 75, P); e("1.6 MPI", 90, P); e("1.5 dCi", 70, D); e("1.5 dCi", 85, D) }
                 gen("II", "2012–2020") { e("1.2 16V", 75, P); e("1.0 SCe", 75, P); e("0.9 TCe", 90, P); e("0.9 TCe GPL", 90, G); e("1.5 dCi", 75, D); e("1.5 dCi", 90, D) }
                 gen("III", "2020–") { e("1.0 SCe", 65, P); e("1.0 TCe", 90, P); e("1.0 TCe", 110, P); e("1.0 ECO-G", 100, G) }
             }
             model("Logan") {
+                gen("I", "2004–2012") { e("1.4 MPI", 75, P); e("1.6 MPI", 90, P); e("1.6 16V", 105, P); e("1.5 dCi", 70, D); e("1.5 dCi", 85, D) }
                 gen("II", "2012–2020") { e("1.2 16V", 75, P); e("0.9 TCe", 90, P); e("1.5 dCi", 90, D) }
             }
             model("Duster") {
@@ -169,13 +246,28 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("II", "2017–2024") { e("1.6 SCe", 115, P); e("1.0 TCe", 100, P); e("1.0 ECO-G", 100, G); e("1.3 TCe", 130, P); e("1.3 TCe", 150, P); e("1.5 Blue dCi", 115, D) }
                 gen("III", "2024–") { e("1.2 TCe mild hybrid", 130, P); e("1.0 ECO-G", 100, G); e("1.6 Hybrid", 140, H) }
             }
+            model("Bigster") {
+                gen("I", "2025–") { e("1.2 TCe mild hybrid", 140, P); e("1.2 ECO-G", 140, G); e("1.8 Hybrid", 155, H) }
+            }
+            model("Dokker") {
+                gen("I", "2012–2021") { e("1.6 SCe", 102, P); e("1.2 TCe", 115, P); e("1.5 dCi", 75, D); e("1.5 dCi", 90, D) }
+            }
             model("Jogger") {
                 gen("I", "2022–") { e("1.0 TCe", 110, P); e("1.0 ECO-G", 100, G); e("1.6 Hybrid", 140, H) }
+            }
+            model("Lodgy") {
+                gen("I", "2012–2022") { e("1.6 SCe", 102, P); e("1.2 TCe", 115, P); e("1.3 TCe", 130, P); e("1.5 dCi", 90, D); e("1.5 dCi", 110, D) }
             }
         },
         brand("DS") {
             model("DS 3") {
                 gen("I", "2009–2019") { e("1.2 PureTech", 82, P); e("1.2 PureTech", 110, P); e("1.6 VTi", 120, P); e("1.6 THP", 165, P); e("1.6 THP Performance", 208, P); e("1.6 HDi", 92, D); e("1.6 BlueHDi", 120, D) }
+            }
+            model("DS 3 Crossback") {
+                gen("I", "2019–2022") { e("1.2 PureTech", 100, P); e("1.2 PureTech", 130, P); e("1.2 PureTech", 155, P); e("1.5 BlueHDi", 110, D); e("1.5 BlueHDi", 130, D) }
+            }
+            model("DS 4") {
+                gen("II", "2021–") { e("1.2 PureTech", 130, P); e("1.6 PureTech", 225, P); e("1.5 BlueHDi", 130, D); e("E-Tense", 225, R) }
             }
             model("DS 7") {
                 gen("I", "2017–") { e("1.2 PureTech", 130, P); e("1.6 PureTech", 225, P); e("1.5 BlueHDi", 130, D); e("2.0 BlueHDi", 180, D); e("E-Tense", 225, R); e("E-Tense 4x4", 300, R) }
@@ -188,7 +280,17 @@ val CATALOG: List<CatalogBrand> by lazy {
             model("500 Abarth / 595") {
                 gen("312", "2008–2024") { e("1.4 T-Jet", 135, P); e("1.4 T-Jet", 145, P); e("1.4 T-Jet", 165, P); e("1.4 T-Jet", 180, P) }
             }
+            model("500X") {
+                gen("334", "2014–") { e("1.6 E-torQ", 110, P); e("1.4 MultiAir", 140, P); e("1.0 FireFly", 120, P); e("1.3 FireFly", 150, P); e("1.5 Hybrid", 130, H); e("1.3 Multijet", 95, D); e("1.6 Multijet", 120, D) }
+            }
+            model("Doblò") {
+                gen("II", "2010–2022") { e("1.4", 95, P); e("1.4 T-Jet", 120, P); e("1.3 Multijet", 90, D); e("1.6 Multijet", 105, D); e("2.0 Multijet", 135, D) }
+            }
+            model("Ducato") {
+                gen("III", "2006–") { e("2.3 Multijet", 130, D); e("2.3 Multijet", 150, D); e("2.2 Multijet", 140, D); e("2.2 Multijet", 180, D) }
+            }
             model("Panda") {
+                gen("II", "2003–2012") { e("1.1", 54, P); e("1.2", 60, P); e("1.4 100HP", 100, P); e("1.3 Multijet", 75, D) }
                 gen("III", "2012–") { e("1.2 8V", 69, P); e("0.9 TwinAir", 85, P); e("1.0 Hybrid", 70, H); e("1.3 Multijet", 80, D) }
             }
             model("Punto") {
@@ -208,12 +310,35 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("III", "2011–2018") { e("1.6 Ti-VCT", 105, P); e("1.0 EcoBoost", 100, P); e("1.0 EcoBoost", 125, P); e("1.5 EcoBoost", 150, P); e("2.0 EcoBoost ST", 250, P); e("2.3 EcoBoost RS", 350, P); e("1.5 TDCi", 120, D); e("1.6 TDCi", 115, D); e("2.0 TDCi", 150, D) }
                 gen("IV", "2018–") { e("1.0 EcoBoost", 125, P); e("1.0 EcoBoost mHEV", 155, H); e("1.5 EcoBoost", 150, P); e("2.3 EcoBoost ST", 280, P); e("1.5 EcoBlue", 120, D); e("2.0 EcoBlue", 150, D) }
             }
+            model("C-Max") {
+                gen("II", "2010–2019") { e("1.6 Ti-VCT", 125, P); e("1.0 EcoBoost", 125, P); e("1.5 EcoBoost", 150, P); e("1.6 TDCi", 115, D); e("2.0 TDCi", 150, D) }
+            }
+            model("EcoSport") {
+                gen("II", "2017–2022") { e("1.0 EcoBoost", 125, P); e("1.5 TDCi", 100, D) }
+            }
+            model("Ka / Ka+") {
+                gen("II", "2008–2016") { e("1.2", 69, P); e("1.3 TDCi", 75, D) }
+                gen("Ka+", "2016–2020") { e("1.2 Ti-VCT", 85, P); e("1.5 TDCi", 95, D) }
+            }
+            model("Mondeo") {
+                gen("IV", "2007–2014") { e("2.0", 145, P); e("2.0 EcoBoost", 203, P); e("1.8 TDCi", 125, D); e("2.0 TDCi", 140, D) }
+                gen("V", "2014–2022") { e("1.5 EcoBoost", 160, P); e("2.0 Hybrid", 187, H); e("2.0 TDCi", 150, D); e("2.0 TDCi", 180, D) }
+            }
+            model("Mustang") {
+                gen("VI", "2015–2023") { e("2.3 EcoBoost", 317, P); e("5.0 V8", 450, P) }
+            }
             model("Puma") {
                 gen("II", "2019–") { e("1.0 EcoBoost", 125, P); e("1.0 EcoBoost mHEV", 125, H); e("1.0 EcoBoost mHEV", 155, H); e("1.5 EcoBoost ST", 200, P) }
             }
             model("Kuga") {
                 gen("II", "2012–2019") { e("1.5 EcoBoost", 150, P); e("1.5 EcoBoost", 182, P); e("1.5 TDCi", 120, D); e("2.0 TDCi", 150, D); e("2.0 TDCi", 180, D) }
                 gen("III", "2019–") { e("1.5 EcoBoost", 150, P); e("2.5 Hybrid", 190, H); e("2.5 PHEV", 225, R); e("1.5 EcoBlue", 120, D); e("2.0 EcoBlue mHEV", 150, D) }
+            }
+            model("Ranger") {
+                gen("T6", "2011–2022") { e("2.2 TDCi", 160, D); e("3.2 TDCi", 200, D); e("2.0 EcoBlue", 213, D) }
+            }
+            model("Transit Custom") {
+                gen("I", "2012–2023") { e("2.2 TDCi", 100, D); e("2.2 TDCi", 125, D); e("2.2 TDCi", 155, D); e("2.0 EcoBlue", 105, D); e("2.0 EcoBlue", 130, D); e("2.0 EcoBlue", 170, D) }
             }
         },
         brand("Honda") {
@@ -223,8 +348,14 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("V", "2020–") { e("1.5 e:HEV", 109, H); e("1.5 e:HEV", 122, H) }
             }
             model("Civic") {
+                gen("VIII", "2005–2012") { e("1.8 i-VTEC", 140, P); e("2.0 Type R", 201, P); e("1.3 Hybrid", 115, H); e("2.2 i-CTDi", 140, D) }
                 gen("IX", "2012–2017") { e("1.4 i-VTEC", 100, P); e("1.8 i-VTEC", 142, P); e("2.0 Type R", 310, P); e("1.6 i-DTEC", 120, D); e("2.2 i-DTEC", 150, D) }
                 gen("X", "2017–2022") { e("1.0 VTEC Turbo", 129, P); e("1.5 VTEC Turbo", 182, P); e("2.0 Type R", 320, P); e("1.6 i-DTEC", 120, D) }
+                gen("XI", "2022–") { e("2.0 e:HEV", 184, H); e("2.0 Type R", 329, P) }
+            }
+            model("CR-V") {
+                gen("IV", "2012–2018") { e("2.0 i-VTEC", 155, P); e("1.6 i-DTEC", 120, D); e("1.6 i-DTEC", 160, D); e("2.2 i-DTEC", 150, D) }
+                gen("V", "2018–2023") { e("1.5 VTEC Turbo", 173, P); e("2.0 i-MMD Hybrid", 184, H) }
             }
             model("HR-V") {
                 gen("II", "2015–2021") { e("1.5 i-VTEC", 130, P); e("1.5 VTEC Turbo", 182, P); e("1.6 i-DTEC", 120, D) }
@@ -239,23 +370,54 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("II", "2014–2020") { e("1.2", 84, P); e("1.0 T-GDi", 100, P); e("1.0 T-GDi", 120, P); e("1.4 CRDi", 90, D) }
                 gen("III", "2020–") { e("1.2", 84, P); e("1.0 T-GDi", 100, P); e("1.0 T-GDi mHEV", 100, H); e("1.6 T-GDi N", 204, P) }
             }
+            model("Bayon") {
+                gen("I", "2021–") { e("1.2", 84, P); e("1.0 T-GDi", 100, P); e("1.0 T-GDi mHEV", 100, H) }
+            }
             model("i30") {
+                gen("II", "2012–2017") { e("1.4", 100, P); e("1.6 GDi", 135, P); e("1.6 T-GDi", 186, P); e("1.4 CRDi", 90, D); e("1.6 CRDi", 110, D); e("1.6 CRDi", 128, D) }
                 gen("III", "2017–") { e("1.0 T-GDi", 120, P); e("1.4 T-GDi", 140, P); e("1.5 T-GDi mHEV", 160, H); e("2.0 T-GDi N", 280, P); e("1.6 CRDi", 115, D); e("1.6 CRDi", 136, D) }
             }
             model("Kona") {
                 gen("I", "2017–2023") { e("1.0 T-GDi", 120, P); e("1.6 T-GDi", 198, P); e("1.6 GDi Hybrid", 141, H); e("1.6 CRDi", 136, D) }
+                gen("II", "2023–") { e("1.0 T-GDi", 120, P); e("1.6 GDi Hybrid", 141, H) }
+            }
+            model("ix35") {
+                gen("I", "2010–2015") { e("1.6 GDi", 135, P); e("2.0", 163, P); e("1.7 CRDi", 115, D); e("2.0 CRDi", 136, D); e("2.0 CRDi", 184, D) }
             }
             model("Tucson") {
                 gen("III", "2015–2020") { e("1.6 GDi", 132, P); e("1.6 T-GDi", 177, P); e("1.7 CRDi", 115, D); e("1.6 CRDi", 136, D); e("2.0 CRDi", 185, D) }
                 gen("IV", "2020–") { e("1.6 T-GDi mHEV", 150, H); e("1.6 T-GDi Hybrid", 230, H); e("1.6 T-GDi Plug-in", 265, R); e("1.6 CRDi", 136, D) }
             }
         },
+        brand("Jaguar") {
+            model("E-Pace") {
+                gen("X540", "2017–") { e("P200", 200, P); e("P250", 249, P); e("D150", 150, D); e("D180", 180, D); e("P300e", 309, R) }
+            }
+            model("F-Pace") {
+                gen("X761", "2016–") { e("2.0 i4", 250, P); e("3.0 V6 S", 380, P); e("2.0 D", 180, D); e("P400e", 404, R) }
+            }
+            model("XE") {
+                gen("X760", "2015–2024") { e("2.0 i4", 200, P); e("2.0 i4", 250, P); e("2.0 D", 180, D) }
+            }
+            model("XF") {
+                gen("X260", "2015–2024") { e("2.0 i4", 250, P); e("2.0 D", 163, D); e("2.0 D", 180, D) }
+            }
+        },
         brand("Jeep") {
+            model("Avenger") {
+                gen("I", "2023–") { e("1.2 Turbo", 100, P); e("1.2 e-Hybrid", 100, H) }
+            }
+            model("Cherokee") {
+                gen("KL", "2014–2021") { e("3.2 V6", 272, P); e("2.0 MultiJet", 140, D); e("2.0 MultiJet", 170, D); e("2.2 MultiJet", 200, D) }
+            }
             model("Renegade") {
                 gen("BU", "2014–") { e("1.4 MultiAir", 140, P); e("1.0 T3", 120, P); e("1.3 T4", 150, P); e("1.6 MultiJet", 120, D); e("2.0 MultiJet", 140, D); e("1.3 4xe", 240, R) }
             }
             model("Compass") {
                 gen("II", "2017–") { e("1.4 MultiAir", 140, P); e("1.3 T4", 150, P); e("1.6 MultiJet", 120, D); e("2.0 MultiJet", 140, D); e("1.3 4xe", 240, R) }
+            }
+            model("Wrangler") {
+                gen("JL", "2018–") { e("2.0 Turbo", 272, P); e("2.2 MultiJet", 200, D); e("2.0 4xe", 380, R) }
             }
         },
         brand("Kia") {
@@ -267,28 +429,87 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("IV", "2017–2023") { e("1.25", 84, P); e("1.0 T-GDi", 100, P); e("1.0 T-GDi", 120, P); e("1.4 CRDi", 90, D) }
             }
             model("Ceed") {
+                gen("II", "2012–2018") { e("1.4", 100, P); e("1.6 GDi", 135, P); e("1.0 T-GDi", 120, P); e("1.6 T-GDi GT", 204, P); e("1.4 CRDi", 90, D); e("1.6 CRDi", 110, D); e("1.6 CRDi", 128, D) }
                 gen("III", "2018–") { e("1.0 T-GDi", 120, P); e("1.4 T-GDi", 140, P); e("1.5 T-GDi", 160, P); e("1.6 T-GDi GT", 204, P); e("1.6 CRDi", 115, D); e("1.6 CRDi", 136, D) }
             }
             model("Niro") {
                 gen("I", "2016–2022") { e("1.6 GDi Hybrid", 141, H); e("1.6 GDi Plug-in", 141, R) }
+                gen("II", "2022–") { e("1.6 GDi Hybrid", 141, H); e("1.6 GDi Plug-in", 183, R) }
             }
             model("Sportage") {
                 gen("IV", "2016–2021") { e("1.6 GDi", 132, P); e("1.6 T-GDi", 177, P); e("1.7 CRDi", 115, D); e("1.6 CRDi", 136, D); e("2.0 CRDi", 185, D) }
                 gen("V", "2021–") { e("1.6 T-GDi mHEV", 150, H); e("1.6 T-GDi Hybrid", 230, H); e("1.6 T-GDi Plug-in", 265, R); e("1.6 CRDi", 136, D) }
             }
+            model("Stonic") {
+                gen("I", "2017–") { e("1.2", 84, P); e("1.0 T-GDi", 100, P); e("1.0 T-GDi", 120, P); e("1.0 T-GDi mHEV", 100, H); e("1.6 CRDi", 110, D) }
+            }
+            model("XCeed") {
+                gen("I", "2019–") { e("1.0 T-GDi", 120, P); e("1.5 T-GDi", 160, P); e("1.6 T-GDi", 204, P); e("1.6 CRDi", 136, D); e("1.6 GDi Plug-in", 141, R) }
+            }
+        },
+        brand("Lancia") {
+            model("Delta") {
+                gen("III", "2008–2014") { e("1.4 T-Jet", 120, P); e("1.4 T-Jet", 150, P); e("1.6 Multijet", 120, D); e("2.0 Multijet", 165, D) }
+            }
+            model("Ypsilon") {
+                gen("III", "2011–2024") { e("1.2", 69, P); e("0.9 TwinAir", 85, P); e("1.0 Hybrid", 70, H); e("1.3 Multijet", 95, D) }
+            }
+        },
+        brand("Land Rover") {
+            model("Defender") {
+                gen("L663", "2020–") { e("P300", 300, P); e("D200", 200, D); e("D250", 249, D); e("P400e", 404, R) }
+            }
+            model("Discovery Sport") {
+                gen("L550", "2014–") { e("Si4", 240, P); e("TD4", 150, D); e("TD4", 180, D); e("P300e", 309, R) }
+            }
+            model("Range Rover Evoque") {
+                gen("I", "2011–2018") { e("Si4", 240, P); e("eD4", 150, D); e("TD4", 150, D); e("TD4", 180, D) }
+                gen("II", "2019–") { e("P200", 200, P); e("P250", 249, P); e("D150", 150, D); e("D180", 180, D); e("P300e", 309, R) }
+            }
+            model("Range Rover Sport") {
+                gen("II", "2013–2022") { e("3.0 V6 S", 340, P); e("SDV6", 306, D); e("P400e", 404, R) }
+            }
+        },
+        brand("Lexus") {
+            model("CT") {
+                gen("I", "2011–2022") { e("CT 200h", 136, H) }
+            }
+            model("IS") {
+                gen("III", "2013–") { e("IS 300h", 223, H) }
+            }
+            model("NX") {
+                gen("I", "2014–2021") { e("NX 300h", 197, H) }
+            }
+            model("RX") {
+                gen("IV", "2015–2022") { e("RX 450h", 313, H) }
+            }
+            model("UX") {
+                gen("I", "2018–") { e("UX 250h", 184, H) }
+            }
         },
         brand("Mazda") {
             model("Mazda2") {
+                gen("II", "2007–2014") { e("1.3", 75, P); e("1.5", 103, P); e("1.4 MZ-CD", 68, D) }
                 gen("III", "2014–") { e("1.5 Skyactiv-G", 75, P); e("1.5 Skyactiv-G", 90, P); e("1.5 Skyactiv-G", 115, P); e("1.5 Skyactiv-D", 105, D) }
             }
             model("Mazda3") {
                 gen("III", "2013–2019") { e("1.5 Skyactiv-G", 100, P); e("2.0 Skyactiv-G", 120, P); e("2.0 Skyactiv-G", 165, P); e("1.5 Skyactiv-D", 105, D); e("2.2 Skyactiv-D", 150, D) }
                 gen("IV", "2019–") { e("2.0 e-Skyactiv G", 122, H); e("2.5 e-Skyactiv G", 140, H); e("2.0 e-Skyactiv X", 186, H); e("1.8 Skyactiv-D", 116, D) }
             }
+            model("Mazda6") {
+                gen("III", "2012–2023") { e("2.0 Skyactiv-G", 145, P); e("2.0 Skyactiv-G", 165, P); e("2.5 Skyactiv-G", 194, P); e("2.2 Skyactiv-D", 150, D); e("2.2 Skyactiv-D", 175, D) }
+            }
+            model("CX-3") {
+                gen("I", "2015–2022") { e("2.0 Skyactiv-G", 121, P); e("2.0 Skyactiv-G", 150, P); e("1.5 Skyactiv-D", 105, D); e("1.8 Skyactiv-D", 115, D) }
+            }
+            model("CX-30") {
+                gen("I", "2019–") { e("2.0 e-Skyactiv G", 122, H); e("2.5 e-Skyactiv G", 140, H); e("2.0 e-Skyactiv X", 186, H) }
+            }
             model("CX-5") {
                 gen("II", "2017–") { e("2.0 Skyactiv-G", 165, P); e("2.5 Skyactiv-G", 194, P); e("2.2 Skyactiv-D", 150, D); e("2.2 Skyactiv-D", 184, D) }
             }
             model("MX-5") {
+                gen("NC", "2005–2015") { e("1.8", 126, P); e("2.0", 160, P) }
                 gen("ND", "2015–") { e("1.5 Skyactiv-G", 132, P); e("2.0 Skyactiv-G", 184, P) }
             }
         },
@@ -297,16 +518,49 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("W176", "2012–2018") { e("A 160", 102, P); e("A 180", 122, P); e("A 200", 156, P); e("A 250", 218, P); e("A 45 AMG", 381, P); e("A 180 d", 109, D); e("A 200 d", 136, D); e("A 220 d", 177, D) }
                 gen("W177", "2018–") { e("A 180", 136, P); e("A 200", 163, P); e("A 250", 224, P); e("A 35 AMG", 306, P); e("A 180 d", 116, D); e("A 200 d", 150, D); e("A 220 d", 190, D); e("A 250 e", 218, R) }
             }
+            model("Classe B") {
+                gen("W246", "2011–2018") { e("B 180", 122, P); e("B 200", 156, P); e("B 180 CDI", 109, D); e("B 200 CDI", 136, D) }
+                gen("W247", "2018–") { e("B 180", 136, P); e("B 200", 163, P); e("B 180 d", 116, D); e("B 200 d", 150, D); e("B 250 e", 218, R) }
+            }
             model("Classe C") {
                 gen("W204", "2007–2014") { e("C 180", 156, P); e("C 200", 184, P); e("C 250", 204, P); e("C 200 CDI", 136, D); e("C 220 CDI", 170, D); e("C 250 CDI", 204, D) }
                 gen("W205", "2014–2021") { e("C 180", 156, P); e("C 200", 184, P); e("C 300", 258, P); e("C 200 d", 160, D); e("C 220 d", 194, D); e("C 300 e", 320, R) }
+                gen("W206", "2021–") { e("C 200", 204, H); e("C 220 d", 200, D); e("C 300 e", 313, R) }
+            }
+            model("Classe E") {
+                gen("W212", "2009–2016") { e("E 200", 184, P); e("E 220 CDI", 170, D); e("E 250 CDI", 204, D); e("E 350 CDI", 265, D) }
+                gen("W213", "2016–2023") { e("E 200", 184, P); e("E 220 d", 194, D); e("E 300 de", 306, R); e("E 300 e", 320, R) }
+            }
+            model("CLA") {
+                gen("C117", "2013–2019") { e("CLA 180", 122, P); e("CLA 200", 156, P); e("CLA 45 AMG", 381, P); e("CLA 200 CDI", 136, D); e("CLA 220 CDI", 177, D) }
             }
             model("GLA") {
                 gen("X156", "2013–2019") { e("GLA 180", 122, P); e("GLA 200", 156, P); e("GLA 250", 211, P); e("GLA 200 d", 136, D); e("GLA 220 d", 177, D) }
             }
+            model("GLC") {
+                gen("X253", "2015–2022") { e("GLC 200", 197, P); e("GLC 300", 258, P); e("GLC 220 d", 194, D); e("GLC 300 de", 306, R) }
+            }
+            model("Vito") {
+                gen("W447", "2014–") { e("111 CDI", 114, D); e("114 CDI", 136, D); e("116 CDI", 163, D); e("119 CDI", 190, D) }
+            }
+        },
+        brand("MG") {
+            model("HS") {
+                gen("I", "2019–") { e("1.5 T-GDI", 162, P); e("1.5 Plug-in", 258, R) }
+            }
+            model("MG3") {
+                gen("III", "2024–") { e("1.5 Hybrid+", 194, H) }
+            }
+            model("ZS") {
+                gen("I", "2017–") { e("1.5 VTi-tech", 106, P); e("1.0 T-GDI", 111, P); e("1.5 Hybrid+", 197, H) }
+            }
         },
         brand("Mini") {
+            model("Clubman") {
+                gen("F54", "2015–2024") { e("One 1.5", 102, P); e("Cooper 1.5", 136, P); e("Cooper S 2.0", 192, P); e("John Cooper Works 2.0", 306, P); e("Cooper D 2.0", 150, D) }
+            }
             model("Mini 3 portes / 5 portes") {
+                gen("R50 / R53", "2001–2006") { e("One 1.6", 90, P); e("Cooper 1.6", 115, P); e("Cooper S 1.6", 163, P); e("One D 1.4", 75, D) }
                 gen("R56", "2006–2013") { e("One 1.6", 98, P); e("Cooper 1.6", 122, P); e("Cooper S 1.6", 184, P); e("John Cooper Works 1.6", 211, P); e("Cooper D 1.6", 112, D) }
                 gen("F56 / F55", "2014–2024") { e("One 1.5", 102, P); e("Cooper 1.5", 136, P); e("Cooper S 2.0", 178, P); e("Cooper S 2.0", 192, P); e("John Cooper Works 2.0", 231, P); e("Cooper D 1.5", 116, D) }
             }
@@ -321,10 +575,23 @@ val CATALOG: List<CatalogBrand> by lazy {
             model("ASX") {
                 gen("I", "2010–2023") { e("1.6 MIVEC", 117, P); e("1.6 DI-D", 114, D); e("1.8 DI-D", 150, D); e("2.2 DI-D", 150, D) }
             }
+            model("Colt") {
+                gen("VI", "2004–2012") { e("1.1", 75, P); e("1.3", 95, P); e("1.5 Turbo CZT", 150, P); e("1.5 DI-D", 95, D) }
+            }
+            model("Eclipse Cross") {
+                gen("I", "2017–") { e("1.5 T-MIVEC", 163, P); e("2.4 PHEV", 188, R) }
+            }
+            model("L200") {
+                gen("V", "2015–") { e("2.4 DI-D", 154, D); e("2.4 DI-D", 181, D) }
+            }
+            model("Outlander") {
+                gen("III", "2012–2021") { e("2.0 MIVEC", 150, P); e("2.2 DI-D", 150, D); e("2.0 PHEV", 203, R); e("2.4 PHEV", 224, R) }
+            }
         },
         brand("Nissan") {
             model("Micra") {
                 gen("K12", "2003–2010") { e("1.2", 80, P); e("1.4", 88, P); e("1.5 dCi", 86, D) }
+                gen("K13", "2010–2016") { e("1.2", 80, P); e("1.2 DIG-S", 98, P) }
                 gen("K14", "2017–2023") { e("1.0", 71, P); e("0.9 IG-T", 90, P); e("1.0 IG-T", 100, P); e("1.5 dCi", 90, D) }
             }
             model("Juke") {
@@ -336,9 +603,23 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("J11", "2013–2021") { e("1.2 DIG-T", 115, P); e("1.3 DIG-T", 140, P); e("1.3 DIG-T", 160, P); e("1.6 DIG-T", 163, P); e("1.5 dCi", 110, D); e("1.6 dCi", 130, D) }
                 gen("J12", "2021–") { e("1.3 DIG-T mHEV", 140, H); e("1.3 DIG-T mHEV", 158, H); e("1.5 e-Power", 190, H) }
             }
+            model("Navara") {
+                gen("D23", "2015–") { e("2.3 dCi", 160, D); e("2.3 dCi", 190, D) }
+            }
+            model("Note") {
+                gen("E12", "2013–2017") { e("1.2", 80, P); e("1.2 DIG-S", 98, P); e("1.5 dCi", 90, D) }
+            }
+            model("X-Trail") {
+                gen("T32", "2014–2022") { e("1.6 DIG-T", 163, P); e("1.6 dCi", 130, D); e("2.0 dCi", 177, D) }
+                gen("T33", "2022–") { e("1.5 e-Power", 204, H); e("1.5 e-Power e-4orce", 213, H) }
+            }
         },
         brand("Opel") {
+            model("Adam") {
+                gen("I", "2013–2019") { e("1.2", 70, P); e("1.4", 87, P); e("1.4", 100, P); e("1.0 Turbo", 90, P); e("1.0 Turbo", 115, P); e("1.4 Turbo S", 150, P) }
+            }
             model("Corsa") {
+                gen("C", "2000–2006") { e("1.0", 58, P); e("1.2", 75, P); e("1.4", 90, P); e("1.8", 125, P); e("1.3 CDTI", 70, D); e("1.7 CDTI", 100, D) }
                 gen("D", "2006–2014") { e("1.0", 65, P); e("1.2", 85, P); e("1.4", 100, P); e("1.6 Turbo OPC", 192, P); e("1.3 CDTI", 75, D); e("1.3 CDTI", 95, D) }
                 gen("E", "2014–2019") { e("1.2", 70, P); e("1.4", 90, P); e("1.0 Turbo", 90, P); e("1.0 Turbo", 115, P); e("1.4 Turbo", 150, P); e("1.6 Turbo OPC", 207, P); e("1.3 CDTI", 75, D); e("1.3 CDTI", 95, D) }
                 gen("F", "2019–") { e("1.2", 75, P); e("1.2 Turbo", 100, P); e("1.2 Turbo", 130, P); e("1.5 Diesel", 100, D); e("1.2 Hybrid", 100, H) }
@@ -351,11 +632,29 @@ val CATALOG: List<CatalogBrand> by lazy {
             model("Crossland") {
                 gen("X", "2017–2024") { e("1.2", 83, P); e("1.2 Turbo", 110, P); e("1.2 Turbo", 130, P); e("1.5 Diesel", 110, D); e("1.5 Diesel", 120, D) }
             }
+            model("Grandland") {
+                gen("X", "2017–2024") { e("1.2 Turbo", 130, P); e("1.6 Turbo", 180, P); e("1.5 Diesel", 130, D); e("1.6 Hybrid", 225, R); e("1.6 Hybrid4", 300, R) }
+            }
+            model("Insignia") {
+                gen("A", "2008–2017") { e("1.4 Turbo", 140, P); e("1.6 Turbo", 170, P); e("2.0 Turbo", 220, P); e("2.0 CDTI", 130, D); e("2.0 CDTI", 160, D) }
+                gen("B", "2017–2022") { e("1.5 Turbo", 165, P); e("2.0 Turbo", 260, P); e("1.6 CDTI", 136, D); e("2.0 CDTI", 170, D) }
+            }
+            model("Meriva") {
+                gen("B", "2010–2017") { e("1.4", 100, P); e("1.4 Turbo", 120, P); e("1.4 Turbo", 140, P); e("1.3 CDTI", 95, D); e("1.6 CDTI", 110, D); e("1.6 CDTI", 136, D) }
+            }
             model("Mokka") {
                 gen("B", "2020–") { e("1.2 Turbo", 100, P); e("1.2 Turbo", 130, P); e("1.5 Diesel", 110, D) }
             }
+            model("Zafira") {
+                gen("B", "2005–2014") { e("1.6", 105, P); e("1.8", 140, P); e("1.7 CDTI", 125, D); e("1.9 CDTI", 120, D); e("1.9 CDTI", 150, D) }
+                gen("C Tourer", "2011–2019") { e("1.4 Turbo", 140, P); e("1.6 Turbo", 170, P); e("1.6 CDTI", 136, D); e("2.0 CDTI", 170, D) }
+            }
         },
         brand("Peugeot") {
+            model("107 / 108") {
+                gen("107", "2005–2014") { e("1.0", 68, P); e("1.4 HDi", 54, D) }
+                gen("108", "2014–2022") { e("1.0 VTi", 72, P); e("1.2 PureTech", 82, P) }
+            }
             model("206") {
                 gen("206", "1998–2012") { e("1.1", 60, P); e("1.4", 75, P); e("1.6 16V", 110, P); e("2.0 S16", 136, P); e("2.0 RC", 177, P); e("1.4 HDi", 68, D); e("1.6 HDi", 110, D); e("2.0 HDi", 90, D) }
             }
@@ -370,6 +669,9 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("I", "2013–2019") { e("1.2 PureTech", 82, P); e("1.2 PureTech", 110, P); e("1.2 PureTech", 130, P); e("1.6 BlueHDi", 100, D); e("1.6 BlueHDi", 120, D) }
                 gen("II", "2019–") { e("1.2 PureTech", 100, P); e("1.2 PureTech", 130, P); e("1.2 PureTech", 155, P); e("1.5 BlueHDi", 110, D); e("1.5 BlueHDi", 130, D); e("1.2 Hybrid", 136, H) }
             }
+            model("307") {
+                gen("307", "2001–2008") { e("1.4", 75, P); e("1.6 16V", 110, P); e("2.0 16V", 136, P); e("1.6 HDi", 90, D); e("1.6 HDi", 110, D); e("2.0 HDi", 90, D); e("2.0 HDi", 136, D) }
+            }
             model("308") {
                 gen("I", "2007–2013") { e("1.4 VTi", 95, P); e("1.6 VTi", 120, P); e("1.6 THP", 156, P); e("1.6 HDi", 92, D); e("1.6 HDi", 110, D); e("2.0 HDi", 136, D) }
                 gen("II", "2013–2021") { e("1.2 PureTech", 110, P); e("1.2 PureTech", 130, P); e("1.6 THP GT", 205, P); e("1.6 THP GTi", 270, P); e("1.6 BlueHDi", 120, D); e("1.5 BlueHDi", 130, D); e("2.0 BlueHDi", 150, D); e("2.0 BlueHDi", 180, D) }
@@ -379,16 +681,54 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("I", "2009–2016") { e("1.6 VTi", 120, P); e("1.6 THP", 156, P); e("1.6 HDi", 115, D); e("2.0 HDi", 163, D) }
                 gen("II", "2016–2023") { e("1.2 PureTech", 130, P); e("1.6 PureTech", 180, P); e("1.5 BlueHDi", 130, D); e("2.0 BlueHDi", 180, D); e("1.6 Hybrid", 225, R); e("1.6 Hybrid4", 300, R) }
             }
+            model("407") {
+                gen("407", "2004–2011") { e("1.8 16V", 125, P); e("2.0 16V", 140, P); e("1.6 HDi", 110, D); e("2.0 HDi", 136, D); e("2.2 HDi", 170, D) }
+            }
+            model("408") {
+                gen("II", "2022–") { e("1.2 PureTech", 130, P); e("1.6 Hybrid", 180, R); e("1.6 Hybrid", 225, R) }
+            }
             model("5008") {
                 gen("II", "2017–2023") { e("1.2 PureTech", 130, P); e("1.6 PureTech", 180, P); e("1.5 BlueHDi", 130, D); e("2.0 BlueHDi", 180, D) }
+            }
+            model("508") {
+                gen("I", "2010–2018") { e("1.6 THP", 156, P); e("1.6 HDi", 112, D); e("2.0 HDi", 140, D); e("2.0 HDi", 163, D); e("2.0 BlueHDi", 150, D); e("2.0 BlueHDi", 180, D); e("2.0 HYbrid4", 200, H) }
+                gen("II", "2018–") { e("1.2 PureTech", 130, P); e("1.6 PureTech", 180, P); e("1.6 PureTech", 225, P); e("1.5 BlueHDi", 130, D); e("2.0 BlueHDi", 160, D); e("2.0 BlueHDi", 180, D); e("1.6 Hybrid", 225, R); e("PSE", 360, R) }
+            }
+            model("Boxer") {
+                gen("III", "2006–") { e("2.2 HDi", 110, D); e("2.2 HDi", 130, D); e("2.2 HDi", 150, D); e("2.0 BlueHDi", 130, D); e("2.0 BlueHDi", 160, D); e("2.2 BlueHDi", 140, D); e("2.2 BlueHDi", 165, D) }
+            }
+            model("Expert") {
+                gen("III", "2016–") { e("1.5 BlueHDi", 100, D); e("1.5 BlueHDi", 120, D); e("2.0 BlueHDi", 120, D); e("2.0 BlueHDi", 145, D); e("2.0 BlueHDi", 180, D) }
+            }
+            model("Partner / Rifter") {
+                gen("Partner II", "2008–2018") { e("1.6 VTi", 120, P); e("1.6 HDi", 75, D); e("1.6 HDi", 90, D); e("1.6 BlueHDi", 100, D); e("1.6 BlueHDi", 120, D) }
+                gen("Rifter", "2018–") { e("1.2 PureTech", 110, P); e("1.2 PureTech", 130, P); e("1.5 BlueHDi", 75, D); e("1.5 BlueHDi", 100, D); e("1.5 BlueHDi", 130, D) }
+            }
+        },
+        brand("Porsche") {
+            model("718 Boxster / Cayman") {
+                gen("982", "2016–") { e("2.0", 300, P); e("S 2.5", 350, P); e("GTS 4.0", 400, P) }
+            }
+            model("911") {
+                gen("991", "2011–2019") { e("Carrera 3.4", 350, P); e("Carrera 3.0", 370, P); e("Carrera S 3.8", 400, P); e("Carrera S 3.0", 420, P) }
+                gen("992", "2019–") { e("Carrera", 385, P); e("Carrera S", 450, P) }
+            }
+            model("Cayenne") {
+                gen("II", "2010–2017") { e("3.6 V6", 300, P); e("S 4.8 V8", 400, P); e("3.0 V6 Diesel", 245, D); e("S E-Hybrid", 416, R) }
+                gen("III", "2017–") { e("3.0 V6", 340, P); e("S 2.9 V6", 440, P); e("E-Hybrid", 462, R) }
+            }
+            model("Macan") {
+                gen("I", "2014–2024") { e("2.0", 252, P); e("S 3.0 V6", 354, P); e("GTS 2.9 V6", 380, P); e("S Diesel", 258, D) }
             }
         },
         brand("Renault") {
             model("Twingo") {
+                gen("I", "1993–2007") { e("1.2", 60, P); e("1.2 16V", 75, P) }
                 gen("II", "2007–2014") { e("1.2", 75, P); e("1.2 TCe", 100, P); e("1.6 RS", 133, P); e("1.5 dCi", 85, D) }
                 gen("III", "2014–2024") { e("1.0 SCe", 65, P); e("1.0 SCe", 70, P); e("0.9 TCe", 90, P) }
             }
             model("Clio") {
+                gen("II", "1998–2012") { e("1.2", 60, P); e("1.2 16V", 75, P); e("1.4 16V", 98, P); e("1.6 16V", 110, P); e("2.0 RS", 172, P); e("2.0 RS", 182, P); e("1.5 dCi", 65, D); e("1.5 dCi", 82, D) }
                 gen("III", "2005–2014") { e("1.2 16V", 75, P); e("1.2 TCe", 100, P); e("1.6 16V", 112, P); e("2.0 RS", 200, P); e("1.5 dCi", 70, D); e("1.5 dCi", 85, D); e("1.5 dCi", 105, D) }
                 gen("IV", "2012–2019") { e("1.2 16V", 75, P); e("0.9 TCe", 90, P); e("1.2 TCe", 120, P); e("1.6 Turbo RS", 200, P); e("1.6 Turbo RS Trophy", 220, P); e("1.5 dCi", 75, D); e("1.5 dCi", 90, D); e("1.5 dCi", 110, D) }
                 gen("V", "2019–") { e("1.0 SCe", 65, P); e("1.0 TCe", 90, P); e("1.0 TCe", 100, P); e("1.0 TCe GPL", 100, G); e("1.3 TCe", 130, P); e("1.6 E-Tech", 145, H); e("1.5 Blue dCi", 85, D); e("1.5 Blue dCi", 100, D) }
@@ -398,6 +738,7 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("II", "2019–") { e("1.0 TCe", 90, P); e("1.0 TCe GPL", 100, G); e("1.3 TCe", 140, P); e("1.3 TCe", 160, P); e("1.6 E-Tech", 145, H); e("1.6 E-Tech Plug-in", 160, R); e("1.5 Blue dCi", 95, D); e("1.5 Blue dCi", 115, D) }
             }
             model("Mégane") {
+                gen("II", "2002–2009") { e("1.4 16V", 100, P); e("1.6 16V", 115, P); e("2.0 16V", 135, P); e("2.0 T RS", 225, P); e("2.0 T RS", 230, P); e("1.5 dCi", 85, D); e("1.5 dCi", 105, D); e("1.9 dCi", 120, D); e("1.9 dCi", 130, D) }
                 gen("III", "2008–2016") { e("1.6 16V", 110, P); e("1.2 TCe", 115, P); e("1.2 TCe", 130, P); e("2.0 TCe RS", 265, P); e("1.5 dCi", 90, D); e("1.5 dCi", 110, D); e("1.6 dCi", 130, D); e("1.9 dCi", 130, D) }
                 gen("IV", "2016–2023") { e("1.2 TCe", 100, P); e("1.2 TCe", 130, P); e("1.3 TCe", 140, P); e("1.3 TCe", 160, P); e("1.8 TCe RS", 280, P); e("1.8 TCe RS Trophy", 300, P); e("1.5 Blue dCi", 115, D); e("1.6 dCi", 130, D); e("1.6 E-Tech Plug-in", 160, R) }
             }
@@ -414,6 +755,41 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("II", "2008–2021") { e("1.6 16V", 105, P); e("1.2 TCe", 115, P); e("1.5 dCi", 75, D); e("1.5 dCi", 90, D); e("1.5 dCi", 110, D) }
                 gen("III", "2021–") { e("1.3 TCe", 100, P); e("1.3 TCe", 130, P); e("1.5 Blue dCi", 95, D); e("1.5 Blue dCi", 115, D) }
             }
+            model("Scénic") {
+                gen("II", "2003–2009") { e("1.6 16V", 115, P); e("2.0 16V", 135, P); e("1.5 dCi", 85, D); e("1.5 dCi", 105, D); e("1.9 dCi", 120, D) }
+                gen("III", "2009–2016") { e("1.6 16V", 110, P); e("1.2 TCe", 115, P); e("1.2 TCe", 130, P); e("1.4 TCe", 130, P); e("1.5 dCi", 110, D); e("1.6 dCi", 130, D); e("1.9 dCi", 130, D) }
+                gen("IV", "2016–2022") { e("1.2 TCe", 115, P); e("1.2 TCe", 130, P); e("1.3 TCe", 140, P); e("1.3 TCe", 160, P); e("1.5 dCi", 110, D); e("1.6 dCi", 130, D); e("1.6 dCi", 160, D); e("1.7 Blue dCi", 120, D); e("1.7 Blue dCi", 150, D) }
+            }
+            model("Espace") {
+                gen("V", "2015–2023") { e("1.6 TCe", 200, P); e("1.8 TCe", 225, P); e("1.6 dCi", 130, D); e("1.6 dCi", 160, D); e("2.0 Blue dCi", 160, D); e("2.0 Blue dCi", 200, D) }
+                gen("VI", "2023–") { e("1.2 E-Tech", 200, H) }
+            }
+            model("Laguna") {
+                gen("III", "2007–2015") { e("2.0 16V", 140, P); e("2.0 TCe", 170, P); e("2.0 TCe", 205, P); e("1.5 dCi", 110, D); e("2.0 dCi", 130, D); e("2.0 dCi", 150, D); e("2.0 dCi", 175, D) }
+            }
+            model("Talisman") {
+                gen("I", "2015–2022") { e("1.6 TCe", 150, P); e("1.6 TCe", 200, P); e("1.8 TCe", 225, P); e("1.3 TCe", 160, P); e("1.5 dCi", 110, D); e("1.6 dCi", 130, D); e("1.6 dCi", 160, D); e("2.0 Blue dCi", 160, D); e("2.0 Blue dCi", 200, D) }
+            }
+            model("Modus") {
+                gen("I", "2004–2012") { e("1.2 16V", 75, P); e("1.6 16V", 112, P); e("1.5 dCi", 86, D) }
+            }
+            model("Symbioz") {
+                gen("I", "2024–") { e("1.6 E-Tech", 145, H) }
+            }
+            model("Trafic") {
+                gen("III", "2014–") { e("1.6 dCi", 95, D); e("1.6 dCi", 120, D); e("1.6 dCi", 145, D); e("2.0 Blue dCi", 110, D); e("2.0 Blue dCi", 130, D); e("2.0 Blue dCi", 150, D); e("2.0 Blue dCi", 170, D) }
+            }
+            model("Master") {
+                gen("III", "2010–2024") { e("2.3 dCi", 110, D); e("2.3 dCi", 130, D); e("2.3 dCi", 150, D); e("2.3 dCi", 170, D) }
+            }
+        },
+        brand("Saab") {
+            model("9-3") {
+                gen("II", "2002–2012") { e("1.8t", 150, P); e("2.0t", 175, P); e("2.8 V6 Aero", 250, P); e("2.0t BioPower", 175, F); e("1.9 TiD", 120, D); e("1.9 TiD", 150, D); e("1.9 TTiD", 180, D) }
+            }
+            model("9-5") {
+                gen("I", "1997–2010") { e("2.0t", 150, P); e("2.3t", 185, P); e("1.9 TiD", 150, D) }
+            }
         },
         brand("Seat") {
             model("Ibiza") {
@@ -423,32 +799,100 @@ val CATALOG: List<CatalogBrand> by lazy {
             model("Arona") {
                 gen("I", "2017–") { e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.5 TSI", 150, P); e("1.6 TDI", 95, D); e("1.6 TDI", 115, D) }
             }
+            model("Ateca") {
+                gen("I", "2016–") { e("1.0 TSI", 110, P); e("1.5 TSI", 150, P); e("2.0 TSI", 190, P); e("1.6 TDI", 115, D); e("2.0 TDI", 150, D); e("2.0 TDI", 190, D) }
+            }
             model("Leon") {
+                gen("II", "2005–2012") { e("1.4 16V", 85, P); e("1.4 TSI", 125, P); e("1.8 TSI", 160, P); e("2.0 TFSI FR", 200, P); e("2.0 TFSI Cupra", 240, P); e("1.9 TDI", 105, D); e("1.6 TDI", 105, D); e("2.0 TDI", 140, D); e("2.0 TDI", 170, D) }
                 gen("III", "2012–2020") { e("1.2 TSI", 110, P); e("1.4 TSI", 125, P); e("1.4 TSI", 150, P); e("1.5 TSI", 150, P); e("2.0 TSI Cupra", 300, P); e("1.6 TDI", 110, D); e("1.6 TDI", 115, D); e("2.0 TDI", 150, D); e("2.0 TDI", 184, D) }
                 gen("IV", "2020–") { e("1.0 eTSI", 110, H); e("1.5 TSI", 130, P); e("1.5 TSI", 150, P); e("2.0 TDI", 115, D); e("2.0 TDI", 150, D); e("1.4 e-Hybrid", 204, R) }
             }
+            model("Mii") {
+                gen("I", "2011–2019") { e("1.0 MPI", 60, P); e("1.0 MPI", 75, P) }
+            }
+            model("Tarraco") {
+                gen("I", "2018–") { e("1.5 TSI", 150, P); e("2.0 TSI", 190, P); e("2.0 TDI", 150, D); e("2.0 TDI", 200, D); e("1.4 e-Hybrid", 245, R) }
+            }
         },
         brand("Skoda") {
+            model("Citigo") {
+                gen("I", "2011–2020") { e("1.0 MPI", 60, P); e("1.0 MPI", 75, P) }
+            }
             model("Fabia") {
                 gen("II", "2007–2014") { e("1.2", 70, P); e("1.2 TSI", 86, P); e("1.2 TSI", 105, P); e("1.4 TSI RS", 180, P); e("1.6 TDI", 90, D); e("1.6 TDI", 105, D) }
                 gen("III", "2014–2021") { e("1.0 MPI", 75, P); e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.2 TSI", 90, P); e("1.2 TSI", 110, P); e("1.4 TDI", 90, D) }
                 gen("IV", "2021–") { e("1.0 MPI", 80, P); e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.5 TSI", 150, P) }
             }
+            model("Kamiq") {
+                gen("I", "2019–") { e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.5 TSI", 150, P); e("1.6 TDI", 115, D) }
+            }
             model("Octavia") {
+                gen("II", "2004–2013") { e("1.6", 102, P); e("1.4 TSI", 122, P); e("1.8 TSI", 160, P); e("2.0 TFSI RS", 200, P); e("1.9 TDI", 105, D); e("1.6 TDI", 105, D); e("2.0 TDI", 140, D); e("2.0 TDI RS", 170, D) }
                 gen("III", "2013–2020") { e("1.0 TSI", 115, P); e("1.2 TSI", 110, P); e("1.4 TSI", 150, P); e("1.5 TSI", 150, P); e("2.0 TSI RS", 245, P); e("1.6 TDI", 115, D); e("2.0 TDI", 150, D); e("2.0 TDI RS", 184, D) }
                 gen("IV", "2020–") { e("1.0 eTSI", 110, H); e("1.5 TSI", 150, P); e("2.0 TSI RS", 245, P); e("2.0 TDI", 115, D); e("2.0 TDI", 150, D); e("1.4 iV", 204, R) }
             }
             model("Karoq") {
                 gen("I", "2017–") { e("1.0 TSI", 115, P); e("1.5 TSI", 150, P); e("2.0 TDI", 115, D); e("2.0 TDI", 150, D) }
             }
+            model("Kodiaq") {
+                gen("I", "2016–2024") { e("1.4 TSI", 150, P); e("1.5 TSI", 150, P); e("2.0 TSI", 190, P); e("2.0 TSI RS", 245, P); e("2.0 TDI", 150, D); e("2.0 TDI", 190, D) }
+            }
+            model("Scala") {
+                gen("I", "2019–") { e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.5 TSI", 150, P); e("1.6 TDI", 115, D) }
+            }
+            model("Superb") {
+                gen("III", "2015–2023") { e("1.4 TSI", 150, P); e("1.5 TSI", 150, P); e("2.0 TSI", 220, P); e("2.0 TSI", 272, P); e("1.6 TDI", 120, D); e("2.0 TDI", 150, D); e("2.0 TDI", 190, D); e("1.4 iV", 218, R) }
+            }
+            model("Yeti") {
+                gen("I", "2009–2017") { e("1.2 TSI", 105, P); e("1.4 TSI", 122, P); e("1.8 TSI", 160, P); e("2.0 TDI", 110, D); e("2.0 TDI", 140, D); e("2.0 TDI", 170, D) }
+            }
+        },
+        brand("Smart") {
+            model("ForFour") {
+                gen("453", "2014–2019") { e("1.0", 61, P); e("1.0", 71, P); e("0.9 Turbo", 90, P) }
+            }
+            model("ForTwo") {
+                gen("451", "2007–2014") { e("1.0", 61, P); e("1.0", 71, P); e("1.0 Turbo", 84, P); e("0.8 CDI", 54, D) }
+                gen("453", "2014–2024") { e("1.0", 61, P); e("1.0", 71, P); e("0.9 Turbo", 90, P) }
+            }
+        },
+        brand("Subaru") {
+            model("BRZ") {
+                gen("I", "2012–2020") { e("2.0", 200, P) }
+            }
+            model("Forester") {
+                gen("IV", "2012–2018") { e("2.0", 150, P); e("2.0 XT", 240, P); e("2.0D", 147, D) }
+                gen("V", "2019–") { e("2.0 e-Boxer", 150, H) }
+            }
+            model("Impreza") {
+                gen("III", "2007–2011") { e("1.5", 107, P); e("2.0", 150, P); e("2.5 WRX STI", 300, P); e("2.0D Boxer", 150, D) }
+            }
+            model("Outback") {
+                gen("V", "2015–2021") { e("2.5", 175, P); e("2.0D", 150, D) }
+            }
+            model("XV") {
+                gen("I", "2012–2017") { e("1.6", 114, P); e("2.0", 150, P); e("2.0D", 147, D) }
+                gen("II", "2018–2023") { e("1.6", 114, P); e("2.0", 156, P); e("2.0 e-Boxer", 150, H) }
+            }
         },
         brand("Suzuki") {
             model("Swift") {
+                gen("III", "2005–2010") { e("1.3 VVT", 92, P); e("1.5 VVT", 102, P); e("1.3 DDiS", 75, D) }
+                gen("Sport ZC31S", "2006–2011") { e("1.6 VVT", 125, P) }
                 gen("IV", "2010–2017") { e("1.2 VVT", 94, P); e("1.3 DDiS", 75, D) }
                 gen("Sport ZC32S", "2012–2017") { e("1.6 VVT", 136, P) }
                 gen("V", "2017–2024") { e("1.2 Dualjet", 90, P); e("1.0 BoosterJet", 111, P); e("1.2 Dualjet SHVS", 83, H); e("1.2 Dualjet SHVS", 90, H) }
                 gen("Sport ZC33S", "2018–2024") { dedicated += SWIFT_SPORT_ZC33S }
                 gen("VI", "2024–") { e("1.2 Dualjet Hybrid", 83, H) }
+            }
+            model("Alto") {
+                gen("VII", "2009–2014") { e("1.0", 68, P) }
+            }
+            model("Baleno") {
+                gen("II", "2016–2019") { e("1.2 Dualjet", 90, P); e("1.0 BoosterJet", 111, P); e("1.2 Dualjet SHVS", 90, H) }
+            }
+            model("Celerio") {
+                gen("I", "2014–2020") { e("1.0 Dualjet", 68, P) }
             }
             model("Ignis") {
                 gen("III", "2016–") { e("1.2 Dualjet", 90, P); e("1.2 Dualjet SHVS", 83, H) }
@@ -458,9 +902,20 @@ val CATALOG: List<CatalogBrand> by lazy {
             }
             model("S-Cross") {
                 gen("I", "2013–2021") { e("1.6 VVT", 120, P); e("1.0 BoosterJet", 111, P); e("1.4 BoosterJet", 140, P); e("1.6 DDiS", 120, D) }
+                gen("II", "2021–") { e("1.4 BoosterJet mild hybrid", 129, H); e("1.5 Hybrid", 116, H) }
+            }
+            model("SX4") {
+                gen("I", "2006–2014") { e("1.5 VVT", 112, P); e("1.6 VVT", 120, P); e("1.9 DDiS", 120, D); e("2.0 DDiS", 135, D) }
             }
             model("Jimny") {
+                gen("III", "1998–2018") { e("1.3 VVT", 85, P); e("1.5 DDiS", 86, D) }
                 gen("IV", "2018–") { e("1.5 VVT", 102, P) }
+            }
+            model("Swace") {
+                gen("I", "2020–") { e("1.8 Hybride", 122, H) }
+            }
+            model("Across") {
+                gen("I", "2020–") { e("2.5 Hybride rechargeable", 306, R) }
             }
         },
         brand("Toyota") {
@@ -475,7 +930,11 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("IV", "2020–") { e("1.0 VVT-i", 72, P); e("1.5 Dynamic Force", 125, P); e("1.5 Hybride", 116, H); e("1.5 Hybride", 130, H) }
                 gen("GR Yaris", "2020–") { e("1.6 Turbo", 261, P); e("1.6 Turbo", 280, P) }
             }
+            model("Yaris Cross") {
+                gen("I", "2021–") { e("1.5 Dynamic Force", 125, P); e("1.5 Hybride", 116, H); e("1.5 Hybride", 130, H) }
+            }
             model("Auris") {
+                gen("I", "2007–2012") { e("1.33 Dual VVT-i", 101, P); e("1.6 Dual VVT-i", 124, P); e("1.8 Hybride", 136, H); e("1.4 D-4D", 90, D); e("2.0 D-4D", 126, D) }
                 gen("II", "2012–2018") { e("1.33 Dual VVT-i", 99, P); e("1.2 T", 116, P); e("1.8 Hybride", 136, H); e("1.4 D-4D", 90, D); e("1.6 D-4D", 112, D) }
             }
             model("Corolla") {
@@ -484,7 +943,17 @@ val CATALOG: List<CatalogBrand> by lazy {
             model("C-HR") {
                 gen("I", "2016–2023") { e("1.2 T", 116, P); e("1.8 Hybride", 122, H); e("2.0 Hybride", 184, H) }
             }
+            model("Avensis") {
+                gen("III", "2009–2018") { e("1.6 Valvematic", 132, P); e("1.8 Valvematic", 147, P); e("2.0 D-4D", 126, D); e("2.2 D-4D", 150, D) }
+            }
+            model("Prius") {
+                gen("IV", "2015–2022") { e("1.8 Hybride", 122, H); e("1.8 Hybride rechargeable", 122, R) }
+            }
+            model("Hilux") {
+                gen("VIII", "2015–") { e("2.4 D-4D", 150, D); e("2.8 D-4D", 204, D) }
+            }
             model("RAV4") {
+                gen("IV", "2013–2018") { e("2.0 Valvematic", 151, P); e("2.5 Hybride", 197, H); e("2.0 D-4D", 124, D); e("2.2 D-4D", 150, D) }
                 gen("V", "2018–") { e("2.5 Hybride", 218, H); e("2.5 Hybride AWD-i", 222, H); e("2.5 Hybride rechargeable", 306, R) }
             }
         },
@@ -493,10 +962,18 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("I", "2011–2023") { e("1.0 MPI", 60, P); e("1.0 MPI", 75, P); e("1.0 TSI", 90, P); e("1.0 TSI GTI", 115, P) }
             }
             model("Polo") {
+                gen("IV (9N)", "2001–2009") { e("1.2", 55, P); e("1.2", 64, P); e("1.4 16V", 75, P); e("1.4 TDI", 70, D); e("1.4 TDI", 80, D); e("1.9 TDI", 100, D) }
                 gen("V (6R/6C)", "2009–2017") { e("1.2", 70, P); e("1.2 TSI", 90, P); e("1.2 TSI", 105, P); e("1.0 TSI", 95, P); e("1.4 TSI GTI", 180, P); e("1.8 TSI GTI", 192, P); e("1.2 TDI", 75, D); e("1.6 TDI", 90, D); e("1.4 TDI", 90, D) }
                 gen("VI (AW)", "2017–") { e("1.0 MPI", 80, P); e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("2.0 TSI GTI", 207, P); e("1.6 TDI", 95, D) }
             }
+            model("T-Cross") {
+                gen("I", "2019–") { e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.5 TSI", 150, P); e("1.6 TDI", 95, D) }
+            }
+            model("Taigo") {
+                gen("I", "2021–") { e("1.0 TSI", 95, P); e("1.0 TSI", 110, P); e("1.5 TSI", 150, P) }
+            }
             model("Golf") {
+                gen("IV", "1997–2006") { e("1.4 16V", 75, P); e("1.6", 100, P); e("1.8 T GTI", 150, P); e("1.9 SDI", 68, D); e("1.9 TDI", 90, D); e("1.9 TDI", 110, D); e("1.9 TDI", 130, D) }
                 gen("V", "2003–2008") { e("1.4", 80, P); e("1.6 FSI", 115, P); e("1.4 TSI", 140, P); e("2.0 TFSI GTI", 200, P); e("1.9 TDI", 105, D); e("2.0 TDI", 140, D) }
                 gen("VI", "2008–2012") { e("1.2 TSI", 105, P); e("1.4 TSI", 122, P); e("1.4 TSI", 160, P); e("2.0 TSI GTI", 210, P); e("1.6 TDI", 105, D); e("2.0 TDI", 140, D); e("2.0 TDI GTD", 170, D) }
                 gen("VII", "2012–2020") { e("1.0 TSI", 110, P); e("1.2 TSI", 110, P); e("1.4 TSI", 125, P); e("1.4 TSI", 150, P); e("1.5 TSI", 130, P); e("1.5 TSI", 150, P); e("2.0 TSI GTI", 230, P); e("2.0 TSI GTI", 245, P); e("2.0 TSI R", 300, P); e("1.6 TDI", 115, D); e("2.0 TDI", 150, D); e("2.0 TDI GTD", 184, D); e("1.4 TSI GTE", 204, R) }
@@ -505,22 +982,49 @@ val CATALOG: List<CatalogBrand> by lazy {
             model("T-Roc") {
                 gen("I", "2017–") { e("1.0 TSI", 110, P); e("1.5 TSI", 150, P); e("2.0 TSI", 190, P); e("2.0 TSI R", 300, P); e("1.6 TDI", 115, D); e("2.0 TDI", 150, D) }
             }
+            model("Touran") {
+                gen("II", "2015–") { e("1.2 TSI", 110, P); e("1.4 TSI", 150, P); e("1.5 TSI", 150, P); e("1.6 TDI", 115, D); e("2.0 TDI", 150, D); e("2.0 TDI", 190, D) }
+            }
             model("Tiguan") {
+                gen("I", "2007–2016") { e("1.4 TSI", 122, P); e("1.4 TSI", 150, P); e("2.0 TSI", 180, P); e("2.0 TDI", 110, D); e("2.0 TDI", 140, D); e("2.0 TDI", 170, D) }
                 gen("II", "2016–2024") { e("1.4 TSI", 150, P); e("1.5 TSI", 130, P); e("1.5 TSI", 150, P); e("2.0 TSI", 190, P); e("2.0 TDI", 150, D); e("2.0 TDI", 190, D); e("1.4 TSI eHybrid", 245, R) }
             }
             model("Passat") {
                 gen("B8", "2014–2023") { e("1.4 TSI", 150, P); e("1.5 TSI", 150, P); e("2.0 TSI", 220, P); e("1.6 TDI", 120, D); e("2.0 TDI", 150, D); e("2.0 TDI", 190, D); e("1.4 TSI GTE", 218, R) }
             }
+            model("Arteon") {
+                gen("I", "2017–") { e("1.5 TSI", 150, P); e("2.0 TSI", 190, P); e("2.0 TSI R", 320, P); e("2.0 TDI", 150, D); e("2.0 TDI", 200, D); e("1.4 eHybrid", 218, R) }
+            }
+            model("Caddy") {
+                gen("IV", "2015–2020") { e("1.0 TSI", 102, P); e("1.4 TSI", 125, P); e("2.0 TDI", 75, D); e("2.0 TDI", 102, D); e("2.0 TDI", 122, D); e("2.0 TDI", 150, D) }
+                gen("V", "2020–") { e("1.5 TSI", 114, P); e("2.0 TDI", 75, D); e("2.0 TDI", 102, D); e("2.0 TDI", 122, D) }
+            }
+            model("Transporter") {
+                gen("T6", "2015–") { e("2.0 TSI", 150, P); e("2.0 TDI", 102, D); e("2.0 TDI", 150, D); e("2.0 TDI", 204, D) }
+            }
         },
         brand("Volvo") {
+            model("S60") {
+                gen("II", "2010–2018") { e("T3", 150, P); e("T4", 180, P); e("T5", 245, P); e("D2", 115, D); e("D3", 150, D); e("D4", 181, D) }
+            }
             model("V40") {
                 gen("II", "2012–2019") { e("T2", 122, P); e("T3", 152, P); e("T4", 190, P); e("T5", 245, P); e("D2", 120, D); e("D3", 150, D); e("D4", 190, D) }
+            }
+            model("V60") {
+                gen("II", "2018–") { e("B4", 197, H); e("D3", 150, D); e("D4", 190, D); e("T6 Recharge", 340, R) }
+            }
+            model("V70") {
+                gen("III", "2007–2016") { e("2.0", 145, P); e("T5", 240, P); e("D3", 163, D); e("D5", 215, D) }
             }
             model("XC40") {
                 gen("I", "2017–") { e("T3", 163, P); e("T4", 190, P); e("B3", 163, H); e("B4", 197, H); e("D3", 150, D); e("D4", 190, D); e("T5 Recharge", 262, R) }
             }
             model("XC60") {
+                gen("I", "2008–2017") { e("T5", 245, P); e("D3", 163, D); e("D4", 181, D); e("D5", 215, D) }
                 gen("II", "2017–") { e("B4", 197, H); e("B5", 250, H); e("D4", 190, D); e("B4 Diesel", 197, D); e("T6 Recharge", 350, R); e("T8 Recharge", 455, R) }
+            }
+            model("XC90") {
+                gen("II", "2015–") { e("B5", 235, H); e("D5", 235, D); e("T8 Recharge", 455, R) }
             }
         },
         brand(OTHER) {
