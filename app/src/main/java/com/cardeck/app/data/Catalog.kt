@@ -710,6 +710,7 @@ val CATALOG: List<CatalogBrand> by lazy {
                 gen("982", "2016–") { e("2.0", 300, P); e("S 2.5", 350, P); e("GTS 4.0", 400, P) }
             }
             model("911") {
+                gen("997 GT3", "2006–2012") { e("GT3 3.6 MK1", 415, P); e("GT3 3.8 MK2", 435, P) }
                 gen("991", "2011–2019") { e("Carrera 3.4", 350, P); e("Carrera 3.0", 370, P); e("Carrera S 3.8", 400, P); e("Carrera S 3.0", 420, P) }
                 gen("992", "2019–") { e("Carrera", 385, P); e("Carrera S", 450, P) }
             }
