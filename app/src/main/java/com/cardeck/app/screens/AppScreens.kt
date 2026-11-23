@@ -51,7 +51,17 @@ import java.util.Locale
 private fun dateFr(t: Long) = if (t == 0L) "" else SimpleDateFormat("d MMMM yyyy", com.cardeck.app.data.I18n.locale).format(Date(t))
 
 /** Notes d'une version : Markdown GitHub simplifié (titres et puces) en texte lisible. */
-internal fun notesText(md: String): String = md.lines().joinToString("\n") { l ->
+/**
+ * Notes d'une version dans la langue de l'appli. Sur GitHub, la note est en anglais ; ses traductions sont dans des
+ * commentaires invisibles « <!-- lang:fr ... --> ». Sans traduction pour la langue, le texte visible (anglais) est gardé.
+ */
+internal fun localizedNotes(md: String, lang: String = com.cardeck.app.data.I18n.lang.code): String {
+    val block = Regex("<!--\\s*lang:([a-z]{2})\\s*\\n(.*?)-->", RegexOption.DOT_MATCHES_ALL)
+    val blocks = block.findAll(md).associate { it.groupValues[1] to it.groupValues[2].trim() }
+    return blocks[lang] ?: block.replace(md, "").trim()
+}
+
+internal fun notesText(raw: String): String = localizedNotes(raw).lines().joinToString("\n") { l ->
     val t = l.trim()
     when {
         t.startsWith("#") -> t.trimStart('#').trim()
