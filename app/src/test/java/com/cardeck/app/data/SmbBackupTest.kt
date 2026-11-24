@@ -57,6 +57,26 @@ class SmbBackupTest {
     }
 
     @Test
+    fun cheminCollePartagePlusDossier() {
+        // Chemin de l'explorateur de fichiers collé dans le champ du partage : partage = premier élément, dossier = le reste.
+        for (txt in listOf("//Stockage Thomas HUGO/Fichiers informatiques/Backup", "\\\\Stockage Thomas HUGO\\Fichiers informatiques\\Backup", "/Stockage Thomas HUGO/Fichiers informatiques/Backup/")) {
+            val r = SmbServer.build("192.168.1.20", txt, "CarDeck", "thomas", "x", "", null)
+            assertNull(txt, r.error)
+            assertEquals("Stockage Thomas HUGO", r.server!!.share)
+            assertEquals("Fichiers informatiques/Backup", r.server!!.folder)
+            assertEquals("Fichiers informatiques\\Backup\\a.cdbak", r.server!!.pathOf("a.cdbak"))
+        }
+        // Partage seul (avec espaces) : le dossier du champ suivant est gardé.
+        val s = SmbServer.build("nas", "Stockage Thomas HUGO", "Sauvegardes", "thomas", "x", "", null).server!!
+        assertEquals("Stockage Thomas HUGO" to "Sauvegardes", s.share to s.folder)
+        // Adresse complète dans le champ du serveur, champ du dossier laissé à sa valeur par défaut : le dossier de l'adresse l'emporte.
+        val t = SmbServer.build("smb://nas/Photos/Voiture", "", "CarDeck", "thomas", "x", "", null).server!!
+        assertEquals("Photos" to "Voiture", t.share to t.folder)
+        // Toujours refusé : remonter dans l'arborescence.
+        assertNotNull(SmbServer.build("nas", "Partage/../etc", "", "thomas", "x", "", null).error)
+    }
+
+    @Test
     fun cheminsEtLibelle() {
         val s = SmbServer("nas", 445, "Partage", "CarDeck/2026", "tom", "secret")
         assertEquals("CarDeck\\2026", s.folderPath)

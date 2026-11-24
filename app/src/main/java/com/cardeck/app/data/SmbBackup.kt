@@ -74,8 +74,13 @@ data class SmbServer(
          */
         fun build(hostText: String, shareText: String, folderText: String, user: String, password: String, domain: String, saved: SmbServer?): Built {
             val a = parseAddress(hostText)
-            val share = shareText.trim().ifEmpty { a.share.orEmpty() }
-            val folder = folderText.trim().ifEmpty { if (shareText.isBlank()) a.folder.orEmpty() else "" }
+            // Le champ du partage accepte un chemin collé (« //Stockage/Documents/Backup ») : le premier élément est le partage,
+            // le reste est le dossier, qui l'emporte alors sur le champ du dossier.
+            val shareParts = shareText.split('/', '\\').map { it.trim() }.filter { it.isNotEmpty() }
+            val share = shareParts.firstOrNull() ?: a.share.orEmpty()
+            val folder = shareParts.drop(1).joinToString("/").ifEmpty {
+                if (shareText.isBlank() && a.folder != null) a.folder else folderText.trim()
+            }
             problem(a.host, a.port, share, folder, user.trim())?.let { return Built(null, it) }
             val keep = saved?.takeIf { password.isEmpty() && it.host.equals(a.host, true) && it.user == user.trim() }?.password.orEmpty()
             return Built(SmbServer(a.host, a.port ?: 445, share, folder, user.trim(), password.ifEmpty { keep }, domain.trim()), null)
