@@ -1,8 +1,33 @@
 # CarDeck 🚗
 
+> 🇬🇧 **In English** — CarDeck is a free Android app for OBD2 diagnostics with a cheap ELM327 adapter (Bluetooth, BLE or Wi-Fi):
+> live dashboard, fault codes explained in plain language, emissions-test readiness, automatic trip recording with GPS, fuel
+> consumption and wheelspin count. Available in English, French, German, Russian and Spanish. No account, your data stays on your phone.
+>
+> 🤝 **Get your car fully supported within 3 days.** Open the **Contribution** tile on the home screen, let the explorer scan your car
+> (read-only: nothing is ever written to the car), then tap send. CarDeck saves an anonymised report (no VIN serial number) and opens a
+> pre-filled GitHub issue: attach the file and send. **Your car gets its dedicated profile within 3 days, max.**
+>
+> 📥 [Download the latest APK](https://github.com/ToftMalone/CarDeck/releases/latest) (Android 8.0 or newer).
+
 **CarDeck est l'application Android qui lit ce que ta voiture a à dire.**
 Branche un petit boîtier OBD2 sur la prise diagnostic, ouvre l'appli, et retrouve en direct le régime, la vitesse, les températures,
 la pression du turbo, le niveau de carburant… ainsi que l'historique de tous tes trajets, avec leur consommation et leur coût.
+
+## 🤝 Faites intégrer votre voiture en 3 jours
+
+L'OBD2 standard fonctionne sur toutes les voitures, mais chaque constructeur cache bien plus de données dans ses propres calculateurs
+(température d'huile, carburant en litres, kilométrage, calculateurs supplémentaires…). Pour les débloquer, la voiture doit d'abord être
+**rétro-ingéniée**, et c'est là que tu peux aider, directement depuis l'appli :
+
+1. Ouvre la carte **Contribution** de l'écran d'accueil.
+2. Lance le **balayage à l'arrêt** (contact mis), et si tu veux un **enregistrement en roulant**. Tout est **en lecture seule** : rien n'est
+   jamais écrit dans la voiture.
+3. Touche **Envoyer au développeur** : CarDeck enregistre un relevé anonymisé (sans le numéro de série du VIN ni le surnom du véhicule)
+   et ouvre un ticket GitHub déjà rempli (un compte GitHub gratuit est nécessaire). Il ne reste qu'à joindre le fichier.
+
+**Engagement : chaque voiture envoyée reçoit son profil dédié en 3 jours maximum.** Courante, ancienne, rare ou préparée : toutes
+les voitures sont les bienvenues.
 
 ## Ce que fait CarDeck
 
@@ -10,8 +35,6 @@ la pression du turbo, le niveau de carburant… ainsi que l'historique de tous t
 Deux tableaux de bord en direct, que tu bascules d'un geste :
 - **Standard** : vitesse, régime, température du liquide et de l'huile, niveau de carburant, consommation.
 - **Sport** : température d'admission, pression du collecteur et de suralimentation (en bar), avance à l'allumage.
-- 🛞 **Patinage** : chaque trajet enregistre le nombre de patinages des roues motrices (la vitesse grimpe plus vite que la voiture
-  ne peut accélérer), affiché avec la durée et la distance du trajet.
 
 ### 📟 Données OBD2
 Les valeurs du moteur que ton véhicule fournit, rangées par catégories, avec l'état de la liaison avec le boîtier.
@@ -28,8 +51,9 @@ La liste reste affichée même boîtier déconnecté (les valeurs apparaissent d
 Seules ces données sont lues, et seulement si ta voiture les fournit. La consommation instantanée, la pression du collecteur en bar
 et la consommation et le coût d'un trajet sont **calculés** à partir de ces mesures.
 
-**Explorateur** (dans Données OBD2) : un seul bouton, qui s'adapte à la voiture au moment où tu le lances, pour **toutes les voitures** et
-**en lecture seule** (seuls les services de lecture partent, jamais d'effacement, d'écriture, de pilotage ni de déverrouillage) :
+**Explorateur** (carte **Contribution** de l'accueil) : un seul bouton, qui s'adapte à la voiture au moment où tu le lances, pour **toutes les voitures** et
+**en lecture seule** (seuls les services de lecture partent, jamais d'effacement, d'écriture, de pilotage ni de déverrouillage ; les airbags, adresses 7F1 / 7F9,
+ne sont jamais interrogés) :
 - 🅿️ **à l'arrêt, balayage complet** : recherche de tous les calculateurs en CAN 11 bits (de 0x600 à 0x7FF, quelle que soit leur adresse de réponse),
   en CAN 29 bits et sur la ligne K ; identification (références, noms de système), blocs de données constructeur KWP `21xx`, identifiants UDS `22xxxx`
   par tranches de 10 000, lecture mémoire, carte du bus CAN, codes défaut avant / après. Interrompu, il reprend là où il s'était arrêté ;
@@ -39,10 +63,10 @@ et la consommation et le coût d'un trajet sont **calculés** à partir de ces m
   blocs du moteur sont lus au plus vite, puis CarDeck classe les octets qui réagissent comme un retard d'allumage dû au cliquetis
   (au repos hors charge, écartés en charge, avance perdue à régime et charge égaux). Des candidats à confirmer, pas une mesure.
 - Résultat : un **rapport** (calculateurs, blocs vivants, réponses en clair, identifiants qui refusent, **pistes de décodage par corrélation**,
-  **cartes moteur**) et toutes les données brutes, à partager en un fichier.
+  **cartes moteur**) et toutes les données brutes, à partager en un fichier ou à **envoyer au développeur** (voir plus haut).
 
 ### 🩺 Diagnostic
-Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **en français**, intégrée à l'appli
+Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **traduite dans les 5 langues de l'appli**, intégrée à l'appli
 (donc disponible hors ligne) : près de **1 000 codes génériques P0xxx** de la norme SAE J2012 (moteur, carburant, allumage, antipollution,
 électrique, transmission…) avec leur gravité, dont les plus courants détaillés avec description, causes possibles et recommandations. Recherche d'un code.
 
@@ -79,6 +103,9 @@ Si tu ouvres l'appli sans rouler, elle se met aussi en veille après 5 minutes s
 Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées, vitesses, **consommation moyenne**,
 **coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr, carburant au choix pour chaque véhicule),
 ainsi que les données du moteur relevées pendant le parcours.
+🛞 **Patinages** : chaque trajet compte aussi le nombre de patinages des roues motrices (la vitesse grimpe plus vite que la voiture ne peut
+accélérer), affiché avec la durée et la distance, et additionné quand des trajets sont fusionnés.
+Le panneau du trajet se tire au doigt pour laisser plus de place à la carte ou aux données.
 Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
 L'**historique** s'exporte aussi d'un coup pour un tableur (Excel, LibreOffice) : une ligne par trajet de la période choisie (date, heures,
 lieux, distance, vitesses, carburant consommé, consommation, prix, coût) et une ligne de total, pratique pour les frais kilométriques.
