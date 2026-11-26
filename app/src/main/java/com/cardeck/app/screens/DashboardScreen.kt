@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material.icons.rounded.SettingsInputHdmi
+import androidx.compose.material.icons.rounded.TireRepair
 import com.cardeck.app.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -119,6 +120,7 @@ fun DashboardScreen(vm: AppViewModel) {
                         sport, values, sup, v.template.pids.map { it.id }.toSet(),
                         if (sport) v.template.pids.filter { it.id in v.template.dashSport } else emptyList(),
                     )
+                    TractionBanner(vm)
                     // Changement Standard / Sport : les cartes se renouvellent en fondu enchaîné.
                     AnimatedContent(
                         sport, label = "dash",
@@ -191,4 +193,43 @@ private fun ModeSelector(sport: Boolean, onChange: (Boolean) -> Unit) {
             ) { T(label, 13, fg, 600) }
         }
     }
+}
+
+/**
+ * Patinage des roues motrices, en direct : bandeau pendant 8 s à chaque patinage (et intervention de l'antipatinage),
+ * puis le nombre de patinages depuis la connexion.
+ */
+@Composable
+private fun TractionBanner(vm: AppViewModel) {
+    val c = Cd.c
+    val st by vm.obd.traction.collectAsState()
+    val e = st.last
+    var show by remember { mutableStateOf(false) }
+    LaunchedEffect(e?.at, e?.intervention) {
+        if (e == null) { show = false; return@LaunchedEffect }
+        show = System.currentTimeMillis() - e.at < 8000
+        if (show) { delay(8000 - (System.currentTimeMillis() - e.at).coerceAtLeast(0)); show = false }
+    }
+    androidx.compose.animation.AnimatedVisibility(
+        visible = show && e != null,
+        enter = fadeIn(tween(200)) + androidx.compose.animation.expandVertically(tween(250, easing = Motion.Emphasized)),
+        exit = fadeOut(tween(300)) + androidx.compose.animation.shrinkVertically(tween(300, easing = Motion.Emphasized)),
+    ) {
+        val ev = e ?: return@AnimatedVisibility
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.ec).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            com.cardeck.app.ui.Ico(Icons.Rounded.TireRepair, 28, c.oec)
+            Column(Modifier.weight(1f)) {
+                T("Patinage des roues", 16, c.oec, 600)
+                T(
+                    if (ev.intervention) "L'antipatinage a coupé le couple : papillon refermé et allumage retardé, d'où les détonations à l'échappement."
+                    else "Les roues motrices ont patiné.",
+                    13, c.oec, lineHeight = 18,
+                )
+            }
+        }
+    }
+    if (st.count > 0) T("Patinages depuis la connexion : ${st.count}", 12, c.onv, modifier = Modifier.padding(start = 4.dp))
 }
