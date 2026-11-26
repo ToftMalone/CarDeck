@@ -230,7 +230,12 @@ class SimTransport(private val car: SimCar = SimCar(), private val latency: Bool
                     else -> neg(0x10, 0x12)
                 }
                 0x1A -> if (req.getOrNull(1) == 0x90) intArrayOf(0x5A, 0x90) + text(car.vin) else neg(0x1A, 0x12)
-                0x21 -> if (req.getOrNull(1) == 0x00) block2100() else neg(0x21, 0x12)
+                0x21 -> when (req.getOrNull(1)) {
+                    0x00 -> block2100()
+                    // Bloc d'étalonnage figé, comme la plupart des blocs de la vraie Swift Sport (que des FF).
+                    0x20 -> intArrayOf(0x61, 0x20) + IntArray(64) { if (it < 4) 0x06 + it else 0xFF }
+                    else -> neg(0x21, 0x12)
+                }
                 0x18 -> {
                     val codes = car.stored.map { it to 0x60 } + car.pending.map { it to 0x20 }
                     intArrayOf(0x58, codes.size) + codes.flatMap { (c, st) -> SimCar.dtcBytes(c).toList() + st }.toIntArray()

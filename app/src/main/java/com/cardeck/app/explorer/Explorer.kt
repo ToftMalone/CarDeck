@@ -780,8 +780,17 @@ class Explorer(
 
         val obdRows = ArrayList<KnockAnalysis.Obd>()
         val blockRows = ArrayList<KnockAnalysis.Block>()
-        val perRound = minOf(3, blocks.size)
-        var iRot = 0; var fails = 0; var pulls = 0; var wasLoaded = false
+        // Le cliquetis dure une ou deux secondes : le bloc principal du moteur (le plus grand, 21 00 sur la Swift Sport) est lu
+        // à chaque tour ; les autres blocs qui bougent, à tour de rôle ; ceux qui restent figés, de loin en loin ; et en charge,
+        // le bloc principal seul, pour en avoir le plus possible au moment où le cliquetis peut se produire.
+        val main = blocks.firstOrNull { it == "2100" } ?: blocks.maxByOrNull { data.answers["${engine.key}:$it"]?.hex?.length ?: 0 } ?: blocks.first()
+        val others = blocks.filter { it != main }
+        val seen = HashMap<String, MutableSet<String>>()
+        fun moving(req: String) = (seen[req]?.size ?: 0) > 1 || data.answers["${engine.key}:$req"]?.changed == true
+        var iLive = 0; var iFrozen = 0; var round = 0
+        var mainLoaded = 0
+        var fails = 0; var pulls = 0; var wasLoaded = false
+        ui.line("⚡ Bloc $main lu à chaque tour, et seul pendant les reprises en charge")
         var lastAnswer = System.currentTimeMillis()
         var lastFlush = System.currentTimeMillis()
         var mute = 0
@@ -789,28 +798,44 @@ class Explorer(
             while (true) {
                 try {
                     val v = measure()
+                    var loadedNow = false
                     if (v.isNotEmpty()) {
                         lastAnswer = System.currentTimeMillis()
                         val o = KnockAnalysis.Obd(secs(), v["regime"], v["charge_calculee"], v["avance_allumage"], v["pression_admission"])
                         if (obdRows.size < 200_000) obdRows += o
                         val loaded = KnockAnalysis.isLoaded(o)
+                        loadedNow = loaded
                         if (loaded && !wasLoaded) { pulls++; ui.line("🔥 Reprise en charge n°$pulls") }
                         wasLoaded = loaded
                         fM.write((listOf("%.3f".format(Locale.US, o.t)) + cols.map { c -> v[c]?.let { "%.2f".format(Locale.US, it) } ?: "" }).joinToString(",") + "\n")
                         ui.detail(
-                            "%.1f min · %s tr/min · charge %s %% · avance %s° · reprises en charge : %d".format(
+                            "%.1f min · %s tr/min · charge %s %% · avance %s° · reprises en charge : %d · lectures du moteur en charge : %d".format(
                                 Locale.FRANCE, secs() / 60, v["regime"]?.let { "%.0f".format(it) } ?: "—", v["charge_calculee"]?.let { "%.0f".format(it) } ?: "—",
-                                v["avance_allumage"]?.let { "%.1f".format(Locale.FRANCE, it) } ?: "—", pulls,
+                                v["avance_allumage"]?.let { "%.1f".format(Locale.FRANCE, it) } ?: "—", pulls, mainLoaded,
                             ),
                         )
                     }
-                    repeat(perRound) {
-                        val req = blocks[iRot++ % blocks.size]
+                    round++
+                    val reqs = ArrayList<String>(2)
+                    reqs += main
+                    if (!loadedNow && others.isNotEmpty()) {
+                        val live = others.filter { moving(it) }
+                        val frozen = others.filter { !moving(it) }
+                        // Un bloc figé tous les 8 tours (il pourrait ne bouger qu'en charge), sinon un bloc qui bouge.
+                        when {
+                            frozen.isNotEmpty() && round % 8 == 0 -> reqs += frozen[iFrozen++ % frozen.size]
+                            live.isNotEmpty() -> reqs += live[iLive++ % live.size]
+                        }
+                    }
+                    for (req in reqs) {
                         val a = ask(engine, req)
                         if (a.ok) {
                             lastAnswer = System.currentTimeMillis()
                             mute = 0
-                            fB.write("%.3f,${engine.key},$req,${Explore.hex(a.payload)}\n".format(Locale.US, secs()))
+                            val hex = Explore.hex(a.payload)
+                            seen.getOrPut(req) { HashSet() }.let { if (it.size < 4) it += hex }
+                            if (req == main && loadedNow) mainLoaded++
+                            fB.write("%.3f,${engine.key},$req,$hex\n".format(Locale.US, secs()))
                             if (blockRows.size < 200_000) blockRows += KnockAnalysis.Block(secs(), "${engine.key}:$req", a.payload.drop(Explore.echoSize(req)).toIntArray())
                             data.note(engine.key, req, a)
                         } else if (++mute >= 10) {
