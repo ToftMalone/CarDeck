@@ -321,7 +321,7 @@ private fun LazyListScope.searchResults(hits: List<com.cardeck.app.data.CatalogH
         val c = Cd.c
         Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp)) {
             T("Aucun véhicule trouvé", 16, weight = 500)
-            T("Essayez la marque et le modèle seuls, ou choisissez « $OTHER » : les données OBD2 standard fonctionnent sur toutes les voitures essence depuis 2001 et diesel depuis 2004.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(top = 4.dp))
+            T("Essayez la marque et le modèle seuls, ou choisissez « ${com.cardeck.app.data.tr(OTHER)} » : les données OBD2 standard fonctionnent sur toutes les voitures essence depuis 2001 et diesel depuis 2004.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(top = 4.dp))
         }
     }
     if (hits.isEmpty()) return
@@ -407,8 +407,8 @@ private fun VinCard(vm: AppViewModel, atRoot: Boolean) {
                         r.templateId != null -> "Modèle reconnu : ${templateById(r.templateId).fullName}."
                         r.model != null -> "Modèle reconnu : ${r.brand} ${r.model} ${r.generation}. Choisissez la motorisation."
                         r.brand != null -> "Constructeur : ${r.maker}" + (r.year?.let { " · année modèle ≈ $it" } ?: "") + ". Choisissez le modèle dans la liste${if (r.year != null) " (ceux de cette année sont en premier)" else ""}."
-                        r.maker != null -> "Constructeur : ${r.maker}, absent de la liste. Choisissez « $OTHER » : les données OBD2 standard fonctionneront."
-                        else -> "Constructeur non reconnu (code ${r.wmi}). Choisissez dans la liste ou « $OTHER »."
+                        r.maker != null -> "Constructeur : ${r.maker}, absent de la liste. Choisissez « ${com.cardeck.app.data.tr(OTHER)} » : les données OBD2 standard fonctionneront."
+                        else -> "Constructeur non reconnu (code ${r.wmi}). Choisissez dans la liste ou « ${com.cardeck.app.data.tr(OTHER)} »."
                     },
                     13, c.opc, lineHeight = 18, modifier = Modifier.padding(top = 2.dp),
                 )

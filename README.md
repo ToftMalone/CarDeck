@@ -1,198 +1,199 @@
 # CarDeck 🚗
 
-> 🇬🇧 **In English** — CarDeck is a free Android app for OBD2 diagnostics with a cheap ELM327 adapter (Bluetooth, BLE or Wi-Fi):
-> live dashboard, fault codes explained in plain language, emissions-test readiness, automatic trip recording with GPS, fuel
-> consumption and wheelspin count. Available in English, French, German, Russian and Spanish. No account, your data stays on your phone.
->
-> 🤝 **Get your car fully supported within 3 days.** Open the **Contribution** tile on the home screen, let the explorer scan your car
-> (read-only: nothing is ever written to the car), then tap send. CarDeck saves an anonymised report (no VIN serial number) and opens a
-> pre-filled GitHub issue: attach the file and send. **Your car gets its dedicated profile within 3 days, max.**
->
-> 📥 [Download the latest APK](https://github.com/ToftMalone/CarDeck/releases/latest) (Android 8.0 or newer).
+**CarDeck is the Android app that reads what your car has to say.**
+Plug a small OBD2 adapter into the diagnostic port, open the app, and see live RPM, speed, temperatures, boost pressure, fuel level…
+along with the history of all your trips, including their fuel consumption and cost.
 
-**CarDeck est l'application Android qui lit ce que ta voiture a à dire.**
-Branche un petit boîtier OBD2 sur la prise diagnostic, ouvre l'appli, et retrouve en direct le régime, la vitesse, les températures,
-la pression du turbo, le niveau de carburant… ainsi que l'historique de tous tes trajets, avec leur consommation et leur coût.
+Free, no account, and your data stays on your phone. Available in English, French, German, Russian and Spanish.
 
-## 🤝 Faites intégrer votre voiture en 3 jours
+📥 [Download the latest APK](https://github.com/ToftMalone/CarDeck/releases/latest) (Android 8.0 or newer).
 
-L'OBD2 standard fonctionne sur toutes les voitures, mais chaque constructeur cache bien plus de données dans ses propres calculateurs
-(température d'huile, carburant en litres, kilométrage, calculateurs supplémentaires…). Pour les débloquer, la voiture doit d'abord être
-**rétro-ingéniée**, et c'est là que tu peux aider, directement depuis l'appli :
+## 🤝 Get your car fully supported within 3 days
 
-1. Ouvre la carte **Contribution** de l'écran d'accueil.
-2. Lance le **balayage à l'arrêt** (contact mis), et si tu veux un **enregistrement en roulant**. Tout est **en lecture seule** : rien n'est
-   jamais écrit dans la voiture.
-3. Touche **Envoyer au développeur** : CarDeck enregistre un relevé anonymisé (sans le numéro de série du VIN ni le surnom du véhicule)
-   et ouvre un ticket GitHub déjà rempli (un compte GitHub gratuit est nécessaire). Il ne reste qu'à joindre le fichier.
+Standard OBD2 works on every car, but each manufacturer hides a lot more data inside its own modules (oil temperature, fuel level in
+litres, odometer, extra modules…). To unlock it, the car first has to be **reverse-engineered**, and that's where you can help,
+right from the app:
 
-**Engagement : chaque voiture envoyée reçoit son profil dédié en 3 jours maximum.** Courante, ancienne, rare ou préparée : toutes
-les voitures sont les bienvenues.
+1. Open the **Contribution** tile on the home screen.
+2. Run the **stationary full scan** (ignition on) and, if you like, a **recording while driving**. Everything is **read-only**: nothing is
+   ever written to the car.
+3. Tap **Send to the developer**: CarDeck saves an anonymised report (without the VIN serial number or the vehicle's nickname) and opens
+   a pre-filled GitHub issue (a free GitHub account is required). Just attach the file and send.
 
-## Ce que fait CarDeck
+**Promise: every car sent in gets its dedicated profile within 3 days, max.** Common, old, rare or tuned: every car is welcome.
 
-### 📊 Tableau de bord
-Deux tableaux de bord en direct, que tu bascules d'un geste :
-- **Standard** : vitesse, régime, température du liquide et de l'huile, niveau de carburant, consommation.
-- **Sport** : température d'admission, pression du collecteur et de suralimentation (en bar), avance à l'allumage.
+## What CarDeck does
 
-### 📟 Données OBD2
-Les valeurs du moteur que ton véhicule fournit, rangées par catégories, avec l'état de la liaison avec le boîtier.
-La liste reste affichée même boîtier déconnecté (les valeurs apparaissent dès la connexion).
+### 📊 Dashboard
+Two live dashboards, switched with one tap:
+- **Standard**: speed, RPM, coolant and oil temperature, fuel level, fuel consumption.
+- **Sport**: intake air temperature, manifold and boost pressure (in bar), ignition advance.
 
-**Lecture en continu** : tant que le contact est mis, CarDeck lit les données en permanence, écran ouvert ou non, selon leur rythme.
+### 📟 OBD2 data
+Every engine value your vehicle provides, sorted by category, along with the state of the link to the adapter.
+The list stays visible even when the adapter is disconnected (values show up as soon as it connects).
 
-| Rythme | Données |
+**Continuous reading**: as long as the ignition is on, CarDeck reads the data all the time, whether the screen is open or not,
+each at its own pace.
+
+| Pace | Data |
 |---|---|
-| ⚡ **À chaque tour** | Vitesse, régime, charge moteur, avance à l'allumage, pression du collecteur, débit d'air, papillon, pression atmosphérique |
-| 🔁 **1 tour sur 3** | Charge absolue ; couples demandé, réel et de frottement ; températures du liquide, d'admission et de surface du collecteur ; papillon relatif, B, C et commandé ; corrections carburant court et long terme (bancs 1 et 2) ; richesse commandée ; pressions de carburant et de rampe ; calage de l'injection ; consommation ; carburant par cylindre ; sondes lambda ; purge du canister |
-| 🐢 **1 tour sur 6** | Niveau de carburant (en % et en litres estimés), taux d'éthanol, température extérieure, kilométrage, durée moteur tournant, distance voyant allumé, température d'huile |
+| ⚡ **Every round** | Speed, RPM, engine load, ignition advance, manifold pressure, air flow, throttle, barometric pressure |
+| 🔁 **1 round in 3** | Absolute load; demanded, actual and friction torque; coolant, intake and manifold surface temperatures; relative throttle, B, C and commanded; short and long term fuel trims (banks 1 and 2); commanded air-fuel ratio; fuel and fuel rail pressures; injection timing; fuel rate; fuel per cylinder; oxygen sensors; EVAP purge |
+| 🐢 **1 round in 6** | Fuel level (in % and estimated litres), ethanol content, outside temperature, odometer, engine run time, distance with the warning light on, oil temperature |
 
-Seules ces données sont lues, et seulement si ta voiture les fournit. La consommation instantanée, la pression du collecteur en bar
-et la consommation et le coût d'un trajet sont **calculés** à partir de ces mesures.
+Only these values are read, and only if your car provides them. Instant fuel consumption, manifold pressure in bar, and a trip's fuel
+consumption and cost are **calculated** from these measurements.
 
-**Explorateur** (carte **Contribution** de l'accueil) : un seul bouton, qui s'adapte à la voiture au moment où tu le lances, pour **toutes les voitures** et
-**en lecture seule** (seuls les services de lecture partent, jamais d'effacement, d'écriture, de pilotage ni de déverrouillage ; les airbags, adresses 7F1 / 7F9,
-ne sont jamais interrogés) :
-- 🅿️ **à l'arrêt, balayage complet** : recherche de tous les calculateurs en CAN 11 bits (de 0x600 à 0x7FF, quelle que soit leur adresse de réponse),
-  en CAN 29 bits et sur la ligne K ; identification (références, noms de système), blocs de données constructeur KWP `21xx`, identifiants UDS `22xxxx`
-  par tranches de 10 000, lecture mémoire, carte du bus CAN, codes défaut avant / après. Interrompu, il reprend là où il s'était arrêté ;
-- 🚗 **en roulant, enregistrement** : mesures OBD, blocs constructeur (et nouveaux blocs découverts en route) et trafic du bus, horodatés ensemble.
-  Il s'arrête quand tu le demandes ou au contact coupé.
-- 💥 **recherche du cliquetis** (bouton à part, en roulant ; proposée uniquement sur la Swift Sport ZC33S, la seule voiture rétro-ingéniée pour ça) : pendant des reprises franches en charge, l'avance à l'allumage, la charge et les
-  blocs du moteur sont lus au plus vite, puis CarDeck classe les octets qui réagissent comme un retard d'allumage dû au cliquetis
-  (au repos hors charge, écartés en charge, avance perdue à régime et charge égaux). Des candidats à confirmer, pas une mesure.
-- Résultat : un **rapport** (calculateurs, blocs vivants, réponses en clair, identifiants qui refusent, **pistes de décodage par corrélation**,
-  **cartes moteur**) et toutes les données brutes, à partager en un fichier ou à **envoyer au développeur** (voir plus haut).
+**Explorer** (**Contribution** tile on the home screen): a single button that adapts to the car when you start it, for **every car**
+and **read-only** (only read services are sent: never clearing, writing, actuator control or unlocking; the airbags, addresses
+7F1 / 7F9, are never queried):
+- 🅿️ **stationary, full scan**: searches every module on 11-bit CAN (from 0x600 to 0x7FF, whatever their response address), on 29-bit
+  CAN and on the K-line; identification (part numbers, system names), KWP `21xx` manufacturer data blocks, UDS `22xxxx` identifiers in
+  ranges of 10,000, memory reads, CAN bus map, fault codes before / after. If interrupted, it resumes where it stopped;
+- 🚗 **while driving, recording**: OBD values, manufacturer blocks (and new blocks discovered on the way) and bus traffic, timestamped
+  together. It stops when you ask or when the ignition is switched off.
+- 💥 **knock search** (separate button, while driving; only offered on the Swift Sport ZC33S, the only car reverse-engineered for it):
+  during firm full-load accelerations, ignition advance, load and engine blocks are read as fast as possible, then CarDeck ranks the
+  bytes that behave like knock-induced ignition retard (idle off load, moving under load, advance lost at equal RPM and load).
+  Candidates to confirm, not a measurement.
+- Result: a **report** (modules, live blocks, plain-text answers, refused identifiers, **decoding leads by correlation**,
+  **engine maps**) plus all the raw data, to share as one file or **send to the developer** (see above).
 
-### 🩺 Diagnostic
-Lecture des codes défaut (mémorisés, en attente, permanents) et des données figées, avec une base de codes **traduite dans les 5 langues de l'appli**, intégrée à l'appli
-(donc disponible hors ligne) : près de **1 000 codes génériques P0xxx** de la norme SAE J2012 (moteur, carburant, allumage, antipollution,
-électrique, transmission…) avec leur gravité, dont les plus courants détaillés avec description, causes possibles et recommandations. Recherche d'un code.
+### 🩺 Diagnosis
+Reads fault codes (stored, pending, permanent) and freeze frame data, with a built-in code database **translated into the app's
+5 languages** (so it works offline): nearly **1,000 generic P0xxx codes** from the SAE J2012 standard (engine, fuel, ignition, emissions,
+electrical, transmission…) with their severity, the most common ones detailed with a description, possible causes and recommendations.
+Code search included.
 
-**Deux niveaux, pour toutes les voitures** :
-- 🩺 **Diagnostic simple** : les codes OBD classiques (moteur, voyant, données figées), en quelques secondes.
-- 🔬 **Diagnostic complet** : en plus, tous les calculateurs de la voiture (ABS, airbag, carrosserie…), 1 à 2 minutes.
+**Two levels, for every car**:
+- 🩺 **Basic diagnosis**: the usual OBD codes (engine, warning light, freeze frame), in a few seconds.
+- 🔬 **Full diagnosis**: every module in the car as well (ABS, airbag, body…), 1 to 2 minutes.
 
-**Effacement des défauts** après un diagnostic, lui aussi en deux niveaux : **simple** (codes OBD du moteur, voyant, données figées) ou
-**complet** (en plus, chaque calculateur qui avait des codes). La liste de l'appli se vide aussitôt des codes effacés ; si un calculateur refuse
-(moteur tournant, par exemple), CarDeck dit lequel et pourquoi, et ses codes restent affichés.
+**Clearing faults** after a diagnosis, also in two levels: **basic** (engine OBD codes, warning light, freeze frame) or **full** (every
+module that had codes as well). Cleared codes disappear from the app straight away; if a module refuses (engine running, for example),
+CarDeck says which one and why, and its codes stay listed.
 
-**Diagnostic complet** : le boîtier est d'abord remis à zéro, puis CarDeck lit les codes OBD2 de tous les calculateurs, interroge aussi
-le calculateur moteur directement, recherche tous les calculateurs du réseau CAN (moteur, ABS…) et lit les codes défaut de chacun
-(UDS et KWP2000). Le scan prend 1 à 2 minutes, mais ne laisse rien de côté.
+**Full diagnosis**: the adapter is reset first, then CarDeck reads the OBD2 codes of every module, also queries the engine module
+directly, searches every module on the CAN network (engine, ABS…) and reads the fault codes of each one (UDS and KWP2000). The scan
+takes 1 to 2 minutes, but leaves nothing out.
 
-**Toutes les voitures** : le scan s'adapte au protocole détecté. En CAN 11 bits (la plupart des voitures depuis 2008), il fait
-le diagnostic complet ci-dessus. En CAN 29 bits, en K-Line ou en J1850 (beaucoup de voitures plus anciennes), il lit les codes
-OBD2 et les données figées de tous les calculateurs qui répondent. Un même code vu par plusieurs calculateurs apparaît pour chacun.
+**Every car**: the scan adapts to the detected protocol. On 11-bit CAN (most cars since 2008), it runs the full diagnosis above. On
+29-bit CAN, K-Line or J1850 (many older cars), it reads the OBD2 codes and freeze frame data of every module that answers. A code
+reported by several modules is listed for each of them.
 
-**✅ Prêt pour le contrôle technique ?** : CarDeck lit le voyant moteur et l'état des tests antipollution que la voiture fait
-elle-même (catalyseur, sondes lambda, filtre à particules, EGR…). Après un effacement des défauts ou un débranchement de la batterie,
-ces tests repartent de zéro et le contrôle de la pollution peut échouer : CarDeck dit lesquels ne sont pas terminés, la distance
-parcourue depuis l'effacement, et comment rouler pour qu'ils se terminent.
+**✅ Ready for the emissions test?**: CarDeck reads the check engine light and the status of the emissions self-tests the car runs on
+its own (catalyst, oxygen sensors, particulate filter, EGR…). After clearing the faults or disconnecting the battery, these tests start
+over and the emissions test may fail: CarDeck tells you which ones are not complete, the distance driven since the codes were cleared,
+and how to drive so they complete.
 
-**Journal du scan** : chaque diagnostic enregistre toutes les questions posées à la voiture et ses réponses ; il se partage depuis
-l'écran Diagnostic, pour comprendre un défaut qui ne serait pas trouvé.
+**Scan log**: each diagnosis records every question sent to the car and every answer; share it from the Diagnosis screen to
+investigate a fault that wasn't found.
 
-### 🗺️ Trajets
-Ouvre CarDeck (ou laisse-la se réveiller par Bluetooth, voir plus bas) : le trajet démarre **tout seul** dès que le moteur tourne.
-Un moteur calé ne le coupe pas. Il se termine quand le contact est coupé, quand le moteur est arrêté et la voiture immobile pendant 1 minute,
-ou quand la liaison avec le boîtier est perdue pendant 1 minute. CarDeck se met alors en veille, sans notification.
-Si tu ouvres l'appli sans rouler, elle se met aussi en veille après 5 minutes sans trajet, dès que tu la quittes.
+### 🗺️ Trips
+Open CarDeck (or let it wake up over Bluetooth, see below): the trip starts **on its own** as soon as the engine runs.
+A stalled engine doesn't end it. It ends when the ignition is switched off, when the engine is off and the car stationary for
+1 minute, or when the link to the adapter is lost for 1 minute. CarDeck then goes to sleep, without any notification.
+If you open the app without driving, it also goes to sleep after 5 minutes without a trip, once you leave it.
 
-Pour chaque trajet : tracé GPS sur une carte OpenStreetMap, distance, durées, vitesses, **consommation moyenne**,
-**coût du trajet** (au prix du carburant du jour près de l'arrivée, d'après prix-carburants.gouv.fr, carburant au choix pour chaque véhicule),
-ainsi que les données du moteur relevées pendant le parcours.
-🛞 **Patinages** : chaque trajet compte aussi le nombre de patinages des roues motrices (la vitesse grimpe plus vite que la voiture ne peut
-accélérer), affiché avec la durée et la distance, et additionné quand des trajets sont fusionnés.
-Le panneau du trajet se tire au doigt pour laisser plus de place à la carte ou aux données.
-Tu peux rejouer un trajet, filtrer l'historique par période et **exporter** un trajet complet (résumé, tracé GPX, données CSV).
-L'**historique** s'exporte aussi d'un coup pour un tableur (Excel, LibreOffice) : une ligne par trajet de la période choisie (date, heures,
-lieux, distance, vitesses, carburant consommé, consommation, prix, coût) et une ligne de total, pratique pour les frais kilométriques.
-Dans l'historique, un appui long sur un trajet lance la **multi-sélection** : tu peux **fusionner** plusieurs trajets en un seul (mis bout à bout, tracé et données repris) ou les **supprimer**.
+For each trip: GPS track on an OpenStreetMap map, distance, durations, speeds, **average fuel consumption**, **trip cost** (at the
+day's fuel price near the destination, from prix-carburants.gouv.fr, so in France only for now; fuel type chosen per vehicle), plus
+the engine data recorded along the way.
+🛞 **Wheelspins**: each trip also counts how many times the driven wheels spun (the speed climbing faster than the car can actually
+accelerate), shown with the duration and distance, and added up when trips are merged.
+Drag the trip panel with your finger to make more room for the map or the data.
+You can replay a trip, filter the history by period and **export** a full trip (summary, GPX track, CSV data).
+The **history** can also be exported in one go for a spreadsheet (Excel, LibreOffice): one row per trip in the chosen period (date,
+times, places, distance, speeds, fuel used, consumption, price, cost) and a total row, handy for mileage expenses.
+In the history, a long press on a trip starts **multi-selection**: you can **merge** several trips into one (end to end, track and data
+included) or **delete** them.
 
-### ⏰ Réveil automatique
-Pour chaque véhicule, tu choisis si CarDeck sort de veille à la connexion Bluetooth à l'autoradio de ta voiture, ou jamais
-(tu ouvres alors l'appli toi-même). Pour que le réveil fonctionne, Android doit autoriser CarDeck à ignorer l'optimisation de batterie :
-l'appli te le demande quand tu actives l'option.
+### ⏰ Automatic wake-up
+For each vehicle, you choose whether CarDeck wakes up when the phone connects over Bluetooth to your car's head unit, or never
+(you then open the app yourself). For the wake-up to work, Android must let CarDeck ignore battery optimisation: the app asks you
+when you turn the option on.
 
-### 💾 Sauvegarde
-Toutes tes données (véhicules, trajets, diagnostics, réglages) se sauvegardent dans un fichier ou sur un serveur de ton réseau, puis se
-restaurent depuis **Paramètres → Sauvegarde**. À chaque sauvegarde, tu choisis la protection :
+### 💾 Backup
+All your data (vehicles, trips, diagnoses, settings) can be backed up to a file or to a server on your network, then restored from
+**Settings → Backup**. Each time you back up, you choose the protection:
 
-- 🔐 **Chiffrée par CarDeck** : chiffrée (AES-256) avec la clé de l'application, sans mot de passe, restaurable sur n'importe quel
-  appareil avec CarDeck.
-- 🔓 **Sans protection** : fichier en clair, sans mot de passe. Toute personne qui récupère le fichier peut lire toutes tes données,
-  trajets GPS compris.
+- 🔐 **Encrypted by CarDeck**: encrypted (AES-256) with the app's key, no password, restorable on any device with CarDeck.
+- 🔓 **No protection**: plain file, no password. Anyone who gets the file can read all your data, GPS tracks included.
 
-Un fichier chiffré modifié ou abîmé est refusé à la restauration. Les anciennes sauvegardes protégées par mot de passe ou liées à
-l'appareil se restaurent toujours, mais on n'en crée plus. Les **codages d'origine** ne sont plus sauvegardés : ils ne sont repris que
-depuis une ancienne sauvegarde liée à l'appareil (un fichier en clair peut avoir été fabriqué par quelqu'un d'autre). CarDeck n'utilise
-pas la sauvegarde automatique d'Android (Google Drive) pour tes données.
+A modified or damaged encrypted file is rejected on restore. Older backups protected by a password or tied to a device can still be
+restored, but new ones can't be created. **Original codings** are no longer backed up: they are only restored from an older
+device-bound backup (a plain file could have been forged by someone else). CarDeck doesn't use Android's automatic backup (Google
+Drive) for your data.
 
-#### 🗄️ Serveur SMB (NAS, PC, box)
-**Paramètres → Sauvegarde → Serveur SMB** : renseigne le serveur (nom ou adresse IP), le **partage**, le **dossier** (par défaut
-`CarDeck`) et ton compte. On peut aussi coller l'adresse telle quelle (`smb://nas/Sauvegardes/CarDeck`). Le bouton **Tester la connexion**
-vérifie l'identification, le partage et le droit d'écrire. Ensuite, **Sauvegarder sur le serveur** envoie un fichier `CarDeck-date.cdbak`
-et **Restaurer depuis le serveur** liste les sauvegardes du dossier, la plus récente d'abord.
+#### 🗄️ SMB server (NAS, PC, router)
+**Settings → Backup → SMB server**: enter the server (name or IP address), the **share**, the **folder** (`CarDeck` by default) and your
+account. You can also paste the full address as is (`smb://nas/Backups/CarDeck`). The **Test the connection** button checks the login,
+the share and write access. Then **Back up to the server** uploads a `CarDeck-date.cdbak` file and **Restore from the server** lists the
+backups in the folder, newest first.
 
-- 🔒 SMB 2 et 3 seulement (le SMB 1, obsolète, n'est pas géré), identification NTLM, **échanges signés** : un appareil du réseau ne peut ni
-  altérer ni imiter le serveur.
-- 🔑 Le mot de passe du serveur est **chiffré par une clé de l'Android Keystore**, gardée à part des réglages : il n'est **jamais écrit
-  dans une sauvegarde** et une restauration n'y touche pas.
-- 📶 Le téléphone doit joindre le serveur : même réseau Wi-Fi, ou VPN. N'ouvre pas ton serveur SMB à Internet.
+- 🔒 SMB 2 and 3 only (the obsolete SMB 1 isn't supported), NTLM login, **signed exchanges**: a device on the network can neither tamper
+  with nor impersonate the server.
+- 🔑 The server password is **encrypted with an Android Keystore key**, kept apart from the settings: it is **never written to a
+  backup** and a restore never touches it.
+- 📶 The phone must be able to reach the server: same Wi-Fi network, or a VPN. Don't expose your SMB server to the Internet.
 
-### 🏠 Un garage pour plusieurs voitures
-Chaque voiture a son profil (trajets, diagnostics, boîtier OBD2). Pour le créer, tu choisis ton véhicule **en trois listes** : la **marque**, le **modèle**, puis la **génération et la motorisation**.
-Par exemple Suzuki › Swift › Sport ZC33S › K14C 1.4 BoosterJet. Un champ de recherche permet d'aller plus vite (« Clio V 1.0 TCe », « Golf GTI »…).
+### 🏠 A garage for several cars
+Each car has its own profile (trips, diagnoses, OBD2 adapter). To create one, you pick your vehicle **in three lists**: the **brand**,
+the **model**, then the **generation and engine**. For example Suzuki › Swift › Sport ZC33S › K14C 1.4 BoosterJet. A search field gets you
+there faster ("Clio V 1.0 TCe", "Golf GTI"…).
 
-**Tu ne connais pas le modèle de ta voiture ?** Touche **« Je ne connais pas le modèle de ma voiture »** en haut de la liste : le boîtier OBD2 lit le
-numéro de série (VIN) de la voiture et CarDeck en déduit, **sans connexion internet**, le constructeur et l'année (pour les constructeurs qui la
-codent dans le VIN, ce que ne font pas Renault, PSA ou Mercedes, par exemple). Il pré-sélectionne alors la marque
-et met en premier les modèles produits cette année-là ; quand le code du modèle est connu, le véhicule est reconnu
-directement (Swift Sport) ou au moins le modèle et la génération (Clio V). Le VIN ne donne pas le modèle exact de façon universelle : tu confirmes donc dans la liste.
-Les cartes de l'écran d'accueil se réorganisent par appui long, et chaque lancement t'accueille avec un message différent.
+**Don't know your car's model?** Tap **"I don't know my car's model"** at the top of the list: the OBD2 adapter reads the car's
+serial number (VIN) and CarDeck works out, **offline**, the manufacturer and the year (for manufacturers that encode it in the VIN,
+which Renault, PSA or Mercedes, for example, don't). It then preselects the brand and lists the models built that year first; when the
+model code is known, the vehicle is recognised directly (Swift Sport) or at least its model and generation (Clio V). The VIN doesn't
+reliably give the exact model, so you confirm it in the list.
+The home screen tiles can be rearranged with a long press, and each launch greets you with a different message.
 
-## Véhicules pris en charge
+## Supported vehicles
 
-- **Une liste de plus de 2 000 motorisations**, de 48 marques (Peugeot, Renault, Citroën, Volkswagen, Toyota, Suzuki, BMW, Audi, Porsche, Ferrari…) avec leurs modèles, générations et motorisations essence, diesel, hybrides et GPL.
-- Ces véhicules utilisent les **données OBD2 standard** (régime, vitesse, températures, pressions, diagnostic des défauts, trajets et coût). Le protocole est détecté automatiquement à la connexion.
-- Ton véhicule n'est pas dans la liste ? Choisis **Autre véhicule** : toute voiture essence depuis 2001 ou diesel depuis 2004 a une prise OBD2.
-- Certains véhicules sont **rétro-ingéniés** par CarDeck, avec des données propres au modèle :
+- **A list of more than 2,000 engines** from 48 brands (Peugeot, Renault, Citroën, Volkswagen, Toyota, Suzuki, BMW, Audi, Porsche,
+  Ferrari…) with their models, generations and petrol, diesel, hybrid and LPG engines.
+- These vehicles use **standard OBD2 data** (RPM, speed, temperatures, pressures, fault diagnosis, trips and cost). The protocol is
+  detected automatically on connection.
+- Your vehicle isn't listed? Pick **Other vehicle**: every petrol car since 2001 and diesel car since 2004 has an OBD2 port.
+- Some vehicles are **reverse-engineered** by CarDeck, with model-specific data:
 
-| Modèle | Rétro-ingénié |
+| Model | Reverse-engineered |
 |---|---|
-| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 ch) | ✅ Lecture seule (sauf l'effacement des codes que tu demandes), huile, carburant, kilométrage |
-| Renault Clio V 1.0 TCe 90 ch | ✅ Les 15 calculateurs relevés (OBD en CAN 29 bits), interrogés par le diagnostic ; moteur et ABS / ESP identifiés |
+| Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 hp) | ✅ Read-only (except clearing the codes you ask for), oil, fuel, odometer |
+| Renault Clio V 1.0 TCe 90 hp | ✅ All 15 modules mapped (OBD on 29-bit CAN), queried by the diagnosis; engine and ABS / ESP identified |
 
-La liste est un point de départ : elle n'a pas été testée sur chaque voiture, seule la Swift Sport l'a été.
+Want yours in this table? See [Get your car fully supported within 3 days](#-get-your-car-fully-supported-within-3-days).
 
-## Langues
+The list is a starting point: it hasn't been tested on every car, only on the Swift Sport.
 
-CarDeck est en **français, anglais, allemand, russe et espagnol**. Il suit la **langue du téléphone** (anglais si elle n'est pas
-proposée). Sur Android 13 et plus, on peut aussi choisir la langue de CarDeck seule : réglages Android › Applis › CarDeck › Langue.
-Les traductions sont dans `app/src/main/assets/i18n/strings.tsv` (un texte français par ligne, puis chaque traduction).
+## Languages
 
-## Boîtier OBD2
+CarDeck is available in **English, French, German, Russian and Spanish**. It follows the **phone's language** (English if that
+language isn't available). On Android 13 and later, you can also set CarDeck's language on its own: Android settings › Apps › CarDeck ›
+Language. Translations live in `app/src/main/assets/i18n/strings.tsv` (one French text per line, followed by each translation).
 
-CarDeck fonctionne avec un boîtier **ELM327** en **Bluetooth classique**, **Bluetooth LE** ou **Wi-Fi**. Branche-le sur la prise diagnostic
-(sous le volant), mets le contact, puis associe-le à ton véhicule depuis l'appli.
+## OBD2 adapter
 
-## Respect de ta voiture et de tes données
+CarDeck works with an **ELM327** adapter over **classic Bluetooth**, **Bluetooth LE** or **Wi-Fi**. Plug it into the diagnostic port
+(under the steering wheel), switch the ignition on, then pair it with your vehicle from the app.
 
-- 🔒 Sur toutes les voitures sans fonction de codage (dont la Swift Sport), CarDeck est en **lecture seule** : il regarde, il n'écrit rien
-  dans la voiture, à part l'effacement des codes défaut quand tu le demandes (aucun codage, aucune écriture, aucun déverrouillage).
-- 📍 Les trajets et les diagnostics restent **sur ton téléphone**. Seuls en sortent : la demande du prix du carburant (avec la position
-  d'arrivée du trajet, arrondie au kilomètre), les cartes OpenStreetMap et la recherche de mises à jour.
-- 🔐 Tes sauvegardes sont **chiffrées par CarDeck**, ou en clair si tu le veux, dans un fichier ou sur ton propre serveur SMB.
-- 🛡️ Sur les voitures qui se codent, le **codage d'origine** est enregistré avec le numéro de série (VIN) de la voiture : CarDeck refuse de le
-  réécrire sur une autre voiture, et relit chaque réglage juste avant de l'écrire.
-- 🔄 Les mises à jour sont proposées au lancement et installables depuis **Paramètres → Application**, où tu retrouves aussi le journal des nouveautés.
+## Respect for your car and your data
 
-## Installer
+- 🔒 On every car without coding features (the Swift Sport included), CarDeck is **read-only**: it looks, it writes nothing to the car,
+  apart from clearing fault codes when you ask (no coding, no writing, no unlocking).
+- 📍 Trips and diagnoses stay **on your phone**. The only things that leave it: the fuel price request (with the trip's arrival
+  position, rounded to the kilometre), OpenStreetMap tiles and the update check.
+- 🔐 Your backups are **encrypted by CarDeck**, or plain if you want, in a file or on your own SMB server.
+- 🛡️ On cars that support coding, the **original coding** is saved with the car's serial number (VIN): CarDeck refuses to write it
+  back to another car, and reads each setting again right before writing it.
+- 🔄 Updates are offered at launch and can be installed from **Settings → App**, where you'll also find the changelog.
 
-Télécharge l'APK de la dernière version dans les [releases](https://github.com/ToftMalone/CarDeck/releases) et installe-le sur ton téléphone Android (8.0 ou plus récent).
+## Install
 
-## Soutenir CarDeck ☕
+Download the APK of the latest version from the [releases](https://github.com/ToftMalone/CarDeck/releases) and install it on your
+Android phone (8.0 or newer).
 
-CarDeck est gratuite. Si elle t'est utile, tu peux soutenir son développement sur [Ko-fi](https://ko-fi.com/toftmalone).
+## Support CarDeck ☕
+
+CarDeck is free. If you find it useful, you can support its development on [Ko-fi](https://ko-fi.com/toftmalone).

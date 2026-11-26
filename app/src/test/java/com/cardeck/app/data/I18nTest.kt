@@ -120,7 +120,7 @@ class I18nTest {
             "Connectez le boîtier OBD2 pour vérifier.", "Celles de votre fond d'écran (Material You), ou une palette fixe",
             "Au moment de sauvegarder, vous choisissez la protection : aucune ou chiffrée par CarDeck.",
             "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.",
-            "Content de vous revoir. On démarre ?", "Patinages",
+            "Content de vous revoir. On démarre ?", "Patinages", "Autre véhicule",
         )
         for (l in Lang.entries.drop(1)) {
             I18n.lang = l
