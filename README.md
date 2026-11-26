@@ -49,10 +49,14 @@ consumption and cost are **calculated** from these measurements.
 and **read-only** (only read services are sent: never clearing, writing, actuator control or unlocking; the airbags, addresses
 7F1 / 7F9, are never queried):
 - 🅿️ **stationary, full scan**: searches every module on 11-bit CAN (from 0x600 to 0x7FF, whatever their response address), on 29-bit
-  CAN and on the K-line; identification (part numbers, system names), KWP `21xx` manufacturer data blocks, UDS `22xxxx` identifiers in
+  CAN and on the K-line (including modules that wake at one address but expect another one in their messages, like the VW MK60
+  ABS: 03 → 28); identification (part numbers, system names), KWP `21xx` manufacturer data blocks, UDS `22xxxx` identifiers in
   ranges of 10,000, memory reads, CAN bus map, fault codes before / after. If interrupted, it resumes where it stopped;
 - 🚗 **while driving, recording**: OBD values, manufacturer blocks (and new blocks discovered on the way) and bus traffic, timestamped
-  together. It stops when you ask or when the ignition is switched off.
+  together. It stops when you ask or when the ignition is switched off. At the end, every byte (and pair of bytes, in both orders,
+  signed or not) of the blocks and bus frames is compared with the OBD values measured at the same moment over the whole drive:
+  counters are set aside, the small time lag is searched, and each lead comes with its formula (e.g. `speed ≈ x / 100`), in
+  `PISTES.md` and the report. Method adapted from [CANExplorer](https://github.com/AKJ7/CANExplorer) (MIT licence).
 - 💥 **knock search** (separate button, while driving; only offered on the Swift Sport ZC33S, the only car reverse-engineered for it):
   during firm full-load accelerations, ignition advance, load and engine blocks are read as fast as possible, then CarDeck ranks the
   bytes that behave like knock-induced ignition retard (idle off load, moving under load, advance lost at equal RPM and load).

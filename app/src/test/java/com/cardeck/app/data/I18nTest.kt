@@ -120,7 +120,9 @@ class I18nTest {
             "Connectez le boîtier OBD2 pour vérifier.", "Celles de votre fond d'écran (Material You), ou une palette fixe",
             "Au moment de sauvegarder, vous choisissez la protection : aucune ou chiffrée par CarDeck.",
             "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.",
-            "Content de vous revoir. On démarre ?", "Patinages", "Autre véhicule",
+            "Content de vous revoir. On démarre ?", "Patinages", "Autre véhicule", "Pistes de décodage en roulant",
+            "🔎 route/2026-11-26_10-27 : 12 piste(s) de décodage (PISTES.md)", "ℹ️ Ligne K 0x03 : réveil à 0x03, messages à 0x28, réponses de 0x28",
+            "Recherche de l'adresse des messages de 0x03 · 0x28 (1/20)",
         )
         for (l in Lang.entries.drop(1)) {
             I18n.lang = l

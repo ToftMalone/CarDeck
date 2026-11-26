@@ -53,6 +53,50 @@ private class FakeCar(private val ecus: Map<String, FakeEcu>, private val broadc
     override fun close() {}
 }
 
+/**
+ * Voiture à ligne K façon VW : l'ABS se réveille en 5 bauds à 0x03 mais n'écoute que les messages adressés à 0x28 et répond
+ * depuis 0x28 (piège connu de l'ABS MK60). Le réveil rapide ne marche pour personne.
+ */
+private class FakeKCar : ObdTransport {
+    override val incoming = Channel<ByteArray>(Channel.UNLIMITED)
+    override suspend fun open() {}
+    val sent = mutableListOf<String>()
+    private var iia = 0x33
+    private var target = 0x33
+    private var awake = false
+    private fun k(src: Int, payload: String): String {
+        val d = payload.split(" ").filter { it.isNotEmpty() }.map { it.toInt(16) }
+        val o = listOf(0x80 or d.size, 0xF1, src) + d
+        return (o + (o.sum() and 0xFF)).joinToString(" ") { "%02X".format(it) }
+    }
+    override suspend fun send(data: ByteArray) {
+        val cmd = String(data).trim()
+        sent += cmd
+        val r = when {
+            cmd == "ATZ" -> "ELM327 v1.5"
+            cmd == "ATDPN" -> "A6"
+            cmd == "ATDP" -> "AUTO, ISO 15765-4 (CAN 11/500)"
+            cmd.startsWith("ATIIA") -> { iia = cmd.removePrefix("ATIIA").toInt(16); "OK" }
+            cmd.startsWith("ATSH81") -> { target = cmd.substring(6, 8).toInt(16); "OK" }
+            cmd == "ATFI" -> { awake = false; "BUS INIT: ...ERROR" }
+            cmd == "ATSI" -> if (iia == 0x03) { awake = true; "BUS INIT: ...OK" } else { awake = false; "BUS INIT: ...ERROR" }
+            cmd.startsWith("AT") -> "OK"
+            awake && target == 0x28 -> when {
+                cmd == "3E" -> k(0x28, "7E")
+                cmd == "1A8A" -> k(0x28, "5A 8A " + text("MK60"))
+                cmd.startsWith("1A") -> k(0x28, "7F 1A 12")
+                cmd == "2101" -> k(0x28, "61 01 0A 0B 0C")
+                cmd.startsWith("21") -> k(0x28, "7F 21 12")
+                cmd.startsWith("18") -> k(0x28, "58 00")
+                else -> "NO DATA"
+            }
+            else -> "NO DATA"
+        }
+        incoming.trySend("$r\r\r>".toByteArray())
+    }
+    override fun close() {}
+}
+
 private class NoUi : ExplorerListener {
     val lines = mutableListOf<String>()
     override fun step(index: Int, total: Int, name: String) {}
@@ -221,5 +265,39 @@ class ExplorerTest {
         val svc = car.sent.filter { !it.startsWith("AT") && it.isNotBlank() }.map { it.take(2) }.toSet()
         assertTrue("Services : $svc", svc.all { it in setOf("01", "10", "21") })
         dir.deleteRecursively()
+    }
+
+    @Test fun ligneKAdresseDeMessagesDifferente(): Unit = runBlocking {
+        val car = FakeKCar()
+        val e = Elm327(car)
+        e.readOnly = true
+        val dir = Files.createTempDirectory("kline").toFile()
+        val data = ExplorerData()
+        val ui = NoUi()
+        val ex = Explorer(e, data, dir, ui)
+        ex.findK()
+        // Trouvé sous son adresse de réveil, interrogé à 0x28, réponses de 0x28 acceptées.
+        val abs = data.ecus.getValue("K03")
+        assertEquals(Bus.K, abs.bus)
+        assertEquals(0x28, abs.tx)
+        assertEquals(0x28, abs.rx)
+        assertEquals("K 03 → 28", abs.label)
+        assertEquals(1, data.ecus.size)
+        assertTrue(data.answers.containsKey("K03:2101"))
+        assertTrue(data.answers.containsKey("K03:1A8A"))
+        assertTrue(ui.lines.any { it.contains("messages à 0x28") })
+        // Requêtes envoyées à 0x28 après la découverte, et jamais autre chose que de la lecture.
+        assertTrue(car.sent.contains("ATSH8128F1"))
+        val services = car.sent.filter { !it.startsWith("AT") && it.isNotBlank() }.map { it.take(2) }.toSet()
+        // (« 01 » : la remise au protocole de la voiture en fin de recherche.)
+        assertTrue("Services : $services", services.all { it in setOf("3E", "1A", "21", "18", "01") })
+        // Relu à l'identique depuis le fichier des découvertes.
+        ex.save(true)
+        assertEquals(data.ecus, ExplorerData.load(File(dir, "decouvertes.json")).ecus)
+        dir.deleteRecursively()
+    }
+
+    @Test fun ligneKAdresseHabituelle() {
+        assertEquals("K 10", Ecu("K10", Bus.K, 0x10, 0x10, "kwp").label)
     }
 }

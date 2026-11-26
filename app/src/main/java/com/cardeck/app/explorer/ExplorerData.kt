@@ -30,6 +30,8 @@ class ExplorerData {
     val drives = ArrayList<String>()
     /** Recherches du cliquetis (dossiers cliquetis/<date>/, chacun avec son ANALYSE.md). */
     val knocks = ArrayList<String>()
+    /** Pistes de décodage de chaque enregistrement en roulant (voir [DriveDecode]), par dossier route/<date>/. */
+    val driveClues = TreeMap<String, List<DriveDecode.Clue>>()
 
     /** Enregistre une réponse ; renvoie « ok », « refus! » (refus qui dit que l'identifiant existe) ou l'état. */
     fun note(ecu: String, req: String, a: Answer, now: String = stamp()): String {
@@ -139,6 +141,20 @@ class ExplorerData {
             for (p in clues.take(40)) a("- `${p.key}` ${p.position} → **${p.formula}** (r = ${"%+.3f".format(p.r)}, ${p.n} relevés)${if (p.time) " ⚠️ *suit aussi le temps écoulé*" else ""}")
         } else a("${history.size} instantané(s) pour l'instant : il en faut au moins 6 avec des valeurs qui bougent. Le plus efficace : lancer l'exploration en roulant.")
 
+        a(); a("## Pistes de décodage en roulant"); a()
+        val merged = mergedDriveClues()
+        when {
+            drives.isEmpty() -> a("Aucun enregistrement en roulant pour l'instant : c'est lui qui donne les meilleures pistes.")
+            merged.isEmpty() -> a("Aucune piste sûre sur ${driveClues.size} trajet(s) analysé(s) : il faut plus de mesures qui bougent (accélérations, arrêts, montée en température).")
+            else -> {
+                a("Sur ${driveClues.size} trajet(s) : chaque octet (ou paire d'octets) des blocs constructeur et des trames du bus, comparé aux mesures OBD " +
+                    "prises au même moment. Octets comptés à partir de 0, après l'écho de la requête pour les blocs ; x = valeur brute. " +
+                    "**Ce sont des hypothèses** à confirmer, surtout celles qui suivent aussi le temps écoulé.")
+                a()
+                sb.append(DriveDecode.table(merged.keys.take(80), merged))
+            }
+        }
+
         val texts = answers.mapNotNull { (k, v) ->
             val req = k.substringAfter(':')
             val body = Explore.bytes(v.hex).drop(Explore.echoSize(req)).toIntArray()
@@ -200,8 +216,21 @@ class ExplorerData {
             val n = progress["22:${e.key}"] ?: 0
             a("- Calculateur ${e.key} : $n/${Explore.UDS_TOTAL} identifiants UDS testés" + if (n < Explore.UDS_TOTAL) ". Relancez le balayage à l'arrêt pour continuer." else " ✅")
         }
-        a("- Décodage : lancez l'exploration en roulant, les pistes de corrélation s'affinent à chaque trajet.")
+        a("- Décodage : lancez l'enregistrement en roulant, les pistes de décodage s'affinent à chaque trajet.")
         return sb.toString()
+    }
+
+    /**
+     * Pistes de tous les trajets réunies : une même piste (source, champ, grandeur) vue sur plusieurs trajets garde la mesure la
+     * plus fournie, avec le nombre de trajets où elle apparaît ; les plus sûres d'abord.
+     */
+    fun mergedDriveClues(): LinkedHashMap<DriveDecode.Clue, Int> {
+        val groups = driveClues.values.flatten().groupBy { Triple(it.source, it.field, it.ref) }
+        val best = groups.values.map { list -> list.maxBy { it.n } to list.size }
+        val out = LinkedHashMap<DriveDecode.Clue, Int>()
+        best.sortedWith(compareBy<Pair<DriveDecode.Clue, Int>> { it.first.time }.thenByDescending { it.second }.thenByDescending { kotlin.math.abs(it.first.r) })
+            .forEach { (c, n) -> out[c] = n }
+        return out
     }
 
     /** Sources de codes défaut lues avant et après le balayage dont la réponse a changé. */
@@ -229,6 +258,17 @@ class ExplorerData {
         })
         put("roulages", JSONArray(drives))
         put("cliquetis", JSONArray(knocks))
+        put("pistes_roulage", JSONObject().also { o ->
+            driveClues.forEach { (folder, list) ->
+                o.put(folder, JSONArray().also { arr ->
+                    list.forEach { c ->
+                        arr.put(JSONObject().put("source", c.source).put("debut", c.field.start).put("bits", c.field.bits).put("poids_fort", c.field.bigEndian)
+                            .put("signe", c.field.signed).put("grandeur", c.ref).put("r", c.r).put("a", c.a).put("b", c.b).put("n", c.n)
+                            .put("decalage", c.lag).put("temps", c.time).put("formule", c.formula).put("aussi", c.also ?: JSONObject.NULL))
+                    }
+                })
+            }
+        })
     }
 
     fun save(file: File) {
@@ -265,6 +305,21 @@ class ExplorerData {
             }
             o.optJSONArray("roulages")?.let { arr -> for (i in 0 until arr.length()) d.drives += arr.getString(i) }
             o.optJSONArray("cliquetis")?.let { arr -> for (i in 0 until arr.length()) d.knocks += arr.getString(i) }
+            o.optJSONObject("pistes_roulage")?.let { p ->
+                p.keys().forEach { folder ->
+                    val arr = p.getJSONArray(folder)
+                    d.driveClues[folder] = (0 until arr.length()).mapNotNull { i ->
+                        runCatching {
+                            val c = arr.getJSONObject(i)
+                            DriveDecode.Clue(
+                                c.getString("source"), DriveDecode.Field(c.getInt("debut"), c.getInt("bits"), c.getBoolean("poids_fort"), c.getBoolean("signe")),
+                                c.getString("grandeur"), c.getDouble("r"), c.getDouble("a"), c.getDouble("b"), c.getInt("n"), c.getDouble("decalage"),
+                                c.getBoolean("temps"), c.getString("formule"), if (c.isNull("aussi")) null else c.getString("aussi"),
+                            )
+                        }.getOrNull()
+                    }
+                }
+            }
             return d
         }
     }

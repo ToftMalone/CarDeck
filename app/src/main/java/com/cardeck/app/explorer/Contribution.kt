@@ -193,9 +193,11 @@ object Contribution {
         val busIds: Int,
         val drives: Int,
         val knocks: Int,
+        /** Pistes de décodage trouvées en roulant (tous trajets réunis). */
+        val clues: Int = 0,
     )
 
-    fun findings(d: ExplorerData) = Findings(d.ecus.values.toList(), d.names(), d.answers.size, d.dataBlocks().size, d.bus.size, d.drives.size, d.knocks.size)
+    fun findings(d: ExplorerData) = Findings(d.ecus.values.toList(), d.names(), d.answers.size, d.dataBlocks().size, d.bus.size, d.drives.size, d.knocks.size, d.mergedDriveClues().size)
 
     /** Corps du ticket (Markdown), raccourci si besoin pour que l'adresse reste sous [MAX_URL]. */
     fun body(t: VehicleTemplate, year: String, vin: String?, version: String, f: Findings, fileName: String, maxEcus: Int = f.ecus.size): String {
@@ -216,6 +218,7 @@ object Contribution {
         ).joinToString(", ").let { if (it.isEmpty()) "" else " ($it)" })
         a("- Réponses positives : **${f.answers}** · blocs constructeur : **${f.blocks}** · identifiants sur le bus : **${f.busIds}**")
         if (f.drives > 0 || f.knocks > 0) a("- Enregistrements en roulant : **${f.drives}** · recherches du cliquetis : **${f.knocks}**")
+        if (f.clues > 0) a("- Pistes de décodage en roulant : **${f.clues}** (détail dans RAPPORT.md)")
         if (f.ecus.isNotEmpty() && maxEcus > 0) {
             a()
             a("| Adresse | Liaison | Protocole | Identifié |")

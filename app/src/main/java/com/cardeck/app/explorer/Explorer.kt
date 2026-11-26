@@ -3,6 +3,7 @@ package com.cardeck.app.explorer
 import com.cardeck.app.obd.Elm327
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -106,7 +107,8 @@ class Explorer(
         if (t.bus == Bus.K) {
             for (l in lines(hexReq, 4000)) {
                 val (src, d) = Explore.kDecode(l) ?: continue
-                if (src != t.tx || d.isEmpty()) continue
+                // Réponse attendue de l'adresse du calculateur, qui n'est pas toujours celle des requêtes (voir [kTarget]).
+                if (src != t.rx || d.isEmpty()) continue
                 if (d[0] == req[0] + 0x40) return Answer(AnswerState.Ok, d)
                 if (d[0] == 0x7F && d.size >= 3 && d[1] == req[0] && d[2] != 0x78) return Answer(AnswerState.Refus, d)
             }
@@ -296,8 +298,32 @@ class Explorer(
 
     /** Écrit les découvertes et le rapport. */
     suspend fun finish(version: String, vehicle: String, rows: List<Map<String, Double>> = emptyList()) {
+        decodeDrives()
         save(true)
         runCatching { File(dir, "RAPPORT.md").writeText(data.report(vehicle, version, rows)) }
+    }
+
+    /**
+     * Pistes de décodage des enregistrements en roulant pas encore analysés (celui qui vient de finir, ou un ancien) :
+     * corrélation sur tout le trajet ([DriveDecode]), écrite dans route/<date>/PISTES.md et gardée pour le rapport.
+     */
+    private suspend fun decodeDrives() {
+        for (folder in data.drives.toList()) {
+            if (data.driveClues.containsKey(folder)) continue
+            val out = File(dir, "route/$folder")
+            if (!out.isDirectory) continue
+            ui.detail("Recherche des pistes de décodage · route/$folder", null)
+            val result = runCatching { withContext(Dispatchers.Default) { DriveDecode.analyze(DriveDecode.load(out)) } }
+            result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+            val clues = result.getOrNull()
+            if (clues == null) {
+                ui.line("⚠️ Analyse de route/$folder impossible : ${result.exceptionOrNull()?.message}")
+                continue
+            }
+            data.driveClues[folder] = clues
+            runCatching { File(out, "PISTES.md").writeText(DriveDecode.markdown(clues, folder)) }
+            ui.line(if (clues.isEmpty()) "🔎 route/$folder : aucune piste sûre pour l'instant" else "🔎 route/$folder : ${clues.size} piste(s) de décodage (PISTES.md)")
+        }
     }
 
     private suspend fun faults(moment: String) {
@@ -401,11 +427,44 @@ class Explorer(
 
     private val K_FIRST = listOf(0x40, 0x41, 0x60, 0x61, 0x10, 0x11, 0x28, 0x29, 0x58, 0x59, 0xC0, 0xC1, 0x18, 0x20, 0x30, 0x50, 0x70, 0x80, 0x48, 0x68)
 
-    private suspend fun findK() {
+    /**
+     * Réveil lent (5 bauds) : en plus de [K_FIRST], les adresses de réveil du groupe VW (moteur 01, boîte 02, ABS 03, combiné 17,
+     * passerelle 19, antidémarrage 25, confort 46). Ajoutées à la fin : une recherche interrompue reprend au même rang.
+     */
+    private val K_SLOW = K_FIRST + listOf(0x01, 0x02, 0x03, 0x17, 0x19, 0x25, 0x46).filter { it !in K_FIRST }
+
+    /** Adresse de messages connue pour une adresse de réveil (VW : ABS MK60 03 → 28, moteur EDC16 01 → 10). */
+    private val K_KNOWN_TARGET = mapOf(0x03 to 0x28, 0x01 to 0x10)
+
+    /**
+     * Calculateur réveillé (réveil lent) mais muet à son adresse de réveil : l'adresse qu'il attend dans l'en-tête des messages
+     * peut être une autre, et il répond alors depuis celle-ci. Essaie l'adresse connue, puis les adresses courantes, avec
+     * « 3E » (présence) et « 1A8A » (identification) ; toute réponse, même un refus, prouve qu'il écoute à cette adresse.
+     * Renvoie (adresse des requêtes, adresse de réponse), ou null.
+     */
+    private suspend fun kTarget(adr: Int): Pair<Int, Int>? {
+        val targets = (listOfNotNull(K_KNOWN_TARGET[adr]) + K_FIRST).filter { it != adr }.distinct()
+        for ((i, target) in targets.withIndex()) {
+            ui.detail("Recherche de l'adresse des messages de 0x%02X · 0x%02X (%d/%d)".format(adr, target, i + 1, targets.size), (i + 1f) / targets.size)
+            at("ATSH81%02XF1".format(target))
+            aim = "${Bus.K}:$target:probe"
+            for (req in listOf("3E", "1A8A")) {
+                val sid = Explore.bytes(req)[0]
+                for (l in lines(req, 1500)) {
+                    val (src, d) = Explore.kDecode(l) ?: continue
+                    if (d.isEmpty()) continue
+                    if (d[0] == sid + 0x40 || (d[0] == 0x7F && d.size >= 2 && d[1] == sid)) return target to src
+                }
+            }
+        }
+        return null
+    }
+
+    internal suspend fun findK() {
         if (data.flags["k"] != null) { ui.line("✔ Déjà fait : ${data.ecus.values.count { it.bus == Bus.K }} calculateur(s)"); return }
         val order = K_FIRST + (0x01..0xFF).filter { it !in K_FIRST && it != 0xF1 }
         try {
-            for ((pass, slowInit, list) in listOf(Triple("rapide", false, order), Triple("lent", true, K_FIRST))) {
+            for ((pass, slowInit, list) in listOf(Triple("rapide", false, order), Triple("lent", true, K_SLOW))) {
                 val key = "k_$pass"
                 for (i in (data.progress[key] ?: 0) until list.size) {
                     val adr = list[i]
@@ -427,10 +486,21 @@ class Explorer(
 
     /** Calculateur trouvé sur la ligne K : identification, blocs, défauts (lecture seule). */
     private suspend fun kExplore(adr: Int, pass: String) {
-        val t = Ecu("K%02X".format(adr), Bus.K, adr, adr, "kwp")
+        var t = Ecu("K%02X".format(adr), Bus.K, adr, adr, "kwp")
         var a = ask(t, "3E")
         if (a.state == AnswerState.Rien) a = ask(t, "1A8A")
-        if (a.state == AnswerState.Rien) return // réveil sans conversation : faux positif
+        if (a.state == AnswerState.Rien) {
+            // Réveil rapide : l'adresse de réveil est celle des messages, le silence veut dire faux positif.
+            // Réveil lent : le calculateur a répondu au réveil, il peut attendre une autre adresse dans les messages.
+            val found = if (pass == "lent") kTarget(adr) else null
+            if (found == null) return // réveil sans conversation : faux positif
+            // Même calculateur déjà trouvé par le réveil rapide à son adresse de messages : pas d'exploration en double.
+            data.ecus.values.firstOrNull { it.bus == Bus.K && it.tx == found.first && it.rx == found.second }?.let {
+                ui.line("ℹ️ Ligne K 0x%02X : c'est le calculateur ${it.label}, déjà exploré".format(adr)); return
+            }
+            t = Ecu(t.key, Bus.K, found.first, found.second, "kwp")
+            ui.line("ℹ️ Ligne K 0x%02X : réveil à 0x%02X, messages à 0x%02X, réponses de 0x%02X".format(adr, adr, found.first, found.second))
+        }
         data.ecus[t.key] = t
         ui.line("🟢 Ligne K 0x%02X répond (réveil %s)".format(adr, pass))
         val reqs = (0x80..0x9F).map { "1A%02X".format(it) } + (0x00..0xFF).map { "21%02X".format(it) } + listOf("1800FF00", "1802FF00")

@@ -58,11 +58,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Résumé des découvertes enregistrées pour un véhicule. */
-private class Summary(val ecus: Int, val can11: Int, val can29: Int, val k: Int, val answers: Int, val blocks: Int, val bus: Int, val snaps: Int, val drives: Int, val knocks: Int, val uds: List<Pair<String, Int>>, val names: Map<String, String>)
+private class Summary(val ecus: Int, val can11: Int, val can29: Int, val k: Int, val answers: Int, val blocks: Int, val bus: Int, val snaps: Int, val drives: Int, val knocks: Int, val clues: Int, val uds: List<Pair<String, Int>>, val names: Map<String, String>)
 
 private fun summarize(d: ExplorerData) = Summary(
     d.ecus.size, d.ecus.values.count { it.bus == Bus.Can11 }, d.ecus.values.count { it.bus == Bus.Can29 }, d.ecus.values.count { it.bus == Bus.K },
-    d.answers.size, d.dataBlocks().size, d.bus.size, d.history.size, d.drives.size, d.knocks.size,
+    d.answers.size, d.dataBlocks().size, d.bus.size, d.history.size, d.drives.size, d.knocks.size, d.mergedDriveClues().size,
     d.ecus.values.filter { it.proto == "uds" && it.bus != Bus.K && it.key !in ExplorerData.UDS_SKIPPED }.map { it.key to (d.progress["22:${it.key}"] ?: 0) },
     d.names(),
 )
@@ -261,6 +261,7 @@ private fun Results(s: Summary) {
         Line("Identifiants actifs sur le bus", "${s.bus}")
         Line("Instantanés pour la corrélation", "${s.snaps}")
         Line("Enregistrements en roulant", "${s.drives}")
+        if (s.drives > 0) Line("Pistes de décodage en roulant", "${s.clues}")
         if (s.knocks > 0) Line("Recherches du cliquetis", "${s.knocks}")
         s.uds.forEach { (k, n) -> Line("UDS $k", "$n / ${Explore.UDS_TOTAL}" + if (n >= Explore.UDS_TOTAL) " ✅" else "") }
         if (s.names.isNotEmpty()) {

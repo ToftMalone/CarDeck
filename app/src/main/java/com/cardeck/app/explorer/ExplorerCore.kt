@@ -24,7 +24,8 @@ data class Ecu(val key: String, val bus: Bus, val tx: Int, val rx: Int, var prot
     val label get() = when (bus) {
         Bus.Can11 -> "%03X".format(tx)
         Bus.Can29 -> "%08X".format(tx)
-        Bus.K -> "K %02X".format(tx)
+        // Ligne K : adresse de réveil (la clé), suivie de l'adresse des messages quand elle est différente.
+        Bus.K -> key.removePrefix("K").let { wake -> if (wake.toIntOrNull(16) == tx) "K %02X".format(tx) else "K $wake → %02X".format(tx) }
     }
 }
 
