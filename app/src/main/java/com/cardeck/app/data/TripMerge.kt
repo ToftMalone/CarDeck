@@ -31,6 +31,7 @@ object TripMerge {
             distanceKm = km, avgKmh = if (hours > 0) km / hours else 0.0, maxKmh = s.maxOf { it.maxKmh },
             from = s.first().from, to = s.last().to,
             fuelType = s.firstNotNullOfOrNull { it.fuelType }, fuelPrice = price, fuelPriceInfo = info,
+            wheelspins = s.sumOf { it.wheelspins },
         )
         return Plan(s, merged, shifts)
     }

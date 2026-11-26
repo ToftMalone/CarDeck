@@ -66,9 +66,13 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, private val
     /** Vitesse lue sur le véhicule (PID 0D) : distance de secours sans GPS + vitesse max. */
     @Volatile private var finished = false
 
+    /** Patinages des roues, comptés à partir du régime, de la vitesse, de la charge et du papillon. */
+    private val traction = com.cardeck.app.data.TractionDetector()
+
     /** Valeurs moteur lues pendant le trajet. */
     fun addSamples(t: Long, values: List<Pair<String, Double>>) {
         if (finished || values.isEmpty()) return
+        synchronized(traction) { traction.feed(t, values.toMap()) }
         runCatching { io.execute { repo.addSamples(tripId, t, values) } }
     }
 
@@ -122,6 +126,7 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, private val
         val first = firstFix
         val lastLoc = last
         val ptsMax = maxKmh
+        val spins = synchronized(traction) { traction.state.count }
         io.execute {
             if (dist < 0.2) {
                 repo.deleteTrip(tripId)
@@ -131,7 +136,7 @@ class TripRecorder(private val ctx: Context, private val repo: Repo, private val
                 val from = first?.let { place(it) } ?: "Position inconnue"
                 val to = lastLoc?.let { place(it) } ?: "Position inconnue"
                 val max = maxOf(ptsMax, repo.points(tripId).maxOfOrNull { it.speedKmh } ?: 0.0)
-                repo.finishTrip(tripId, end, dist, if (hours > 0) dist / hours else 0.0, max, from, to)
+                repo.finishTrip(tripId, end, dist, if (hours > 0) dist / hours else 0.0, max, from, to, spins)
                 onDone(true, dist)
                 // Coût : prix du carburant du jour, près de l'arrivée (sinon obtenu à la première ouverture du trajet).
                 runCatching { repo.trip(tripId)?.let { FuelPrices.priceTrip(repo, it, repo.fuelFor(vehicleId)) } }

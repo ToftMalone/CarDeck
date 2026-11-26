@@ -51,6 +51,8 @@ data class Trip(
     val fuelType: FuelType? = null,
     val fuelPrice: Double? = null,
     val fuelPriceInfo: String? = null,
+    /** Patinages des roues motrices relevés pendant le trajet (voir [TractionDetector]). */
+    val wheelspins: Int = 0,
 )
 
 /**

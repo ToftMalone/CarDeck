@@ -418,7 +418,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                     )
                     val stats = listOf(
                         "Durée" to durationLabel(t.end - t.start), "Distance" to "${fr(t.distanceKm, 1)} km", "Vit. moyenne" to "${fr(t.avgKmh)} km/h",
-                        "Vit. max" to "${fr(t.maxKmh)} km/h",
+                        "Vit. max" to "${fr(t.maxKmh)} km/h", "Patinages" to "${t.wheelspins}",
                     )
                     Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         stats.chunked(2).forEachIndexed { i, row ->

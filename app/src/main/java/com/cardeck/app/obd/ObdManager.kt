@@ -37,15 +37,8 @@ class ObdManager(private val ctx: Context) {
     /** Dernières valeurs lues (id de donnée → valeur), partagées entre les écrans. */
     val live = MutableStateFlow<Map<String, Double>>(emptyMap())
 
-    /** Patinages des roues motrices depuis la connexion (et intervention de l'antipatinage), déduits du régime et de la vitesse. */
-    val traction = MutableStateFlow(com.cardeck.app.data.TractionDetector.State())
-    private val tractionDetector = com.cardeck.app.data.TractionDetector()
-
     fun publish(values: List<Pair<String, Double>>) {
-        if (values.isEmpty()) return
-        live.value = live.value + values
-        val st = synchronized(tractionDetector) { tractionDetector.feed(System.currentTimeMillis(), values.toMap()) }
-        if (st != traction.value) traction.value = st
+        if (values.isNotEmpty()) live.value = live.value + values
     }
 
     /** Tant que l'appelant est actif (écran affiché), s'assure que le service lit les données en permanence. */
@@ -134,7 +127,5 @@ class ObdManager(private val ctx: Context) {
         ecuOnline.value = false
         supported.value = null
         live.value = emptyMap()
-        synchronized(tractionDetector) { tractionDetector.reset() }
-        traction.value = com.cardeck.app.data.TractionDetector.State()
     }
 }

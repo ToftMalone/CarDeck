@@ -41,9 +41,10 @@ class TripMergeTest {
     @Test fun fusionBoutABout() {
         val a = trip(1, 1_000_000, 60, 60.0, 130.0, "Reims", "Charleville", price = 2.0)
         val b = trip(2, 1_000_000 + 5 * 3_600_000L, 30, 40.0, 150.0, "Charleville", "Sedan", price = 2.4)
-        val p = TripMerge.plan(listOf(b, a))!!
+        val p = TripMerge.plan(listOf(b.copy(wheelspins = 3), a.copy(wheelspins = 2)))!!
         val m = p.merged
-        assertEquals(listOf(a, b), p.sources)
+        assertEquals(listOf(a.copy(wheelspins = 2), b.copy(wheelspins = 3)), p.sources)
+        assertEquals(5, m.wheelspins)
         assertEquals(1_000_000L, m.start)
         assertEquals(90 * 60_000L, m.end - m.start)
         assertEquals(100.0, m.distanceKm, 0.001)

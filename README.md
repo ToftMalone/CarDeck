@@ -10,9 +10,8 @@ la pression du turbo, le niveau de carburant… ainsi que l'historique de tous t
 Deux tableaux de bord en direct, que tu bascules d'un geste :
 - **Standard** : vitesse, régime, température du liquide et de l'huile, niveau de carburant, consommation.
 - **Sport** : température d'admission, pression du collecteur et de suralimentation (en bar), avance à l'allumage.
-- 🛞 **Patinage** : quand les roues motrices patinent (la vitesse grimpe plus vite que la voiture ne peut accélérer), un bandeau le signale
-  pendant quelques secondes, et précise si l'antipatinage a coupé le couple (papillon refermé, allumage retardé : d'où les détonations
-  à l'échappement). Le nombre de patinages depuis la connexion s'affiche aussi.
+- 🛞 **Patinage** : chaque trajet enregistre le nombre de patinages des roues motrices (la vitesse grimpe plus vite que la voiture
+  ne peut accélérer), affiché avec la durée et la distance du trajet.
 
 ### 📟 Données OBD2
 Les valeurs du moteur que ton véhicule fournit, rangées par catégories, avec l'état de la liaison avec le boîtier.

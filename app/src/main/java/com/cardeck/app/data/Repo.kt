@@ -14,7 +14,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** Version du schéma de la base (sauvegardes comprises). */
-const val DB_VERSION = 7
+const val DB_VERSION = 8
 
 /** Efface les mesures de données que CarDeck ne lit plus (celles absentes des catalogues actuels). */
 fun purgeRemovedPids(db: SQLiteDatabase) {
@@ -47,6 +47,7 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         addCodingVin(db)
         createSampleTables(db)
         addFuelColumns(db)
+        addWheelspins(db)
         db.execSQL("CREATE TABLE scan_codes(scan_id INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE, code TEXT NOT NULL, status TEXT NOT NULL, ecu TEXT NOT NULL)")
     }
 
@@ -56,6 +57,12 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         if (oldVersion < 4) addFuelColumns(db)
         if (oldVersion < 6) purgeRemovedPids(db)
         if (oldVersion < 7) addCodingVin(db)
+        if (oldVersion < 8) addWheelspins(db)
+    }
+
+    /** Nombre de patinages des roues pendant le trajet. */
+    private fun addWheelspins(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE trips ADD COLUMN wheelspins INTEGER NOT NULL DEFAULT 0")
     }
 
     /** VIN de la voiture sur laquelle le codage d'origine a été lu (restauration refusée sur une autre voiture). */
@@ -214,9 +221,10 @@ class Repo(ctx: Context) {
             out
         }
 
-    fun finishTrip(id: Long, end: Long, distanceKm: Double, avgKmh: Double, maxKmh: Double, from: String, to: String) {
+    fun finishTrip(id: Long, end: Long, distanceKm: Double, avgKmh: Double, maxKmh: Double, from: String, to: String, wheelspins: Int = 0) {
         db.update("trips", ContentValues().apply {
             put("end_t", end); put("distance_km", distanceKm); put("avg_kmh", avgKmh); put("max_kmh", maxKmh); put("from_label", from); put("to_label", to)
+            put("wheelspins", wheelspins)
         }, "id=?", arrayOf(id.toString()))
         bump()
     }
@@ -254,6 +262,7 @@ class Repo(ctx: Context) {
                 put("distance_km", m.distanceKm); put("avg_kmh", m.avgKmh); put("max_kmh", m.maxKmh)
                 put("from_label", m.from); put("to_label", m.to)
                 put("fuel_type", m.fuelType?.name); put("fuel_price", m.fuelPrice); put("fuel_price_info", m.fuelPriceInfo)
+                put("wheelspins", m.wheelspins)
             })
             plan.sources.forEachIndexed { i, t ->
                 val args = arrayOf<Any>(newId, plan.shifts[i], t.id)
@@ -277,6 +286,7 @@ class Repo(ctx: Context) {
         c.long("id"), c.long("vehicle_id"), c.long("start"), c.long("end_t"), c.dbl("distance_km"), c.dbl("avg_kmh"), c.dbl("max_kmh"),
         c.str("from_label") ?: "", c.str("to_label") ?: "",
         FuelType.of(c.str("fuel_type")), c.getColumnIndexOrThrow("fuel_price").let { if (c.isNull(it)) null else c.getDouble(it) }, c.str("fuel_price_info"),
+        c.getInt(c.getColumnIndexOrThrow("wheelspins")),
     )
 
     /** Carburant du véhicule : choisi par l'utilisateur, sinon celui conseillé par le modèle. */

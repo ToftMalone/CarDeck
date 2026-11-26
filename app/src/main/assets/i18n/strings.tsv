@@ -1568,7 +1568,4 @@ Indiquez le nom du partage	Enter the share name	Gib den Namen der Freigabe ein	�
 Nom du partage incorrect	Incorrect share name	Falscher Name der Freigabe	Неверное название общей папки	Nombre del recurso compartido incorrecto
 Dossier incorrect	Incorrect folder	Falscher Ordner	Неверная папка	Carpeta incorrecta
 Indiquez le nom d'utilisateur	Enter the user name	Gib den Benutzernamen ein	Укажите имя пользователя	Indica el nombre de usuario
-Patinage des roues	Wheelspin	Durchdrehende Räder	Пробуксовка колёс	Patinaje de las ruedas
-L'antipatinage a coupé le couple : papillon refermé et allumage retardé, d'où les détonations à l'échappement.	Traction control cut the torque: throttle closed and ignition retarded, hence the bangs from the exhaust.	Die Antriebsschlupfregelung hat das Drehmoment reduziert: Drosselklappe geschlossen und Zündung zurückgenommen, daher die Knallgeräusche im Auspuff.	Антипробуксовочная система снизила момент: дроссель прикрыт, зажигание сдвинуто позже — отсюда хлопки в выхлопе.	El control de tracción ha cortado el par: mariposa cerrada y encendido retrasado, de ahí las detonaciones en el escape.
-Les roues motrices ont patiné.	The driven wheels spun.	Die Antriebsräder haben durchgedreht.	Ведущие колёса пробуксовали.	Las ruedas motrices han patinado.
-Patinages depuis la connexion : {}	Wheelspins since connecting: {}	Durchdrehende Räder seit dem Verbinden: {}	Пробуксовок с момента подключения: {}	Patinajes desde la conexión: {}
+Patinages	Wheelspins	Radschlupf	Пробуксовки	Patinajes
