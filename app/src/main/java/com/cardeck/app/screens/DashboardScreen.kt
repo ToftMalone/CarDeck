@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -91,17 +92,20 @@ fun DashboardScreen(vm: AppViewModel) {
     // Toutes les données sont lues en permanence par le service : l'écran affiche les dernières valeurs.
     LaunchedEffect(Unit) { vm.obd.keepReading() }
 
+    val scroll = rememberScrollState()
     Column(Modifier.fillMaxSize()) {
-        com.cardeck.app.ui.PageBar(if (sport) "Tableau Sport" else "Tableau de bord", v.nickname, { vm.back() }) {
+        com.cardeck.app.ui.PageBar(if (sport) "Tableau Sport" else "Tableau de bord", v.nickname, { vm.back() }, scrolled = scroll.value > 48) {
             ModeSelector(sport) { vm.updateDashSport(it) }
         }
         Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+            Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val sup = supported
-            when {
-                !connected -> {
+            // Non connecté → lecture des données disponibles → jauges : passage en fondu, pas d'un coup.
+            val phase = when { !connected -> 0; sup == null -> 1; else -> 2 }
+            com.cardeck.app.ui.StateSwap(phase) { ph -> when {
+                ph == 0 -> {
                     com.cardeck.app.ui.EmptyStateCard(
                         if (v.adapter == null) Icons.Rounded.SettingsInputHdmi else Icons.Rounded.LinkOff,
                         "Boîtier non connecté", "Connectez le boîtier OBD2 pour afficher les données du moteur.",
@@ -110,7 +114,7 @@ fun DashboardScreen(vm: AppViewModel) {
                         else com.cardeck.app.ui.TonalBtn("Se connecter", { vm.connectNow() })
                     }
                 }
-                sup == null -> com.cardeck.app.ui.EmptyStateCard(
+                ph == 1 || sup == null -> com.cardeck.app.ui.EmptyStateCard(
                     Icons.Rounded.HourglassEmpty, "Lecture des données disponibles…",
                     "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.",
                 )
@@ -134,7 +138,7 @@ fun DashboardScreen(vm: AppViewModel) {
                         }
                     }
                 }
-            }
+            } }
         }
     }
 }
@@ -161,7 +165,7 @@ private fun GaugeCard(g: Gauge, modifier: Modifier) {
         Box(Modifier.padding(top = 6.dp).size(138.dp), contentAlignment = Alignment.Center) {
             com.cardeck.app.ui.ArcGauge(frac(p, value) ?: 0f, acc.accent, 10f, Modifier.fillMaxSize(), track = c.sf3, knob = if (value != null) acc.onAccent else null)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(value?.let { p.text(it) } ?: "—", style = gs(30, 36, 500, -0.5f, tnum = true), color = c.on, maxLines = 1)
+                Text(value?.let { p.text(it) } ?: "—", Modifier.padding(horizontal = 16.dp), style = gs(30, 36, 500, -0.5f, tnum = true), color = c.on, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(p.unit, style = rf(12, 16), color = c.onv, maxLines = 1)
             }
             val dec = if (p.max - p.min < 10) 1 else 0
@@ -180,15 +184,15 @@ private fun ModeSelector(sport: Boolean, onChange: (Boolean) -> Unit) {
     val c = Cd.c
     val acc = Cd.acc
     val haptics = Cd.haptics
-    Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(Modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         listOf(false to "Standard", true to "Sport").forEach { (isSport, label) ->
             val sel = isSport == sport
             val bg by animateColorAsState(if (sel) acc.accent else c.sf3, tween(250, easing = Motion.Emphasized), label = "mode")
             val fg by animateColorAsState(if (sel) acc.onAccent else c.onv, tween(250, easing = Motion.Emphasized), label = "modeFg")
             Box(
-                Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(bg).clickable { if (!sel) { haptics.segment(); onChange(isSport) } }.padding(horizontal = 12.dp),
+                Modifier.heightIn(min = 32.dp).clip(RoundedCornerShape(16.dp)).background(bg).clickable { if (!sel) { haptics.segment(); onChange(isSport) } }.padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center,
-            ) { T(label, 13, fg, 600) }
+            ) { T(label, 13, fg, 600, maxLines = 1) }
         }
     }
 }

@@ -114,6 +114,22 @@ class I18nTest {
     }
 
     @Test
+    fun textesVouvoyesTraduits() {
+        val fr = listOf(
+            "Sélectionnez un 2e trajet pour fusionner", "Choisissez une autre période pour retrouver vos trajets.",
+            "Connectez le boîtier OBD2 pour vérifier.", "Celles de votre fond d'écran (Material You), ou une palette fixe",
+            "Au moment de sauvegarder, vous choisissez la protection : aucune ou chiffrée par CarDeck.",
+            "Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.",
+            "Content de vous revoir. On démarre ?", "Patinages",
+        )
+        for (l in Lang.entries.drop(1)) {
+            I18n.lang = l
+            val missing = fr.filter { tr(it) == it }
+            assertTrue("${l.code} : $missing", missing.isEmpty())
+        }
+    }
+
+    @Test
     fun langueDuTelephone() {
         val saved = java.util.Locale.getDefault()
         try {

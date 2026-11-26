@@ -131,7 +131,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 Column(Modifier.fillMaxWidth().background(c.sf1).padding(16.dp)) {
                     T("Couleurs", 16)
                     T(
-                        if (com.cardeck.app.ui.dynamicColorAvailable) "Celles de ton fond d'écran (Material You), ou une palette fixe"
+                        if (com.cardeck.app.ui.dynamicColorAvailable) "Celles de votre fond d'écran (Material You), ou une palette fixe"
                         else "Palette de l'application",
                         13, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 14.dp),
                     )
@@ -189,8 +189,8 @@ private fun WakeSection(vm: AppViewModel, vehicles: List<VehicleProfile>) {
     val anyAuto = remember(vehicles, changes) { vehicles.any { vm.repo.wake(it.id).any } }
     T(
         "Après un trajet, ou 5 minutes sans rouler (hors de l'application), CarDeck se met en veille, sans notification. " +
-            "Elle en sort quand tu l'ouvres, ou à la connexion Bluetooth choisie ci-dessus." +
-            if (anyAuto && !battery) " Pour cela, l'optimisation de batterie doit être désactivée pour CarDeck : touche ici pour l'autoriser." else "",
+            "Elle en sort quand vous l'ouvrez, ou à la connexion Bluetooth choisie ci-dessus." +
+            if (anyAuto && !battery) " Pour cela, l'optimisation de batterie doit être désactivée pour CarDeck : touchez ici pour l'autoriser." else "",
         12, if (anyAuto && !battery) c.e else c.onv, lineHeight = 16,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).then(
             if (anyAuto && !battery) Modifier.clickable { batteryLauncher.launch(batteryIntent(ctx)) } else Modifier,
@@ -301,7 +301,7 @@ private fun BackupSection(vm: AppViewModel) {
         }
     }
     T(
-        busy ?: "Au moment de sauvegarder, tu choisis la protection : aucune ou chiffrée par CarDeck.",
+        busy ?: "Au moment de sauvegarder, vous choisissez la protection : aucune ou chiffrée par CarDeck.",
         12, if (busy != null) c.p else c.onv, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), lineHeight = 16,
     )
 
@@ -336,7 +336,7 @@ private fun BackupProtectionDialog(toServer: Boolean, onDismiss: () -> Unit, onC
                 ) { mode = BackupCrypto.MODE_APP }
                 ProtectionOption(
                     Icons.Rounded.LockOpen, "Sans protection", "Fichier en clair, aucun mot de passe. ⚠️ Toute personne qui récupère ce fichier " +
-                        "peut lire toutes tes données : véhicules, trajets avec positions GPS, diagnostics, réglages.",
+                        "peut lire toutes vos données : véhicules, trajets avec positions GPS, diagnostics, réglages.",
                     mode == BackupCrypto.MODE_PLAIN, true,
                 ) { mode = BackupCrypto.MODE_PLAIN }
             }

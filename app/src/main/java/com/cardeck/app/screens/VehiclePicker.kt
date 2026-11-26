@@ -20,6 +20,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.widthIn
+import com.cardeck.app.ui.Motion
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -135,34 +143,47 @@ fun AddVehicleScreen(vm: AppViewModel) {
             if (query.isBlank()) VinCard(vm, atRoot = brand == null)
             if (query.isBlank()) Breadcrumb(brand, model, onRoot = { brandName = null; modelName = null }, onBrand = { modelName = null })
         }
+        // Profondeur : 0 marques, 1 modèles, 2 motorisations ; la recherche est à part (fondu sans glissement).
+        val depth = if (query.isNotBlank()) -1 else level.ordinal
+        val hits = remember(query) { if (query.isBlank()) emptyList() else searchCatalog(query) }
         AnimatedContent(
-            targetState = if (query.isNotBlank()) "search" else "${level.name}:${brand?.name}:${model?.name}",
+            targetState = PickerPage(depth, if (query.isNotBlank()) "search" else "${brand?.name}:${model?.name}"),
             transitionSpec = {
-                val deeper = targetState.count { it == ':' } >= initialState.count { it == ':' } && targetState.length >= initialState.length
-                (slideInHorizontally(tween(260)) { if (deeper) it / 6 else -it / 6 } + fadeIn(tween(220))) togetherWith fadeOut(tween(120)) +
-                    slideOutHorizontally(tween(260)) { if (deeper) -it / 6 else it / 6 }
+                val dir = when {
+                    initialState.depth < 0 || targetState.depth < 0 -> 0
+                    targetState.depth > initialState.depth -> 1
+                    targetState.depth < initialState.depth -> -1
+                    else -> 0
+                }
+                (slideInHorizontally(tween(260, easing = Motion.Emphasized)) { it / 6 * dir } + fadeIn(tween(220))) togetherWith
+                    (fadeOut(tween(120)) + slideOutHorizontally(tween(260, easing = Motion.Emphasized)) { -it / 6 * dir })
             },
             modifier = Modifier.weight(1f),
             label = "picker",
-        ) { key ->
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ) { page ->
+            // Liste paresseuse : seules les lignes visibles sont créées (jusqu'à plusieurs dizaines de modèles par marque).
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 when {
-                    key == "search" -> SearchResults(query) { tplId = it.id }
-                    level == Level.Brands -> CATALOG.forEach { b ->
+                    page.depth < 0 -> searchResults(hits) { tplId = it.id }
+                    level == Level.Brands -> items(CATALOG) { b ->
                         PickRow(b.name, "${b.models.size} modèle${if (b.models.size > 1) "s" else ""}", initial = b.name.take(1)) {
                             brandName = b.name; modelName = null
                         }
                     }
                     level == Level.Models && brand != null -> {
                         val matching = if (vinYear != null) Vin.candidates(brand, vinYear).map { it.first.name }.toSet() else emptySet()
-                        brand.models.sortedByDescending { it.name in matching }.forEach { m ->
+                        items(brand.models.sortedByDescending { it.name in matching }) { m ->
                             val years = m.generations.mapNotNull { it.years.takeIf(String::isNotBlank) }
                             PickRow(m.name, generationsLabel(m), initial = null, sub2 = yearsRange(years), tag = if (m.name in matching) "Correspond à $vinYear" else null) { modelName = m.name }
                         }
                     }
                     model != null && brand != null -> {
                         fun hit(g: com.cardeck.app.data.CatalogGeneration) = if (vinGen != null) g.name == vinGen else vinYear != null && Vin.matches(g, vinYear)
-                        model.generations.sortedByDescending { hit(it) }.forEach { g -> GenerationBlock(brand, model, g, highlight = hit(g)) { tplId = it.id } }
+                        model.generations.sortedByDescending { hit(it) }.forEach { g -> generationBlock(brand, model, g, highlight = hit(g)) { tplId = it.id } }
                     }
                 }
             }
@@ -242,22 +263,31 @@ private fun PickRow(title: String, sub: String, initial: String?, sub2: String? 
             T(title, 16, weight = 500, lineHeight = 22, maxLines = 1)
             T(listOfNotNull(sub, sub2).joinToString(" · "), 12, c.onv, lineHeight = 16, maxLines = 1)
         }
-        if (tag != null) Box(Modifier.clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp)) { T(tag, 11, c.op, 600) }
+        if (tag != null) Box(Modifier.widthIn(max = 120.dp).clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 3.dp)) { T(tag, 11, c.op, 600, maxLines = 2) }
         Ico(Icons.AutoMirrored.Rounded.KeyboardArrowRight, 24, c.onv)
     }
 }
 
+/** Page affichée par le sélecteur ([depth] = -1 pour la recherche). */
+private data class PickerPage(val depth: Int, val key: String)
+
 /** Une génération et ses motorisations. */
-@Composable
-private fun GenerationBlock(brand: CatalogBrand, model: CatalogModel, g: CatalogGeneration, highlight: Boolean = false, onPick: (VehicleTemplate) -> Unit) {
-    val c = Cd.c
-    val title = if (brand.name == OTHER) g.name else "${model.name} ${g.name}"
-    Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        T(title, 14, c.p, 600)
-        if (g.years.isNotBlank()) T(g.years, 12, c.onv)
-        if (highlight) Box(Modifier.clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 2.dp)) { T("Correspond à votre VIN", 11, c.op, 600) }
+@OptIn(ExperimentalLayoutApi::class)
+private fun LazyListScope.generationBlock(brand: CatalogBrand, model: CatalogModel, g: CatalogGeneration, highlight: Boolean = false, onPick: (VehicleTemplate) -> Unit) {
+    item(key = "g:" + g.name) {
+        val c = Cd.c
+        val title = if (brand.name == OTHER) g.name else "${model.name} ${g.name}"
+        // Titre, années et pastille VIN passent à la ligne si la place manque (noms longs, textes traduits).
+        FlowRow(
+            Modifier.fillMaxWidth().padding(start = 4.dp, top = 12.dp, bottom = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            T(title, 14, c.p, 600, modifier = Modifier.align(Alignment.Bottom))
+            if (g.years.isNotBlank()) T(g.years, 12, c.onv, modifier = Modifier.align(Alignment.Bottom))
+            if (highlight) Box(Modifier.align(Alignment.Bottom).clip(RoundedCornerShape(14.dp)).background(c.p).padding(horizontal = 8.dp, vertical = 2.dp)) { T("Correspond à votre VIN", 11, c.op, 600) }
+        }
     }
-    g.variants.forEach { t -> VariantRow(t, null, onPick) }
+    items(g.variants) { t -> VariantRow(t, null, onPick) }
 }
 
 @Composable
@@ -286,19 +316,17 @@ private fun DedicatedBadge() {
     }
 }
 
-@Composable
-private fun SearchResults(query: String, onPick: (VehicleTemplate) -> Unit) {
-    val c = Cd.c
-    val hits = remember(query) { searchCatalog(query) }
-    if (hits.isEmpty()) {
+private fun LazyListScope.searchResults(hits: List<com.cardeck.app.data.CatalogHit>, onPick: (VehicleTemplate) -> Unit) {
+    if (hits.isEmpty()) item("none") {
+        val c = Cd.c
         Column(Modifier.fillMaxWidth().padding(top = 16.dp).clip(RoundedCornerShape(24.dp)).background(c.sf1).padding(20.dp)) {
             T("Aucun véhicule trouvé", 16, weight = 500)
             T("Essayez la marque et le modèle seuls, ou choisissez « $OTHER » : les données OBD2 standard fonctionnent sur toutes les voitures essence depuis 2001 et diesel depuis 2004.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(top = 4.dp))
         }
-        return
     }
-    T("${hits.size}${if (hits.size >= 60) "+" else ""} résultat${if (hits.size > 1) "s" else ""}", 13, c.onv, 500, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
-    hits.forEach { h ->
+    if (hits.isEmpty()) return
+    item("count") { T("${hits.size}${if (hits.size >= 60) "+" else ""} résultat${if (hits.size > 1) "s" else ""}", 13, Cd.c.onv, 500, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)) }
+    items(hits) { h ->
         val ctx = if (h.brand.name == OTHER) "$OTHER · ${h.generation.name}"
         else "${h.brand.name} ${h.model.name} ${h.generation.name}" + if (h.generation.years.isNotBlank()) " · ${h.generation.years}" else ""
         VariantRow(h.template, ctx, onPick)

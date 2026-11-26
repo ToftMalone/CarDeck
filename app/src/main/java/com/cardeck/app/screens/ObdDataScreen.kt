@@ -61,11 +61,12 @@ fun ObdDataScreen(vm: AppViewModel) {
     val values by vm.obd.live.collectAsState()
     val supported by vm.obd.supported.collectAsState()
 
+    val scroll = rememberScrollState()
     Column(Modifier.fillMaxSize()) {
-        com.cardeck.app.ui.PageBar("Données OBD2", v.nickname + " · " + v.plate.ifBlank { tpl.code }, { vm.back() }) {
+        com.cardeck.app.ui.PageBar("Données OBD2", v.nickname + " · " + v.plate.ifBlank { tpl.code }, { vm.back() }, scrolled = scroll.value > 48) {
             com.cardeck.app.ui.StatusChip(connLabel, connDot(connKind), blink = connKind != ConnKind.Off)
         }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
             // Liaison
             val a = v.adapter
             com.cardeck.app.ui.InfoList("Liaison OBD2", Modifier.rise(0)) {
@@ -92,7 +93,7 @@ fun ObdDataScreen(vm: AppViewModel) {
             com.cardeck.app.ui.Text("Toutes les valeurs du véhicule", Modifier.padding(start = 4.dp, top = 24.dp, bottom = 4.dp), style = com.cardeck.app.ui.gs(22, 28, 500), color = c.on)
             when {
                 !connected -> T("Boîtier non connecté : les valeurs s'afficheront dès la connexion.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
-                supported == null -> T("Mets le contact : CarDeck interroge le véhicule pour savoir quelles données il fournit.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
+                supported == null -> T("Mettez le contact. CarDeck interroge le véhicule pour savoir quelles données il fournit.", 13, c.onv, lineHeight = 18, modifier = Modifier.padding(bottom = 4.dp))
             }
             if (std.isEmpty()) EmptyNote(Icons.Rounded.HourglassEmpty, "Aucune donnée standard", "Ce véhicule ne déclare aucun PID OBD2 standard.")
             StdPids.CATEGORIES.forEach { cat ->

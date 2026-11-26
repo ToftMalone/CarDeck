@@ -64,6 +64,11 @@ import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.AlertDialog
+import kotlin.math.roundToInt
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.layout.layout
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -136,7 +141,6 @@ fun TripsScreen(vm: AppViewModel) {
     val changes by vm.repo.changes.collectAsState()
     var all by remember(v.id) { mutableStateOf<List<Trip>?>(null) }
     LaunchedEffect(v.id, changes) { all = withContext(Dispatchers.IO) { vm.repo.trips(v.id) } }
-    val scroll = rememberScrollState()
     val tf = vm.tripFilter
     val now = System.currentTimeMillis()
     val list = all.orEmpty().filter { tripInPeriod(it, tf, now) }
@@ -154,86 +158,123 @@ fun TripsScreen(vm: AppViewModel) {
     val ctx = LocalContext.current
     var exporting by remember { mutableStateOf(false) }
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val scrolled by remember { androidx.compose.runtime.derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 48 } }
+    // Trajets déjà apparus : leur animation d'entrée ne rejoue pas quand ils reviennent à l'écran en défilant.
+    val seen = remember(v.id) { HashSet<Long>() }
+    val entrance = com.cardeck.app.ui.LocalEntrance.current
+    var shownCount by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    if (chosen.isNotEmpty()) shownCount = chosen.size
     Column(Modifier.fillMaxSize()) {
-        if (selecting) Row(
-            Modifier.fillMaxWidth().height(64.dp).background(c.sf2).padding(start = 4.dp, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+        // Barre du haut : titre, ou nombre de trajets choisis en mode sélection (passage en fondu).
+        androidx.compose.animation.AnimatedContent(
+            selecting, label = "tripsBar",
+            transitionSpec = { androidx.compose.animation.fadeIn(tween(220, easing = com.cardeck.app.ui.Motion.Emphasized)) togetherWith androidx.compose.animation.fadeOut(tween(120)) },
+        ) { sel ->
+            if (sel) Row(
+                Modifier.fillMaxWidth().height(64.dp).background(c.sf2).padding(start = 4.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                IconBtn(Icons.Rounded.Close, { selected = emptySet() })
+                T("$shownCount sélectionné${if (shownCount > 1) "s" else ""}", 18, weight = 500, modifier = Modifier.weight(1f))
+                IconBtn(Icons.Rounded.SelectAll, { selected = if (chosen.size == list.size) emptySet() else list.map { it.id }.toSet() })
+            } else BackBar("Trajets", scrolled, { vm.back() })
+        }
+        // Liste paresseuse : seuls les trajets visibles sont créés, même avec des centaines de trajets enregistrés.
+        androidx.compose.foundation.lazy.LazyColumn(
+            Modifier.weight(1f), state = listState,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
         ) {
-            IconBtn(Icons.Rounded.Close, { selected = emptySet() })
-            T("${chosen.size} sélectionné${if (chosen.size > 1) "s" else ""}", 18, weight = 500, modifier = Modifier.weight(1f))
-            IconBtn(Icons.Rounded.SelectAll, { selected = if (chosen.size == list.size) emptySet() else list.map { it.id }.toSet() })
-        } else BackBar("Trajets", scroll.value > 48, { vm.back() })
-        Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
-            ScreenTitle("Trajets", "${v.nickname} · ${list.size} trajet${if (list.size > 1) "s" else ""} · ${fr(km, 1)} km")
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TRIP_FILTERS.forEach { (k, l) -> CdChip(l, tf == k) { vm.tripFilter = k } }
+            item("title") { ScreenTitle("Trajets", "${v.nickname} · ${list.size} trajet${if (list.size > 1) "s" else ""} · ${fr(km, 1)} km") }
+            item("filters") {
+                Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TRIP_FILTERS.forEach { (k, l) -> CdChip(l, tf == k) { vm.tripFilter = k } }
+                }
             }
-            // Export pour un tableur : les trajets affichés (véhicule et période choisis), consommation et coût compris.
-            if (list.isNotEmpty() && !selecting) Box(Modifier.padding(bottom = 8.dp)) {
-                TextBtn(
-                    if (exporting) "Export en cours…" else "Exporter ${if (list.size > 1) "ces ${list.size} trajets" else "ce trajet"} (tableur)",
-                    {
-                        if (exporting) return@TextBtn
-                        exporting = true
-                        val trips = list
-                        val period = TRIP_FILTERS.firstOrNull { it.first == tf }?.second.orEmpty()
-                        scope.launch {
-                            val file = withContext(Dispatchers.IO) {
-                                runCatching {
-                                    val rows = trips.map { t ->
-                                        val fuel = t.fuelType ?: vm.repo.fuelFor(t.vehicleId)
-                                        TripExport.HistoryRow(t, v, fuel, com.cardeck.app.data.TripFuel.liters(vm.repo.fuelSamples(t.id), fuel))
-                                    }
-                                    TripExport.writeHistory(java.io.File(ctx.cacheDir, "exports"), rows, "${v.nickname} $period")
-                                }.getOrNull()
+                // Export pour un tableur : les trajets affichés (véhicule et période choisis), consommation et coût compris.
+                if (list.isNotEmpty() && !selecting) item("export") { Box {
+                    TextBtn(
+                        if (exporting) "Export en cours…" else "Exporter ${if (list.size > 1) "ces ${list.size} trajets" else "ce trajet"} (tableur)",
+                        {
+                            if (exporting) return@TextBtn
+                            exporting = true
+                            val trips = list
+                            val period = TRIP_FILTERS.firstOrNull { it.first == tf }?.second.orEmpty()
+                            scope.launch {
+                                val file = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        val rows = trips.map { t ->
+                                            val fuel = t.fuelType ?: vm.repo.fuelFor(t.vehicleId)
+                                            TripExport.HistoryRow(t, v, fuel, com.cardeck.app.data.TripFuel.liters(vm.repo.fuelSamples(t.id), fuel))
+                                        }
+                                        TripExport.writeHistory(java.io.File(ctx.cacheDir, "exports"), rows, "${v.nickname} $period")
+                                    }.getOrNull()
+                                }
+                                exporting = false
+                                if (file == null) vm.showSnack("Échec de l'export de l'historique") else shareFile(ctx, file, "text/csv", "Exporter l'historique des trajets")
                             }
-                            exporting = false
-                            if (file == null) vm.showSnack("Échec de l'export de l'historique") else shareFile(ctx, file, "text/csv", "Exporter l'historique des trajets")
-                        }
-                    },
-                    Icons.Rounded.TableChart,
-                )
-            }
+                        },
+                        Icons.Rounded.TableChart,
+                    )
+                } }
             val loaded = all
             when {
-                loaded == null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    repeat(3) {
-                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Skeleton(Modifier.width(110.dp).height(20.dp)); Skeleton(Modifier.width(52.dp).height(28.dp), 8.dp) }
-                            Skeleton(Modifier.fillMaxWidth(.6f).height(14.dp)); Skeleton(Modifier.fillMaxWidth(.45f).height(14.dp))
+                loaded == null -> item("loading") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        repeat(3) {
+                            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sf1).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Skeleton(Modifier.width(110.dp).height(20.dp)); Skeleton(Modifier.width(52.dp).height(28.dp), 8.dp) }
+                                Skeleton(Modifier.fillMaxWidth(.6f).height(14.dp)); Skeleton(Modifier.fillMaxWidth(.45f).height(14.dp))
+                            }
                         }
                     }
                 }
-                list.isEmpty() -> Column(Modifier.fillMaxWidth().padding(vertical = 48.dp, horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Ico(Icons.Rounded.Route, 40, c.onv)
-                    T(if (loaded.isEmpty()) "Aucun trajet enregistré pour l'instant" else "Aucun trajet sur cette période", 14, c.onv, modifier = Modifier.padding(top = 8.dp))
-                    if (loaded.isEmpty()) T("Les trajets sont enregistrés automatiquement dès que le moteur démarre avec le boîtier branché.", 13, c.onv, align = TextAlign.Center, modifier = Modifier.padding(top = 6.dp), lineHeight = 18)
+                list.isEmpty() -> item("empty") {
+                    Box(Modifier.padding(top = 8.dp).rise(0)) {
+                        com.cardeck.app.ui.EmptyStateCard(
+                            Icons.Rounded.Route,
+                            if (loaded.isEmpty()) "Aucun trajet enregistré pour l'instant" else "Aucun trajet sur cette période",
+                            if (loaded.isEmpty()) "Les trajets sont enregistrés automatiquement dès que le moteur démarre avec le boîtier branché."
+                            else "Choisissez une autre période pour retrouver vos trajets.",
+                        )
+                    }
                 }
                 else -> list.groupBy { dayLabel(it.start) }.forEach { (date, trips) ->
-                    com.cardeck.app.ui.Text(date, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = Cd.acc.accent)
-                    Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        trips.forEachIndexed { i, t ->
-                            key(t.id) {
-                                Box(Modifier.rise(i)) {
-                                    TripCard(
-                                        t, selecting, t.id in selected,
-                                        onClick = { if (selecting) selected = if (t.id in selected) selected - t.id else selected + t.id else vm.go(Screen.Trip(t.id)) },
-                                        onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selected = selected + t.id },
-                                    )
-                                }
+                    item("d:$date") {
+                        com.cardeck.app.ui.Text(date, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), style = com.cardeck.app.ui.rf(14, 20, 600), color = Cd.acc.accent)
+                    }
+                    items(trips.size, key = { trips[it].id }) { i ->
+                        val t = trips[i]
+                        val first = remember { seen.add(t.id) }
+                        androidx.compose.runtime.CompositionLocalProvider(com.cardeck.app.ui.LocalEntrance provides (entrance && first)) {
+                            Box(Modifier.padding(bottom = if (i == trips.lastIndex) 20.dp else 8.dp).rise(i.coerceAtMost(6))) {
+                                TripCard(
+                                    t, selecting, t.id in selected,
+                                    onClick = { if (selecting) selected = if (t.id in selected) selected - t.id else selected + t.id else vm.go(Screen.Trip(t.id)) },
+                                    onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selected = selected + t.id },
+                                )
                             }
                         }
                     }
                 }
             }
         }
-        if (selecting) Row(
-            Modifier.fillMaxWidth().background(c.sf2).padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
+        // Barre d'actions de la sélection : monte depuis le bas, redescend en sortant du mode sélection.
+        androidx.compose.animation.AnimatedVisibility(
+            selecting,
+            enter = androidx.compose.animation.expandVertically(tween(250, easing = com.cardeck.app.ui.Motion.Emphasized)) + androidx.compose.animation.fadeIn(tween(200)),
+            exit = androidx.compose.animation.shrinkVertically(tween(200, easing = com.cardeck.app.ui.Motion.EmphasizedAccelerate)) + androidx.compose.animation.fadeOut(tween(150)),
         ) {
-            if (chosen.size >= 2) TextBtn("Fusionner (${chosen.size})", { confirm = "merge" }, Icons.Rounded.CallMerge)
-            else T("Sélectionne un 2e trajet pour fusionner", 12, c.onv)
-            TextBtn("Supprimer (${chosen.size})", { confirm = "delete" }, Icons.Rounded.Delete, c.e)
+            Row(
+                Modifier.fillMaxWidth().background(c.sf2).padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Pendant la sortie (sélection vidée), la barre garde le dernier nombre affiché au lieu de passer à 0.
+                val n = shownCount
+                if (n >= 2) TextBtn("Fusionner ($n)", { confirm = "merge" }, Icons.Rounded.CallMerge)
+                else T("Sélectionnez un 2e trajet pour fusionner", 12, c.onv)
+                TextBtn("Supprimer ($n)", { confirm = "delete" }, Icons.Rounded.Delete, c.e)
+            }
         }
     }
 
@@ -323,8 +364,8 @@ private fun TripCard(t: Trip, selecting: Boolean, selected: Boolean, onClick: ()
                 "Vit. moy." to "${fr(t.avgKmh)} km/h", "Vit. max" to "${fr(t.maxKmh)} km/h",
             ).forEach { (l, v) ->
                 Column(Modifier.weight(1f)) {
-                    com.cardeck.app.ui.Text(l, style = com.cardeck.app.ui.rf(11, 14), color = if (selected) acc.onContainer.copy(alpha = .8f) else c.onv)
-                    com.cardeck.app.ui.Text(v, style = com.cardeck.app.ui.rf(14, 20, 600, tnum = true), color = fg, maxLines = 1)
+                    com.cardeck.app.ui.Text(l, style = com.cardeck.app.ui.rf(11, 14), color = if (selected) acc.onContainer.copy(alpha = .8f) else c.onv, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    com.cardeck.app.ui.Text(v, style = com.cardeck.app.ui.rf(14, 20, 600, tnum = true), color = fg, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
         }
@@ -361,7 +402,6 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
     var exporting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
-    val sheetFrac by animateFloatAsState(if (sheetUp) .8f else .46f, tween(450), label = "sheet")
     val t = trip
 
     BoxWithConstraints(Modifier.fillMaxSize().background(c.sf1)) {
@@ -398,12 +438,41 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
             IconBtn(Icons.Rounded.Delete, { confirmDelete = true }, c.on, c.sf3, Modifier.shadow(4.dp, CircleShape))
         }
 
+        // Panneau du trajet : 80 % de la hauteur, descendu à 46 % visibles. Il glisse (pas de recalcul de son contenu à chaque
+        // image), se tire au doigt par sa poignée, et monte depuis le bas une fois le trajet chargé.
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val sheetH = maxHeight * .8f
+        val hiddenPx = with(density) { sheetH.toPx() }
+        val downPx = with(density) { (maxHeight * (.8f - .46f)).toPx() }
+        val sheetOff = remember(id) { androidx.compose.animation.core.Animatable(hiddenPx) }
+        val sheetSpring = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.85f, stiffness = 420f)
+        fun moveSheet(up: Boolean, velocity: Float = 0f) {
+            sheetUp = up
+            scope.launch { sheetOff.animateTo(if (up) 0f else downPx, sheetSpring, velocity) }
+        }
+        LaunchedEffect(t != null, downPx) { if (t != null) sheetOff.animateTo(if (sheetUp) 0f else downPx, sheetSpring) }
+        val drag = androidx.compose.foundation.gestures.rememberDraggableState { d ->
+            scope.launch { sheetOff.snapTo((sheetOff.value + d).coerceIn(0f, downPx)) }
+        }
         if (t != null) {
             Column(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(sheetFrac)
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(sheetH)
+                    .offset { androidx.compose.ui.unit.IntOffset(0, sheetOff.value.roundToInt()) }
                     .shadow(8.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(c.sf1),
             ) {
-                Box(Modifier.fillMaxWidth().clickable { sheetUp = !sheetUp }.padding(top = 16.dp, bottom = 10.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.fillMaxWidth()
+                        .draggable(
+                            drag, androidx.compose.foundation.gestures.Orientation.Vertical,
+                            onDragStopped = { v ->
+                                // Lancé franc : on suit le sens du geste ; sinon, la position la plus proche.
+                                val up = if (kotlin.math.abs(v) > 900f) v < 0 else sheetOff.value < downPx / 2
+                                moveSheet(up, v)
+                            },
+                        )
+                        .clickable { moveSheet(!sheetUp) }.padding(top = 16.dp, bottom = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Box(Modifier.width(32.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(c.onv.copy(alpha = .5f)))
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
@@ -411,7 +480,7 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                     T("${dayLabel(t.start)} · ${timeHm(t.start)} – ${timeHm(t.end)}", 14, c.onv, modifier = Modifier.padding(top = 4.dp))
                     ReplayBar(
                         t, replayT, playing, speedX,
-                        onPlay = { if (replayT == null || replayT!! >= t.end) replayT = t.start; playing = !playing; sheetUp = false },
+                        onPlay = { if (replayT == null || replayT!! >= t.end) replayT = t.start; playing = !playing; if (sheetUp) moveSheet(false) },
                         onSeek = { f -> replayT = t.start + ((t.end - t.start) * f).toLong() },
                         onSpeed = { speedX = REPLAY_SPEEDS[(REPLAY_SPEEDS.indexOf(speedX) + 1) % REPLAY_SPEEDS.size] },
                         onStop = { playing = false; replayT = null },
@@ -424,14 +493,16 @@ fun TripDetailScreen(vm: AppViewModel, id: Long) {
                         stats.chunked(2).forEachIndexed { i, row ->
                             Row(Modifier.rise(i), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { (l, v) ->
-                                    Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(horizontal = 16.dp, vertical = 12.dp)) { T(l, 12, c.onv); T(v, 20, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 28) }
+                                    Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(c.sf3).padding(horizontal = 16.dp, vertical = 12.dp)) { T(l, 12, c.onv); T(v, 20, weight = 500, modifier = Modifier.padding(top = 2.dp), lineHeight = 28, maxLines = 1) }
                                 }
-                                repeat(2 - row.size) { Box(Modifier.weight(1f)) }
+                                // Nombre impair de cases : la dernière prend toute la largeur (pas de trou à droite).
                             }
                         }
                     }
                     FuelCards(vm, t, samples) { trip = it }
                     EngineHistory(t, samples, replayT)
+                    // Panneau descendu : sa partie basse est hors de l'écran, cet espace laisse défiler jusqu'au dernier élément.
+                    Box(Modifier.layout { m, _ -> val h = sheetOff.value.roundToInt().coerceIn(0, downPx.roundToInt()); m.measure(androidx.compose.ui.unit.Constraints.fixed(0, 0)); layout(0, h) {} })
                 }
             }
         }
@@ -699,7 +770,7 @@ private fun EngineHistory(t: Trip, samples: Map<String, List<Sample>>, cursor: L
     val at = cursor ?: t.start
     T("Données du moment", 16, weight = 500, modifier = Modifier.padding(top = 20.dp))
     T(
-        if (cursor == null) "Au départ du trajet. Lance le replay pour voir les données évoluer." else "${timeHm(at)} · ${clock(at - t.start)} depuis le départ",
+        if (cursor == null) "Au départ du trajet. Lancez le replay pour voir les données évoluer." else "${timeHm(at)} · ${clock(at - t.start)} depuis le départ",
         12, c.onv, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
     )
     val series = samples.mapNotNull { (id, list) -> pidById(id)?.let { it to list } }.filter { it.second.isNotEmpty() }

@@ -200,8 +200,8 @@ fun AboutScreen(vm: AppViewModel) {
             T("CarDeck", 28, weight = 600, modifier = Modifier.padding(top = 12.dp))
             T("Version ${BuildConfig.VERSION_NAME}", 14, c.onv)
             T(
-                "Tableau de bord, diagnostic, trajets et données moteur de ta voiture, par la prise OBD2 et un boîtier ELM327 (Bluetooth, BLE ou Wi-Fi). " +
-                    "Les données restent sur ton téléphone.",
+                "Tableau de bord, diagnostic, trajets et données moteur de votre voiture, par la prise OBD2 et un boîtier ELM327 (Bluetooth, BLE ou Wi-Fi). " +
+                    "Les données restent sur votre téléphone.",
                 14, c.onv, align = TextAlign.Center, lineHeight = 20, modifier = Modifier.padding(top = 16.dp),
             )
             Column(Modifier.fillMaxWidth().padding(top = 24.dp).clip(RoundedCornerShape(20.dp)), verticalArrangement = Arrangement.spacedBy(2.dp)) {

@@ -41,6 +41,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -101,6 +105,21 @@ fun T(
     )
 }
 
+/** Enfoncement au toucher (échelle 0,96, ressort), comme les cartes de l'accueil, en plus de l'onde. */
+@Composable
+fun rememberPress(): Pair<MutableInteractionSource, Float> {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, Motion.standard(), label = "press")
+    return interaction to scale
+}
+
+/** Enfoncement au toucher ([rememberPress]) puis clic avec l'onde habituelle. */
+fun Modifier.pressScale(scale: Float) = graphicsLayer { scaleX = scale; scaleY = scale }
+
+fun Modifier.pressClick(interaction: MutableInteractionSource, enabled: Boolean = true, onClick: () -> Unit) =
+    clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), enabled = enabled, onClick = onClick)
+
 @Composable
 fun Ico(icon: ImageVector, size: Int = 24, tint: Color = Cd.c.on, modifier: Modifier = Modifier) {
     Icon(icon, contentDescription = null, tint = tint, modifier = modifier.size(size.dp))
@@ -109,8 +128,9 @@ fun Ico(icon: ImageVector, size: Int = 24, tint: Color = Cd.c.on, modifier: Modi
 @Composable
 fun IconBtn(icon: ImageVector, onClick: () -> Unit, tint: Color = Cd.c.on, bg: Color = Color.Transparent, modifier: Modifier = Modifier) {
     val haptics = Cd.haptics
+    val (press, scale) = rememberPress()
     Box(
-        modifier.size(48.dp).clip(CircleShape).background(bg).clickable { haptics.tick(); onClick() },
+        modifier.size(48.dp).pressScale(scale).clip(CircleShape).background(bg).pressClick(press) { haptics.tick(); onClick() },
         contentAlignment = Alignment.Center,
     ) { Ico(icon, 24, tint) }
 }
@@ -120,7 +140,7 @@ fun IconBtn(icon: ImageVector, onClick: () -> Unit, tint: Color = Cd.c.on, bg: C
 fun BackBar(title: String?, scrolled: Boolean, onBack: () -> Unit, trailing: @Composable RowScope.() -> Unit = {}) {
     val bg by animateColorAsState(if (scrolled) Cd.c.sf2 else Cd.c.sf, tween(250, easing = Motion.Emphasized), label = "bar")
     Row(
-        Modifier.fillMaxWidth().height(64.dp).background(bg).padding(start = 4.dp, end = 8.dp),
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).background(bg).padding(start = 4.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -153,7 +173,7 @@ fun CdChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val bg by animateColorAsState(if (selected) acc.container else Color.Transparent, tween(200, easing = Motion.Emphasized), label = "chip")
     Row(
         Modifier
-            .height(32.dp)
+            .heightIn(min = 32.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(bg)
             .border(BorderStroke(1.dp, if (selected) Color.Transparent else c.olv), RoundedCornerShape(8.dp))
@@ -163,7 +183,7 @@ fun CdChip(label: String, selected: Boolean, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (selected) Ico(Icons.Rounded.Check, 18, acc.onContainer)
-        Text(label, style = rf(13, 18, 600), color = if (selected) acc.onContainer else c.onv, maxLines = 1)
+        Text(label, style = rf(13, 18, 600), color = if (selected) acc.onContainer else c.onv, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -181,13 +201,13 @@ fun Segmented(options: List<Triple<String, ImageVector?, Boolean>>, onSelect: (I
             val bg by animateColorAsState(if (sel) acc.accent else Color.Transparent, tween(250, easing = Motion.Emphasized), label = "seg")
             val fg by animateColorAsState(if (sel) acc.onAccent else c.onv, tween(250, easing = Motion.Emphasized), label = "segFg")
             Row(
-                Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(16.dp)).background(bg)
+                Modifier.weight(1f).heightIn(min = 40.dp).clip(RoundedCornerShape(16.dp)).background(bg)
                     .clickable { if (!sel) { haptics.segment(); onSelect(i) } }.padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
                 if (icon != null) { Ico(icon, 18, fg); Spacer(Modifier.width(4.dp)) }
-                Text(label, style = rf(14, 18, 600), color = fg, maxLines = 1)
+                Text(label, style = rf(14, 18, 600), color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -214,21 +234,23 @@ fun FilledBtn(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, 
     val c = Cd.c
     val acc = Cd.acc
     val haptics = Cd.haptics
+    val (press, scale) = rememberPress()
     Row(
-        modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(28.dp))
+        modifier.fillMaxWidth().heightIn(min = 56.dp).pressScale(scale).clip(RoundedCornerShape(28.dp))
             .background(if (enabled) acc.accent else c.on.copy(alpha = 0.12f))
-            .clickable(enabled = enabled) { haptics.confirm(); onClick() }.padding(horizontal = 28.dp),
+            .pressClick(press, enabled) { haptics.confirm(); onClick() }.padding(horizontal = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
-    ) { Text(text, style = rf(16, 20, 600), color = if (enabled) acc.onAccent else c.on.copy(alpha = 0.38f), maxLines = 1) }
+    ) { Text(text, style = rf(16, 20, 600), color = if (enabled) acc.onAccent else c.on.copy(alpha = 0.38f), maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 /** Action en texte (couleur de l'accent). */
 @Composable
 fun TextBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, color: Color = Cd.acc.accent, weight: Int = 600) {
     val haptics = Cd.haptics
+    val (press, scale) = rememberPress()
     Row(
-        Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).clickable { haptics.tick(); onClick() }.padding(horizontal = 12.dp),
+        Modifier.heightIn(min = 40.dp).pressScale(scale).clip(RoundedCornerShape(20.dp)).pressClick(press) { haptics.tick(); onClick() }.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -259,7 +281,7 @@ fun SectionCard(
 fun StatusChip(text: String, dot: Color, blink: Boolean = false, onClick: (() -> Unit)? = null) {
     val c = Cd.c
     Row(
-        Modifier.height(28.dp).clip(RoundedCornerShape(14.dp)).background(c.sf)
+        Modifier.heightIn(min = 28.dp).clip(RoundedCornerShape(14.dp)).background(c.sf)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -379,10 +401,12 @@ fun ConnDot() = BlinkDot(Cd.c.g, 8.dp)
 
 /** Barre du haut d'une page : retour, titre (Google Sans Flex 22) et sous-titre, action à droite. */
 @Composable
-fun PageBar(title: String, subtitle: String?, onBack: () -> Unit, trailing: @Composable RowScope.() -> Unit = {}) {
+fun PageBar(title: String, subtitle: String?, onBack: () -> Unit, scrolled: Boolean = false, trailing: @Composable RowScope.() -> Unit = {}) {
     val c = Cd.c
+    // Comme [BackBar] : une fois la page défilée, la barre prend une teinte de surface.
+    val bg by animateColorAsState(if (scrolled) c.sf2 else c.sf, tween(250, easing = Motion.Emphasized), label = "bar")
     Row(
-        Modifier.fillMaxWidth().height(64.dp).background(c.sf).padding(start = 4.dp, end = 8.dp),
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).background(bg).padding(start = 4.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -420,7 +444,7 @@ fun MetricTile(label: String, value: String, unit: String = "", icon: ImageVecto
             Text(label, style = rf(12, 16), color = c.onv, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(value, style = gs(28, 32, 500, tnum = true), color = c.on, maxLines = 1)
+            Text(value, Modifier.weight(1f, fill = false), style = gs(28, 32, 500, tnum = true), color = c.on, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (unit.isNotEmpty()) Text(unit, Modifier.padding(bottom = 3.dp), style = rf(12, 16), color = c.onv, maxLines = 1)
         }
         if (level != null) LevelBar(level, Cd.acc.accent, Modifier.padding(top = 10.dp), height = 6.dp)
@@ -442,10 +466,13 @@ fun ValueTile(label: String, value: String, modifier: Modifier = Modifier) {
 fun InfoLine(label: String, value: String, valueColor: Color = Cd.c.on) {
     val c = Cd.c
     Box(Modifier.fillMaxWidth().height(1.dp).background(c.olv))
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(label, style = rf(14, 20), color = c.onv)
-        Spacer(Modifier.weight(1f))
-        Text(value, Modifier.padding(vertical = 8.dp), style = rf(14, 20, 500, tnum = true), color = valueColor, textAlign = TextAlign.End)
+    // Libellé et valeur se partagent la ligne : la valeur garde au moins 40 % de la largeur, rien n'est écrasé (textes traduits plus longs).
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val maxW = maxWidth
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(label, Modifier.widthIn(max = maxW * 0.6f), style = rf(14, 20), color = c.onv)
+            Text(value, Modifier.weight(1f).padding(vertical = 8.dp), style = rf(14, 20, 500, tnum = true), color = valueColor, textAlign = TextAlign.End)
+        }
     }
 }
 
@@ -481,15 +508,16 @@ fun TonalBtn(text: String, onClick: () -> Unit, icon: ImageVector? = null, enabl
     val acc = Cd.acc
     val c = Cd.c
     val haptics = Cd.haptics
+    val (press, scale) = rememberPress()
     Row(
-        modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(if (enabled) acc.container else c.on.copy(alpha = 0.12f))
-            .clickable(enabled = enabled) { haptics.tick(); onClick() }.padding(horizontal = 20.dp),
+        modifier.heightIn(min = 40.dp).pressScale(scale).clip(RoundedCornerShape(20.dp)).background(if (enabled) acc.container else c.on.copy(alpha = 0.12f))
+            .pressClick(press, enabled) { haptics.tick(); onClick() }.padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         val fg = if (enabled) acc.onContainer else c.on.copy(alpha = 0.38f)
         if (icon != null) Ico(icon, 18, fg)
-        Text(text, style = rf(14, 20, 600), color = fg, maxLines = 1)
+        Text(text, style = rf(14, 20, 600), color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -514,7 +542,7 @@ fun ErrorBanner(icon: ImageVector, title: String, message: String) {
 fun IconChip(icon: ImageVector, text: String, iconTint: Color) {
     val c = Cd.c
     Row(
-        Modifier.height(32.dp).clip(RoundedCornerShape(10.dp)).background(c.sf).padding(horizontal = 12.dp),
+        Modifier.heightIn(min = 32.dp).clip(RoundedCornerShape(10.dp)).background(c.sf).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -529,15 +557,16 @@ fun PillBtn(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, ic
     val c = Cd.c
     val acc = Cd.acc
     val haptics = Cd.haptics
+    val (press, scale) = rememberPress()
     Row(
-        modifier.height(height).clip(RoundedCornerShape(height / 2)).background(if (enabled) acc.accent else c.on.copy(alpha = 0.12f))
-            .clickable(enabled = enabled) { haptics.confirm(); onClick() }.padding(horizontal = if (height >= 56.dp) 28.dp else 20.dp),
+        modifier.heightIn(min = height).pressScale(scale).clip(RoundedCornerShape(height / 2)).background(if (enabled) acc.accent else c.on.copy(alpha = 0.12f))
+            .pressClick(press, enabled) { haptics.confirm(); onClick() }.padding(horizontal = if (height >= 56.dp) 28.dp else 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         val fg = if (enabled) acc.onAccent else c.on.copy(alpha = 0.38f)
         if (icon != null) Ico(icon, 20, fg)
-        Text(text, style = rf(if (height >= 56.dp) 16 else 14, 20, 600), color = fg, maxLines = 1)
+        Text(text, style = rf(if (height >= 56.dp) 16 else 14, 20, 600), color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -568,7 +597,7 @@ fun GaugeTile(label: String, value: String, unit: String, icon: ImageVector?, fr
                     Text(label, style = rf(12, 16), color = c.onv, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(value, style = gs(28, 32, 500, tnum = true), color = c.on, maxLines = 1)
+                    Text(value, Modifier.weight(1f, fill = false), style = gs(28, 32, 500, tnum = true), color = c.on, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (unit.isNotEmpty()) Text(unit, Modifier.padding(bottom = 3.dp), style = rf(12, 16), color = c.onv, maxLines = 1)
                 }
             }

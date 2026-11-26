@@ -3,6 +3,12 @@ package com.cardeck.app.ui
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -162,6 +168,23 @@ fun Modifier.fadeUp(delayMs: Int = 0): Modifier {
         translationY = (1f - p.value) * 12.dp.toPx()
         alpha = p.value
     }
+}
+
+/**
+ * Changement d'état d'une page (non connecté → lecture → données, bouton → scan → résultats…) : l'ancien contenu s'efface vite,
+ * le nouveau monte légèrement en fondu, et la hauteur suit avec le ressort de base. [state] doit changer seulement quand
+ * l'état change vraiment (pas à chaque nouvelle valeur).
+ */
+@Composable
+fun <S> StateSwap(state: S, modifier: Modifier = Modifier, content: @Composable (S) -> Unit) {
+    AnimatedContent(
+        state, modifier,
+        transitionSpec = {
+            (fadeIn(tween(320, 70, Motion.Emphasized)) + slideInVertically(tween(320, 70, Motion.Emphasized)) { it / 40 }) togetherWith
+                fadeOut(tween(90)) using SizeTransform(clip = false) { _, _ -> spring(dampingRatio = 1f, stiffness = 380f) }
+        },
+        label = "state",
+    ) { content(it) }
 }
 
 // ---------------------------------------------------------------- Formes expressives

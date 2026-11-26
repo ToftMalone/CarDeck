@@ -124,9 +124,21 @@ fun DiagScreen(vm: AppViewModel) {
                 }
             }
 
-            if (q.isNotEmpty()) {
-                val res = DtcCatalog.all.filter { (it.code + " " + it.title + " " + it.sys.label).lowercase().contains(q) }
-                    .ifEmpty { if (Regex("[pcbu][0-9a-f]{4}").matches(q)) listOf(DtcCatalog.info(q.uppercase())) else emptyList() }
+            // Recherche → scan en cours → aucun scan → aucun défaut → codes : passage en fondu d'un état à l'autre.
+            val phase = when {
+                q.isNotEmpty() -> "search"
+                vm.scanning -> "scan"
+                scan == null -> "none"
+                scan.codes.isEmpty() -> "clean"
+                else -> "codes"
+            }
+            com.cardeck.app.ui.StateSwap(phase) { ph -> Column {
+            if (ph == "search") {
+                // Filtre recalculé seulement quand le texte change (pas à chaque rafraîchissement de la page) : saisie fluide.
+                val res = remember(q) {
+                    DtcCatalog.all.filter { (it.code + " " + it.title + " " + it.sys.label).lowercase().contains(q) }
+                        .ifEmpty { if (Regex("[pcbu][0-9a-f]{4}").matches(q)) listOf(DtcCatalog.info(q.uppercase())) else emptyList() }
+                }
                 T(if (res.isEmpty()) "Aucun code ne correspond" else "${res.size} résultat${if (res.size > 1) "s" else ""}", 14, c.onv, 500, Modifier.padding(start = 4.dp, top = 4.dp, bottom = 10.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     val shown = res.take(60)
@@ -135,10 +147,10 @@ fun DiagScreen(vm: AppViewModel) {
                         DtcRow(d, if (detected) "Détecté" else "Base de codes", null, groupShape(i, shown.size)) { vm.go(Screen.Dtc(d.code)) }
                     }
                 }
-            } else if (vm.scanning) {
+            } else if (ph == "scan") {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(horizontal = 24.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Radar(184.dp, true, label = "${vm.scanStep * 100 / vm.scanSteps.size} %")
-                    T(vm.scanSteps[vm.scanStep], 16, weight = 500, modifier = Modifier.padding(top = 16.dp))
+                    T(vm.scanSteps.getOrElse(vm.scanStep) { "" }, 16, weight = 500, modifier = Modifier.padding(top = 16.dp))
                     vm.scanDetail?.let { T(it, 13, c.onv) }
                     com.cardeck.app.ui.LevelBar(vm.scanStep / vm.scanSteps.size.toFloat(), c.p, Modifier.padding(top = 16.dp, bottom = 20.dp))
                     vm.scanSteps.forEachIndexed { i, name ->
@@ -151,7 +163,7 @@ fun DiagScreen(vm: AppViewModel) {
                         }
                     }
                 }
-            } else if (scan == null) {
+            } else if (ph == "none" || scan == null) {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(horizontal = 24.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -168,7 +180,7 @@ fun DiagScreen(vm: AppViewModel) {
                         T(v.template.protocol, 12, c.onv, mono = true, modifier = Modifier.padding(top = 16.dp).clip(RoundedCornerShape(8.dp)).background(c.sf3).padding(horizontal = 10.dp, vertical = 6.dp))
                     }
                 }
-            } else if (scan.codes.isEmpty()) {
+            } else if (ph == "clean" || scan.codes.isEmpty()) {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(horizontal = 24.dp, vertical = 36.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -203,6 +215,7 @@ fun DiagScreen(vm: AppViewModel) {
                 }
                 DiagActions(vm, v, connected) { dialog = true }
             }
+            } }
 
             if (!vm.scanning && q.isEmpty()) ReadinessCard(vm, v.id, connected)
 
@@ -263,7 +276,7 @@ private fun ReadinessCard(vm: AppViewModel, vehicleId: Long, connected: Boolean)
         }
         if (r == null) {
             T(
-                "Vérifie le voyant moteur et les tests antipollution que la voiture fait elle-même. Après un effacement des défauts " +
+                "Ce contrôle vérifie le voyant moteur et les tests antipollution que la voiture fait elle-même. Après un effacement des défauts " +
                     "ou un débranchement de la batterie, ils ne sont plus prêts, et le contrôle de la pollution peut échouer.",
                 13, c.onv, lineHeight = 18,
             )
@@ -283,9 +296,9 @@ private fun ReadinessCard(vm: AppViewModel, vehicleId: Long, connected: Boolean)
             T(
                 when (r.verdict) {
                     ReadinessVerdict.Ready -> "Voyant éteint et tous les tests antipollution terminés."
-                    ReadinessVerdict.NotReady -> "Roule 2 à 3 jours en conditions variées (ville, route, voie rapide, moteur bien chaud), " +
-                        "sans effacer les défauts ni débrancher la batterie, puis vérifie à nouveau."
-                    ReadinessVerdict.MilOn -> "Le voyant moteur est vérifié au contrôle technique : fais réparer le défaut " +
+                    ReadinessVerdict.NotReady -> "Roulez 2 à 3 jours en conditions variées (ville, route, voie rapide, moteur bien chaud), " +
+                        "sans effacer les défauts ni débrancher la batterie, puis vérifiez à nouveau."
+                    ReadinessVerdict.MilOn -> "Le voyant moteur est vérifié au contrôle technique : faites réparer le défaut " +
                         "(${r.dtcCount} code${if (r.dtcCount > 1) "s" else ""} signalé${if (r.dtcCount > 1) "s" else ""}) avant d'y aller."
                 },
                 13, c.onv, lineHeight = 18,
@@ -309,7 +322,7 @@ private fun ReadinessCard(vm: AppViewModel, vehicleId: Long, connected: Boolean)
                     com.cardeck.app.ui.Spinner(18.dp, 2.dp, c.p); T("  Lecture…", 14, c.p, 500)
                 }
                 connected -> TextBtn(if (r == null) "Vérifier" else "Vérifier à nouveau", { vm.checkReadiness() }, Icons.Rounded.Refresh)
-                else -> T("Connecte le boîtier OBD2 pour vérifier.", 12, c.onv)
+                else -> T("Connectez le boîtier OBD2 pour vérifier.", 12, c.onv)
             }
         }
     }

@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -232,7 +233,8 @@ private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: 
     val cols = 2
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val gap = 12.dp
-        val cellH = 176.dp
+        // Hauteur des cartes : 176 dp, plus grande si le texte est agrandi dans les réglages d'Android (nom et description lisibles).
+        val cellH = 176.dp + 72.dp * (density.fontScale - 1f).coerceIn(0f, 1f)
         val cellW = (maxWidth - gap * (cols - 1)) / cols
         val rows = (current.size + cols - 1) / cols
         val gapPx = with(density) { gap.toPx() }
@@ -389,10 +391,14 @@ private fun ConnectionStrip(vm: AppViewModel) {
 @Composable
 private fun StripNode(icon: ImageVector, label: String, on: Boolean) {
     val c = Cd.c
+    // Allumage du nœud en fondu (et petit rebond) quand la liaison s'établit.
+    val bg by androidx.compose.animation.animateColorAsState(if (on) c.gc else c.sf3, tween(350, easing = Motion.Emphasized), label = "node")
+    val fg by androidx.compose.animation.animateColorAsState(if (on) c.ogc else c.onv, tween(350, easing = Motion.Emphasized), label = "nodeFg")
+    val scale by animateFloatAsState(if (on) 1f else 0.92f, Motion.bouncy(), label = "nodeScale")
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
             if (on) PulseRing(c.g, 28.dp, periodMs = 2400)
-            Box(Modifier.size(36.dp).clip(CircleShape).background(if (on) c.gc else c.sf3), contentAlignment = Alignment.Center) { Ico(icon, 20, if (on) c.ogc else c.onv) }
+            Box(Modifier.size(36.dp).graphicsLayer { scaleX = scale; scaleY = scale }.clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { Ico(icon, 20, fg) }
         }
         T(label, 11, c.onv, 600)
     }
@@ -401,8 +407,12 @@ private fun StripNode(icon: ImageVector, label: String, on: Boolean) {
 @Composable
 private fun StripLink(modifier: Modifier, on: Boolean) {
     val c = Cd.c
+    // La liaison se remplit de gauche à droite quand elle s'établit, et se vide dans l'autre sens quand elle tombe.
+    val fill by animateFloatAsState(if (on) 1f else 0f, tween(500, easing = Motion.Emphasized), label = "link")
     Canvas(modifier.height(20.dp)) {
         val y = size.height / 2 - 9.dp.toPx()
-        drawLine(if (on) c.g.copy(alpha = .9f) else c.olv, Offset(0f, y), Offset(size.width, y), strokeWidth = 2.dp.toPx())
+        val w = 2.dp.toPx()
+        drawLine(c.olv, Offset(0f, y), Offset(size.width, y), strokeWidth = w)
+        if (fill > 0.001f) drawLine(c.g.copy(alpha = .9f), Offset(0f, y), Offset(size.width * fill, y), strokeWidth = w)
     }
 }
