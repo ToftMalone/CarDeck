@@ -20,11 +20,9 @@ class ExplorerUi : ExplorerListener {
     /** Change à chaque fin d'exploration (relecture des résultats). */
     var refresh by mutableIntStateOf(0)
     val lines = mutableStateListOf<String>()
-    /** Un balayage à l'arrêt vient de se terminer : proposer d'envoyer les découvertes au développeur. */
-    var offerContribution by mutableStateOf(false)
 
     fun reset() {
-        mode = null; stepName = ""; stepIndex = 0; stepTotal = 0; detailText = null; progress = null; done = null; offerContribution = false
+        mode = null; stepName = ""; stepIndex = 0; stepTotal = 0; detailText = null; progress = null; done = null
         lines.clear()
     }
 

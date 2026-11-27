@@ -6,21 +6,11 @@ along with the history of all your trips, including their fuel consumption and c
 
 Free, no account, and your data stays on your phone. Available in English, French, German, Russian and Spanish.
 
+> 🧑‍🔧 **A personal project.** CarDeck is built for my own cars and for the ones I get my hands on, mostly to explore and understand them.
+> It isn't meant to become a popular app or one for everyone: there are plenty of OBD apps out there, and this one simply does what I need.
+> It's shared as is, in case it's useful to someone, with no promise of support or of new vehicles.
+
 📥 [Download the latest APK](https://github.com/ToftMalone/CarDeck/releases/latest) (Android 8.0 or newer).
-
-## 🤝 Get your car fully supported within 3 days
-
-Standard OBD2 works on every car, but each manufacturer hides a lot more data inside its own modules (oil temperature, fuel level in
-litres, odometer, extra modules…). To unlock it, the car first has to be **reverse-engineered**, and that's where you can help,
-right from the app:
-
-1. Open the **Contribution** tile on the home screen.
-2. Run the **stationary full scan** (ignition on) and, if you like, a **recording while driving**. Everything is **read-only**: nothing is
-   ever written to the car.
-3. Tap **Send to the developer**: CarDeck saves an anonymised report (without the VIN serial number or the vehicle's nickname) and opens
-   a pre-filled GitHub issue (a free GitHub account is required). Just attach the file and send.
-
-**Promise: every car sent in gets its dedicated profile within 3 days, max.** Common, old, rare or tuned: every car is welcome.
 
 ## What CarDeck does
 
@@ -62,7 +52,7 @@ and **read-only** (only read services are sent: never clearing, writing, actuato
   bytes that behave like knock-induced ignition retard (idle off load, moving under load, advance lost at equal RPM and load).
   Candidates to confirm, not a measurement.
 - Result: a **report** (modules, live blocks, plain-text answers, refused identifiers, **decoding leads by correlation**,
-  **engine maps**) plus all the raw data, to share as one file or **send to the developer** (see above).
+  **engine maps**) plus all the raw data, to **export** as one file.
 
 ### 🩺 Diagnosis
 Reads fault codes (stored, pending, permanent) and freeze frame data, with a built-in code database **translated into the app's
@@ -164,8 +154,6 @@ The home screen tiles can be rearranged with a long press, and each launch greet
 |---|---|
 | Suzuki Swift Sport ZC33S (K14C 1.4 BoosterJet, 140 hp) | ✅ Read-only (except clearing the codes you ask for), oil, fuel, odometer |
 | Renault Clio V 1.0 TCe 90 hp | ✅ All 15 modules mapped (OBD on 29-bit CAN), queried by the diagnosis; engine and ABS / ESP identified |
-
-Want yours in this table? See [Get your car fully supported within 3 days](#-get-your-car-fully-supported-within-3-days).
 
 The list is a starting point: it hasn't been tested on every car, only on the Swift Sport.
 

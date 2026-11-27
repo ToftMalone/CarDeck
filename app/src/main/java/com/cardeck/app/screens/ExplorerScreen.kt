@@ -24,7 +24,6 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.Whatshot
-import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -80,8 +79,6 @@ fun ExplorerScreen(vm: AppViewModel) {
     val scroll = rememberScrollState()
     var summary by remember { mutableStateOf<Summary?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
-    var confirmSend by remember { mutableStateOf(false) }
-    var sending by remember { mutableStateOf(false) }
     LaunchedEffect(v.id, ex.refresh) {
         summary = withContext(Dispatchers.IO) { summarize(ExplorerData.load(java.io.File(vm.explorerDir(v.id), "decouvertes.json"))) }
     }
@@ -96,9 +93,9 @@ fun ExplorerScreen(vm: AppViewModel) {
         BackBar("Contribution", scroll.value > 48, { vm.back() })
         Column(Modifier.weight(1f).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             T(
-                "Aidez à intégrer ${v.nickname} complètement dans CarDeck : l'explorateur découvre tous ses calculateurs et tout ce qu'ils " +
-                    "acceptent de donner, puis vous pouvez envoyer ces découvertes au développeur. Exploration : " +
-                    "voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, c'est l'enregistrement en roulant.",
+                "Explorez ${v.nickname} : l'explorateur découvre tous ses calculateurs et tout ce qu'ils acceptent de donner, " +
+                    "puis vous pouvez exporter les résultats. Voiture à l'arrêt, c'est le balayage complet ; voiture qui roule, " +
+                    "c'est l'enregistrement en roulant.",
                 14, c.onv, lineHeight = 20,
             )
             Row(
@@ -118,8 +115,6 @@ fun ExplorerScreen(vm: AppViewModel) {
                 ex.done?.let { msg ->
                     Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.sc).padding(14.dp)) { T(msg, 14, c.osc, lineHeight = 20) }
                 }
-                // Après un balayage à l'arrêt : proposer d'envoyer les découvertes pour intégrer complètement la voiture.
-                if (ex.offerContribution) ContributionCard(v.template.fullName, sending) { confirmSend = true }
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.sf1).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(88.dp).clip(CircleShape).background(c.pc), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.TravelExplore, 44, c.opc) }
                     T("🅿️ À l'arrêt : balayage complet", 15, weight = 600, modifier = Modifier.padding(top = 16.dp))
@@ -165,46 +160,9 @@ fun ExplorerScreen(vm: AppViewModel) {
                         }, Icons.Rounded.Share)
                         TextBtn("Tout effacer", { confirmClear = true }, Icons.Rounded.DeleteOutline, color = c.e)
                     }
-                    if (!ex.offerContribution && (summary?.ecus ?: 0) > 0) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        TextBtn("Envoyer au développeur", { confirmSend = true }, Icons.Rounded.VolunteerActivism)
-                    }
                 }
             }
         }
-    }
-
-    if (confirmSend) {
-        AlertDialog(
-            onDismissRequest = { confirmSend = false },
-            containerColor = c.sf3, titleContentColor = c.on, textContentColor = c.onv,
-            title = { T("Envoyer au développeur ?", 22, lineHeight = 28) },
-            text = {
-                T(
-                    "1. CarDeck enregistre le relevé de l'explorateur dans Téléchargements, sans le numéro de série du VIN ni le surnom du véhicule.\n" +
-                        "2. GitHub s'ouvre sur un ticket déjà rempli : joignez-y le fichier, puis envoyez.\n\n" +
-                        "Le ticket est public et un compte GitHub (gratuit) est nécessaire. Rien n'est envoyé sans votre action.",
-                    14, c.onv, lineHeight = 20,
-                )
-            },
-            confirmButton = {
-                TextButton({
-                    confirmSend = false
-                    sending = true
-                    scope.launch {
-                        val r = withContext(Dispatchers.IO) { runCatching { vm.prepareContribution(v.id) }.getOrNull() }
-                        sending = false
-                        if (r == null) { vm.showSnack("Rien à envoyer pour l'instant : lancez un balayage à l'arrêt"); return@launch }
-                        runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(r.url))) }
-                            .onFailure { vm.showSnack("Aucun navigateur pour ouvrir GitHub") }
-                        if (r.savedToDownloads) vm.showSnack("${r.fileName} enregistré dans Téléchargements")
-                        // Avant Android 10 : pas d'écriture dans Téléchargements sans autorisation, l'utilisateur choisit où l'enregistrer.
-                        else shareFile(ctx, r.file, "application/zip", "Enregistrer le relevé pour le joindre au ticket")
-                        ex.offerContribution = false
-                    }
-                }) { T("Continuer", 14, c.p, 600) }
-            },
-            dismissButton = { TextButton({ confirmSend = false }) { T("Annuler", 14, c.p, 500) } },
-        )
     }
 
     if (confirmClear) {
@@ -279,20 +237,3 @@ private fun Line(label: String, value: String) {
     }
 }
 
-/** Invitation à envoyer les découvertes au développeur, après un balayage complet. */
-@Composable
-private fun ContributionCard(vehicle: String, busy: Boolean, onSend: () -> Unit) {
-    val c = Cd.c
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.pc).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(64.dp).clip(CircleShape).background(c.p), contentAlignment = Alignment.Center) { Ico(Icons.Rounded.VolunteerActivism, 32, c.op) }
-        T("🤝 Aidez à intégrer votre voiture", 16, c.opc, 600, modifier = Modifier.padding(top = 12.dp))
-        T(
-            "Envoyez ces découvertes au développeur de CarDeck : elles servent à ajouter les données propres à $vehicle " +
-                "(températures, compteurs, calculateurs…) pour tous ceux qui en ont une.",
-            13, c.opc, align = TextAlign.Center, lineHeight = 18, modifier = Modifier.padding(top = 4.dp),
-        )
-        Box(Modifier.padding(top = 16.dp)) {
-            FilledBtn(if (busy) "Préparation…" else "Envoyer au développeur", onSend, enabled = !busy)
-        }
-    }
-}
