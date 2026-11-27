@@ -141,7 +141,8 @@ fun sectionOf(s: Screen): Section? = when (s) {
     Screen.Explorer -> Section.Explorer
     Screen.Diag, is Screen.Dtc, Screen.Coding -> Section.Diag
     Screen.Trips, is Screen.Trip -> Section.Trips
-    Screen.Settings, Screen.Changelog, Screen.About -> Section.Settings
+    Screen.Settings, Screen.Changelog, Screen.About, is Screen.EditVehicle -> Section.Settings
+    is Screen.ChangeModel -> Section.Adapter
     Screen.Pair, Screen.AddVehicle -> Section.Adapter
     Screen.Home, Screen.Welcome -> null
 }
@@ -314,6 +315,8 @@ private fun ScreenContent(vm: AppViewModel, screen: Screen) {
         Screen.Welcome -> WelcomeScreen(vm)
         Screen.Pair -> PairScreen(vm)
         Screen.AddVehicle -> AddVehicleScreen(vm)
+        is Screen.EditVehicle -> com.cardeck.app.screens.EditVehicleScreen(vm, screen.id)
+        is Screen.ChangeModel -> AddVehicleScreen(vm, changeFor = screen.id)
         Screen.Home -> HomeScreen(vm)
         Screen.Dash -> DashboardScreen(vm)
         Screen.Diag -> DiagScreen(vm)

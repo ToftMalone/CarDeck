@@ -133,7 +133,6 @@ fun HomeScreen(vm: AppViewModel) {
         Tile("obd", "Données OBD2", "Toutes les valeurs que le moteur sait donner", Icons.Rounded.Memory, Section.Obd, Screen.ObdData, { vm.go(Screen.ObdData) }),
         Tile("diag", "Diagnostic", "Codes défaut, effacement et contrôle technique", Icons.Rounded.Troubleshoot, Section.Diag, Screen.Diag, { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("trips", "Trajets", "Tracés, consommation et coût de chaque trajet", Icons.Rounded.Route, Section.Trips, Screen.Trips, { vm.go(Screen.Trips) }),
-        Tile("pair", "Boîtier OBD2", "Associer, changer ou reconnecter le boîtier", Icons.Rounded.SettingsInputHdmi, Section.Adapter, Screen.Pair, { vm.pairActive() }),
         Tile("contribution", "Contribution", "Explorez votre voiture et aidez à l'intégrer dans CarDeck", Icons.Rounded.VolunteerActivism, Section.Explorer, Screen.Explorer, { vm.go(Screen.Explorer) }),
     )
     Column(Modifier.fillMaxSize().background(c.sf)) {

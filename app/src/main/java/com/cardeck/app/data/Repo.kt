@@ -157,8 +157,24 @@ class Repo(ctx: Context) {
         reloadVehicles()
     }
 
-    fun renameVehicle(id: Long, nickname: String) {
-        db.update("vehicles", ContentValues().apply { put("nickname", nickname) }, "id=?", arrayOf(id.toString()))
+    /** Nom du profil, immatriculation et année d'un véhicule. */
+    fun updateVehicle(id: Long, nickname: String, plate: String, year: String) {
+        db.update("vehicles", ContentValues().apply { put("nickname", nickname); put("plate", plate); put("year", year) }, "id=?", arrayOf(id.toString()))
+        reloadVehicles()
+    }
+
+    /** Modèle (profil du catalogue) d'un véhicule ; ses trajets, diagnostics et son boîtier restent. */
+    fun setTemplate(id: Long, templateId: String) {
+        db.update("vehicles", ContentValues().apply { put("template", templateId) }, "id=?", arrayOf(id.toString()))
+        reloadVehicles()
+        bump()
+    }
+
+    /** Plus aucun boîtier associé au véhicule. */
+    fun clearAdapter(id: Long) {
+        db.update("vehicles", ContentValues().apply {
+            putNull("adapter_transport"); putNull("adapter_address"); putNull("adapter_name")
+        }, "id=?", arrayOf(id.toString()))
         reloadVehicles()
     }
 

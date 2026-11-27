@@ -83,7 +83,7 @@ private enum class Level { Brands, Models, Variants }
  * puis nom, immatriculation et année.
  */
 @Composable
-fun AddVehicleScreen(vm: AppViewModel) {
+fun AddVehicleScreen(vm: AppViewModel, changeFor: Long? = null) {
     var brandName by rememberSaveable { mutableStateOf<String?>(null) }
     var modelName by rememberSaveable { mutableStateOf<String?>(null) }
     var tplId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -95,7 +95,8 @@ fun AddVehicleScreen(vm: AppViewModel) {
     // VIN lu : motorisation identifiée avec certitude → fiche directe ; sinon marque pré-sélectionnée.
     val vin = vm.vinResult
     LaunchedEffect(vin) {
-        if (vin == null) return@LaunchedEffect
+        // (changement de modèle : un VIN lu pour une autre création ne doit rien choisir à la place de l'utilisateur)
+        if (vin == null || changeFor != null) return@LaunchedEffect
         if (vin.templateId != null) tplId = vin.templateId
         else vin.brand?.let { brandName = it; modelName = vin.model }
     }
@@ -114,6 +115,11 @@ fun AddVehicleScreen(vm: AppViewModel) {
     }
 
     if (tpl != null) {
+        // Changement de modèle d'un véhicule existant : le choix suffit, pas de fiche de création.
+        if (changeFor != null) {
+            LaunchedEffect(tpl.id) { vm.changeModel(changeFor, tpl.id) }
+            return
+        }
         VehicleDetails(vm, tpl, onChange = { tplId = null }, onBack = { tplId = null })
         return
     }
@@ -137,10 +143,11 @@ fun AddVehicleScreen(vm: AppViewModel) {
             if (!vm.onboarded) T("Étape 1 sur 2", 14, c.onv, 500)
         }
         Column(Modifier.padding(start = 24.dp, end = 24.dp)) {
-            T("Votre véhicule", 28, lineHeight = 36, modifier = Modifier.padding(bottom = 8.dp))
+            T(if (changeFor != null) "Nouveau modèle" else "Votre véhicule", 28, lineHeight = 36, modifier = Modifier.padding(bottom = 8.dp))
             T("Choisissez la marque, le modèle puis la version et la motorisation, ou cherchez directement.", 14, c.onv, lineHeight = 20, modifier = Modifier.padding(bottom = 16.dp))
             SearchField(query) { query = it }
-            if (query.isBlank()) VinCard(vm, atRoot = brand == null)
+            // Lecture du VIN : seulement à la création (elle prépare aussi le boîtier du nouveau profil).
+            if (query.isBlank() && changeFor == null) VinCard(vm, atRoot = brand == null)
             if (query.isBlank()) Breadcrumb(brand, model, onRoot = { brandName = null; modelName = null }, onBrand = { modelName = null })
         }
         // Profondeur : 0 marques, 1 modèles, 2 motorisations ; la recherche est à part (fondu sans glissement).

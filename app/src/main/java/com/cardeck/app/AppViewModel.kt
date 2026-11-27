@@ -42,6 +42,10 @@ sealed interface Screen {
     data object Changelog : Screen
     data object About : Screen
     data object Explorer : Screen
+    /** Modification d'un véhicule du garage : nom, immatriculation, année, modèle et boîtier OBD2. */
+    data class EditVehicle(val id: Long) : Screen
+    /** Choix d'un autre modèle pour un véhicule du garage (même sélecteur que pour un nouveau véhicule). */
+    data class ChangeModel(val id: Long) : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -181,6 +185,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun pairActive() {
         pairVehicleId = repo.active?.id ?: return
         go(Screen.Pair)
+    }
+
+    /** Associe un (autre) boîtier OBD2 à un véhicule du garage ; l'appairage revient ensuite à la page d'où il est parti. */
+    fun pairFor(vehicleId: Long) {
+        pairVehicleId = vehicleId
+        go(Screen.Pair)
+    }
+
+    /** Liaison en cours avec le boîtier du véhicule actif [vehicleId] : coupée, pour repartir avec ses nouveaux réglages. */
+    private fun dropLinkOf(vehicleId: Long) {
+        if (repo.active?.id != vehicleId) return
+        viewModelScope.launch(Dispatchers.IO) { obd.disconnect() }
+    }
+
+    /** Retire le boîtier OBD2 associé à un véhicule (la liaison en cours est coupée). */
+    fun unpair(vehicleId: Long) {
+        dropLinkOf(vehicleId)
+        repo.clearAdapter(vehicleId)
+        showSnack("Boîtier dissocié")
+    }
+
+    /** Nouveau modèle pour un véhicule : trajets, diagnostics et boîtier sont gardés ; la liaison repart avec le nouveau profil. */
+    fun changeModel(vehicleId: Long, templateId: String) {
+        val before = repo.vehicles.value.find { it.id == vehicleId }?.templateId
+        if (before != templateId) {
+            repo.setTemplate(vehicleId, templateId)
+            dropLinkOf(vehicleId)
+            TripService.start(ctx)
+            showSnack("Modèle modifié")
+        }
+        stack.removeAll { it is Screen.ChangeModel }
+        if (stack.isEmpty()) stack.add(Screen.Home)
     }
 
     /** Fin de l'appairage ; [adapter] null = « plus tard ». */

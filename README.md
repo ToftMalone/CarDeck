@@ -130,7 +130,7 @@ backups in the folder, newest first.
 - 📶 The phone must be able to reach the server: same Wi-Fi network, or a VPN. Don't expose your SMB server to the Internet.
 
 ### 🏠 A garage for several cars
-Each car has its own profile (trips, diagnoses, OBD2 adapter). To create one, you pick your vehicle **in three lists**: the **brand**,
+Each car has its own profile (trips, diagnoses, OBD2 adapter), which can be edited at any time from **Settings → Garage**: name, plate, year, model, and the OBD2 adapter (pair another one or unpair it). To create one, you pick your vehicle **in three lists**: the **brand**,
 the **model**, then the **generation and engine**. For example Suzuki › Swift › Sport ZC33S › K14C 1.4 BoosterJet. A search field gets you
 there faster ("Clio V 1.0 TCe", "Golf GTI"…).
 
