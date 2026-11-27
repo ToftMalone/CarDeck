@@ -1,18 +1,38 @@
 package com.cardeck.app.data
 
-/** Épreuve chronométrée. [standing] : départ arrêté ; sinon départ lancé à [fromKmh]. */
-enum class PerfKind(val label: String, val standing: Boolean, val fromKmh: Double, val toKmh: Double?, val meters: Double?, val timeoutMs: Long) {
+/**
+ * Épreuve chronométrée. [standing] : départ arrêté ; sinon départ lancé au passage de [fromKmh].
+ * [braking] : freinage de [fromKmh] jusqu'à l'arrêt (temps et distance d'arrêt).
+ */
+enum class PerfKind(
+    val label: String, val standing: Boolean, val fromKmh: Double, val toKmh: Double?, val meters: Double?, val timeoutMs: Long,
+    val braking: Boolean = false,
+) {
     ZeroTo100("0 à 100 km/h", true, 0.0, 100.0, null, 30_000),
+    Quarter400("400 m départ arrêté", true, 0.0, null, 400.0, 45_000),
+    From50To90("50 à 90 km/h", false, 50.0, 90.0, null, 25_000),
     From80To120("80 à 120 km/h", false, 80.0, 120.0, null, 25_000),
-    Quarter400("400 m départ arrêté", true, 0.0, null, 400.0, 45_000);
+    Brake100To0("Freinage de 100 à 0 km/h", false, 100.0, null, null, 15_000, braking = true);
 
     companion object {
         fun of(name: String?): PerfKind? = entries.find { it.name == name }
     }
 }
 
-/** Un chrono enregistré : temps (ms), vitesse au passage des 400 m, qualité de la mesure (mesures de vitesse par seconde). */
-data class PerfRun(val id: Long, val vehicleId: Long, val kind: PerfKind, val at: Long, val timeMs: Long, val trapKmh: Double?, val hz: Double)
+/** Conditions de l'essai, relevées au départ (températures en °C, pression atmosphérique en kPa, carburant choisi). */
+data class PerfConditions(val ambientC: Double? = null, val intakeC: Double? = null, val baroKpa: Double? = null, val fuel: FuelType? = null)
+
+/**
+ * Un chrono enregistré : temps (ms), vitesse au passage des 400 m, distance (400 m, ou distance d'arrêt d'un freinage),
+ * qualité de la mesure (mesures de vitesse par seconde) et conditions de l'essai.
+ */
+data class PerfRun(
+    val id: Long, val vehicleId: Long, val kind: PerfKind, val at: Long, val timeMs: Long, val trapKmh: Double?, val hz: Double,
+    val distanceM: Double? = null, val conditions: PerfConditions = PerfConditions(),
+) {
+    /** Ce qui classe les essais : distance d'arrêt pour un freinage, temps sinon (le plus petit est le meilleur). */
+    val score: Double get() = if (kind.braking) distanceM ?: Double.MAX_VALUE else timeMs.toDouble()
+}
 
 /**
  * Chronométrage à partir de la vitesse lue sur la voiture (PID 0D, en km/h entiers, une dizaine de fois par seconde) :
@@ -20,7 +40,9 @@ data class PerfRun(val id: Long, val vehicleId: Long, val kind: PerfKind, val at
  *  - départ arrêté : armé à l'arrêt complet ; le départ est l'instant où la vitesse quitte 0, extrapolé depuis les deux
  *    premières mesures en mouvement (borné entre la dernière mesure à 0 et la première en mouvement) ;
  *  - départ lancé (80 à 120) : armé sous 80 km/h, départ au passage de 80, arrivée au passage de 120 ;
- *  - 400 m : distance intégrée depuis le départ (trapèzes), arrivée et vitesse de passage interpolées.
+ *  - 400 m : distance intégrée depuis le départ (trapèzes), arrivée et vitesse de passage interpolées ;
+ *  - freinage : armé au-dessus de 100 km/h, départ au passage de 100 en ralentissant ; l'instant de l'arrêt est extrapolé
+ *    avec la décélération mesurée juste avant, la distance d'arrêt intégrée jusque-là.
  * Un essai est abandonné si la voiture ralentit nettement, si les mesures s'espacent trop ou au-delà du temps maximal.
  * Les instants [t] sont en millisecondes, sur une horloge monotone.
  */
@@ -28,7 +50,7 @@ class PerfTimer(val kind: PerfKind) {
     enum class Phase { Waiting, Ready, Running }
 
     sealed interface Outcome {
-        data class Done(val timeMs: Long, val trapKmh: Double?, val hz: Double) : Outcome
+        data class Done(val timeMs: Long, val trapKmh: Double?, val hz: Double, val distanceM: Double? = null) : Outcome
         data class Failed(val reason: String) : Outcome
     }
 
@@ -49,6 +71,9 @@ class PerfTimer(val kind: PerfKind) {
 
     private var prevT: Long? = null
     private var prevV: Double? = null
+    private var prev2T: Long? = null
+    private var prev2V: Double? = null
+    private var min = Double.MAX_VALUE
     private var lastZeroT: Long? = null
     private var start: Double? = null // instant de départ, en ms (fractionnaire)
     private var firstMove: Pair<Long, Double>? = null
@@ -58,7 +83,8 @@ class PerfTimer(val kind: PerfKind) {
     private var runSamples = 0
 
     fun reset() {
-        prevT = null; prevV = null; lastZeroT = null; start = null; firstMove = null; dist = 0.0; max = 0.0; runSamples = 0
+        prevT = null; prevV = null; prev2T = null; prev2V = null; lastZeroT = null; start = null; firstMove = null; dist = 0.0; max = 0.0
+        min = Double.MAX_VALUE; runSamples = 0
         recent.clear()
         state = State()
     }
@@ -72,11 +98,13 @@ class PerfTimer(val kind: PerfKind) {
 
     private fun idle(v: Double): Phase = when {
         kind.standing -> if (v <= 0.0) Phase.Ready else Phase.Waiting
+        // (100 pile compte : la mesure juste avant le passage sous 100 peut tomber exactement dessus)
+        kind.braking -> if (v >= kind.fromKmh) Phase.Ready else Phase.Waiting
         else -> if (v < kind.fromKmh) Phase.Ready else Phase.Waiting
     }
 
     private fun stop(outcome: Outcome?, v: Double, hz: Double) {
-        start = null; firstMove = null; dist = 0.0; max = 0.0; runSamples = 0
+        start = null; firstMove = null; dist = 0.0; max = 0.0; min = Double.MAX_VALUE; runSamples = 0
         state = State(idle(v), v, null, 0.0, outcome, hz)
     }
 
@@ -86,6 +114,9 @@ class PerfTimer(val kind: PerfKind) {
         val pv = prevV
         if (pt != null && t <= pt) return state // mesure en double ou dans le désordre
         val hz = rate(t)
+        val p2t = prev2T
+        val p2v = prev2V
+        prev2T = pt; prev2V = pv
         prevT = t; prevV = v
         if (v <= 0.0) lastZeroT = t
 
@@ -95,6 +126,7 @@ class PerfTimer(val kind: PerfKind) {
             val began = when {
                 pt == null || pv == null -> false
                 kind.standing -> pv <= 0.0 && v > 0.0 && state.phase == Phase.Ready
+                kind.braking -> pv >= kind.fromKmh && v < kind.fromKmh && state.phase == Phase.Ready
                 else -> pv < kind.fromKmh && v >= kind.fromKmh && state.phase == Phase.Ready
             }
             if (!began) {
@@ -108,6 +140,7 @@ class PerfTimer(val kind: PerfKind) {
             } else pt!! + (kind.fromKmh - pv!!) / (v - pv) * (t - pt)
             start = t0
             max = v
+            min = v
             runSamples = 1
             // Distance depuis le départ : de 0 (ou de la vitesse de départ) jusqu'à cette mesure.
             dist = if (kind.standing) v / 3.6 * (t - t0) / 1000.0 / 2 else (kind.fromKmh + v) / 2 / 3.6 * (t - t0) / 1000.0
@@ -131,6 +164,24 @@ class PerfTimer(val kind: PerfKind) {
             dist = v1 / 3.6 * (t1 - t0) / 1000.0 / 2
             firstMove = null
         }
+        if (kind.braking) {
+            if (v <= 0.0) {
+                // Arrêt entre les deux dernières mesures : instant extrapolé avec la décélération d'avant (bornée à l'intervalle).
+                val decel = if (p2t != null && p2v != null && pt > p2t) (p2v - pv!!) / (pt - p2t) else 0.0
+                val tStop = (if (decel > 0) pt + pv!! / decel else (pt + t) / 2.0).coerceIn(pt.toDouble(), t.toDouble())
+                dist += pv!! / 3.6 * (tStop - pt) / 1000.0 / 2
+                stop(Outcome.Done((tStop - t0).toLong(), null, hz, dist), v, hz)
+                return state
+            }
+            dist += (pv!! + v) / 2 / 3.6 * (t - pt) / 1000.0
+            min = minOf(min, v)
+            when {
+                v > min + 5 -> stop(Outcome.Failed("Freinage interrompu"), v, hz)
+                t - t0 > kind.timeoutMs -> stop(Outcome.Failed("Temps maximal dépassé"), v, hz)
+                else -> state = State(Phase.Running, v, t0.toLong(), dist, state.last, hz)
+            }
+            return state
+        }
         val before = dist
         dist += (pv!! + v) / 2 / 3.6 * (t - pt) / 1000.0
         max = maxOf(max, v)
@@ -145,7 +196,7 @@ class PerfTimer(val kind: PerfKind) {
         if (meters != null && before < meters && dist >= meters) {
             val f = (meters - before) / (dist - before)
             val tEnd = pt + f * (t - pt)
-            stop(Outcome.Done((tEnd - t0).toLong(), pv + f * (v - pv), hz), v, hz)
+            stop(Outcome.Done((tEnd - t0).toLong(), pv + f * (v - pv), hz, meters), v, hz)
             return state
         }
         when {

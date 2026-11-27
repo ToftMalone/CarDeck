@@ -101,10 +101,11 @@ In the history, a long press on a trip starts **multi-selection**: you can **mer
 included) or **delete** them.
 
 ### ⏱️ Performance
-Timed runs using the speed read from the car: **0 to 100 km/h**, **80 to 120 km/h** (rolling start) and **400 m standing start**
-(with the speed at the line). While the page is open, CarDeck reads only the speed, as fast as the adapter allows, and the start and
+Timed runs using the speed read from the car: **0 to 100 km/h**, **400 m standing start** (with the speed at the line),
+**50 to 90 km/h** and **80 to 120 km/h** (rolling start), and **braking from 100 to 0 km/h** (stopping distance and time). While the page is open, CarDeck reads only the speed, as fast as the adapter allows, and the start and
 finish are interpolated between two readings; the number of readings per second is shown, as it sets the accuracy. Each successful
-run is saved per vehicle, with the best time of each test. Only on a track or a road closed to traffic.
+run is saved per vehicle with its conditions (outside and intake air temperature, barometric pressure, fuel), and the best result
+of each test is kept (shortest distance for braking). Only on a track or a road closed to traffic.
 
 ### ⏰ Automatic wake-up
 For each vehicle, you choose whether CarDeck wakes up when the phone connects over Bluetooth to your car's head unit, or never

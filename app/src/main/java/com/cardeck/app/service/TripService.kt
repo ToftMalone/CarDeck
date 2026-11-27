@@ -258,6 +258,12 @@ class TripService : Service() {
             val speed = all.filter { it.id == "std0D" && it.can == null && it.header == null }
             val withRpm = all.filter { (it.id == "std0D" || it.id == "std0C") && it.can == null && it.header == null }
             if (speed.isNotEmpty()) {
+                // Conditions de l'essai (températures extérieure et d'admission, pression atmosphérique) : relues toutes les ~6 s,
+                // jamais pendant un chrono.
+                if (cycle % 4 == 0 && !obd.perfBusy) {
+                    val cond = all.filter { it.id in setOf("std46", "std0F", "std33") }
+                    if (!read(cond)) return
+                }
                 val end = System.currentTimeMillis() + 1500
                 var k = 0
                 while (obd.perfMode && System.currentTimeMillis() < end) if (!read(if (k++ % 5 == 0) withRpm else speed)) return

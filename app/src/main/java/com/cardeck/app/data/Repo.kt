@@ -66,7 +66,8 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
     private fun createPerfTable(db: SQLiteDatabase) {
         db.execSQL(
             """CREATE TABLE perf_runs(id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-               kind TEXT NOT NULL, t INTEGER NOT NULL, time_ms INTEGER NOT NULL, trap_kmh REAL, hz REAL NOT NULL DEFAULT 0)""",
+               kind TEXT NOT NULL, t INTEGER NOT NULL, time_ms INTEGER NOT NULL, trap_kmh REAL, hz REAL NOT NULL DEFAULT 0,
+               dist_m REAL, ambient_c REAL, intake_c REAL, baro_kpa REAL, fuel TEXT)""",
         )
         db.execSQL("CREATE INDEX perf_runs_vehicle ON perf_runs(vehicle_id)")
     }
@@ -191,9 +192,14 @@ class Repo(ctx: Context) {
 
     // ---- Performances ----
 
-    fun addPerfRun(vehicleId: Long, kind: PerfKind, at: Long, timeMs: Long, trapKmh: Double?, hz: Double): Long {
+    fun addPerfRun(
+        vehicleId: Long, kind: PerfKind, at: Long, timeMs: Long, trapKmh: Double?, hz: Double,
+        distanceM: Double? = null, conditions: PerfConditions = PerfConditions(),
+    ): Long {
         val id = db.insertOrThrow("perf_runs", null, ContentValues().apply {
             put("vehicle_id", vehicleId); put("kind", kind.name); put("t", at); put("time_ms", timeMs); put("trap_kmh", trapKmh); put("hz", hz)
+            put("dist_m", distanceM); put("ambient_c", conditions.ambientC); put("intake_c", conditions.intakeC)
+            put("baro_kpa", conditions.baroKpa); put("fuel", conditions.fuel?.name)
         })
         bump()
         return id
@@ -205,8 +211,13 @@ class Repo(ctx: Context) {
             buildList {
                 while (c.moveToNext()) {
                     val kind = PerfKind.of(c.str("kind")) ?: continue
-                    val trap = c.getColumnIndexOrThrow("trap_kmh").let { if (c.isNull(it)) null else c.getDouble(it) }
-                    add(PerfRun(c.long("id"), c.long("vehicle_id"), kind, c.long("t"), c.long("time_ms"), trap, c.dbl("hz")))
+                    fun opt(n: String) = c.getColumnIndexOrThrow(n).let { if (c.isNull(it)) null else c.getDouble(it) }
+                    add(
+                        PerfRun(
+                            c.long("id"), c.long("vehicle_id"), kind, c.long("t"), c.long("time_ms"), opt("trap_kmh"), c.dbl("hz"), opt("dist_m"),
+                            PerfConditions(opt("ambient_c"), opt("intake_c"), opt("baro_kpa"), FuelType.of(c.str("fuel"))),
+                        ),
+                    )
                 }
             }
         }

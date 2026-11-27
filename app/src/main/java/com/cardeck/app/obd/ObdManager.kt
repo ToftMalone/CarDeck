@@ -50,6 +50,9 @@ class ObdManager(private val ctx: Context) {
     /** Page Performances ouverte : le service ne lit plus que la vitesse (et le régime de temps en temps), le plus vite possible. */
     @Volatile var perfMode = false
 
+    /** Un chrono est en cours : rien d'autre que la vitesse ne doit être lu (une lecture lente fausserait la mesure). */
+    @Volatile var perfBusy = false
+
     /** Tant que l'appelant est actif (écran affiché), s'assure que le service lit les données en permanence. */
     suspend fun keepReading() {
         if (com.cardeck.app.service.TripService.live.value == null) com.cardeck.app.service.TripService.start(ctx)

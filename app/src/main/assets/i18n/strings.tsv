@@ -1558,6 +1558,21 @@ Temps maximal dépassé	Time limit exceeded	Zeitlimit überschritten	Превы�
 400 m	400 m	400 m	400 м	400 m
 {} / {} m	{} / {} m	{} / {} m	{} / {} м	{} / {} m
 {} s	{} s	{} s	{} с	{} s
+50 à 90 km/h	50 to 90 km/h	50 auf 90 km/h	50–90 км/ч	50 a 90 km/h
+Freinage de 100 à 0 km/h	Braking from 100 to 0 km/h	Bremsen von 100 auf 0 km/h	Торможение со 100 до 0 км/ч	Frenada de 100 a 0 km/h
+Prêt : freinez à fond, le chrono part sous {} km/h	Ready: brake hard, the timer starts below {} km/h	Bereit: voll bremsen, die Zeitmessung startet unter {} km/h	Готово: тормозите в пол, замер начнётся ниже {} км/ч	Listo: frena a fondo, el crono arranca por debajo de {} km/h
+Prêt : accélérez à fond, le chrono part à {} km/h	Ready: floor it, the timer starts at {} km/h	Bereit: Vollgas, die Zeitmessung startet bei {} km/h	Готово: газ в пол, замер начнётся на {} км/ч	Listo: acelera a fondo, el crono arranca a {} km/h
+Dépassez {} km/h pour lancer un essai	Go above {} km/h to start a run	Fahre schneller als {} km/h, um einen Versuch zu starten	Разгонитесь выше {} км/ч, чтобы начать заезд	Supera los {} km/h para empezar un intento
+Passez sous {} km/h pour lancer un essai	Slow down below {} km/h to start a run	Fahre unter {} km/h, um einen Versuch zu starten	Сбросьте скорость ниже {} км/ч, чтобы начать заезд	Baja de {} km/h para empezar un intento
+{} m parcourus	{} m covered	{} m zurückgelegt	пройдено {} м	{} m recorridos
+Arrêt en {}	Stopped in {}	Stillstand nach {}	Остановка за {}	Parada en {}
+en {}	in {}	in {}	за {}	en {}
+plus court freinage	shortest stop	kürzester Bremsweg	самое короткое торможение	frenada más corta
+Freinage interrompu	Braking interrupted	Bremsung unterbrochen	Торможение прервано	Frenada interrumpida
+{} °C dehors	{} °C outside	{} °C draußen	{} °C снаружи	{} °C fuera
+admission {} °C	intake {} °C	Ansaugluft {} °C	впуск {} °C	admisión {} °C
+{} kPa	{} kPa	{} kPa	{} кПа	{} kPa
+{} m	{} m	{} m	{} м	{} m
 Rétro-ingénié	Reverse-engineered	Reverse-Engineered	Реверс-инжиниринг выполнен	Ingeniería inversa hecha
 Véhicule rétro-ingénié : données constructeur décodées par CarDeck, en plus des données OBD2 standard. {}.	Reverse-engineered vehicle: manufacturer data decoded by CarDeck, in addition to standard OBD2 data. {}.	Reverse-Engineered-Fahrzeug: von CarDeck entschlüsselte Herstellerdaten zusätzlich zu den Standard-OBD2-Daten. {}.	Автомобиль с выполненным реверс-инжинирингом: данные производителя, расшифрованные CarDeck, в дополнение к стандартным данным OBD2. {}.	Vehículo con ingeniería inversa hecha: datos del fabricante descifrados por CarDeck, además de los datos OBD2 estándar. {}.
 Véhicules, trajets, diagnostics et réglages, dans un fichier	Vehicles, trips, diagnoses and settings, in a file	Fahrzeuge, Fahrten, Diagnosen und Einstellungen in einer Datei	Автомобили, поездки, диагностики и настройки в одном файле	Vehículos, trayectos, diagnósticos y ajustes, en un archivo
