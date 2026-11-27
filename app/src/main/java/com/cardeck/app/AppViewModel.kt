@@ -142,11 +142,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var palette by mutableStateOf(prefs.palette)
         private set
 
-    var homeOrder by mutableStateOf(prefs.homeOrder)
-        private set
-
-    fun updateHomeOrder(order: List<String>) { homeOrder = order; prefs.homeOrder = order }
-
     var dashSport by mutableStateOf(prefs.dashMode == "sport")
         private set
 
@@ -861,7 +856,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             r.onSuccess { s ->
                 themeMode = prefs.themeMode
                 palette = prefs.palette
-                homeOrder = prefs.homeOrder
                 dashSport = prefs.dashMode == "sport"
                 obd.supported.value = null
                 if (repo.vehicles.value.isNotEmpty()) {

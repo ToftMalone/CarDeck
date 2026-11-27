@@ -33,11 +33,6 @@ class Prefs(ctx: Context) {
         get() = sp.getString("dashMode", "standard") ?: "standard"
         set(v) = sp.edit().putString("dashMode", v).apply()
 
-    /** Ordre des cartes de l'écran d'accueil (identifiants séparés par des virgules). */
-    var homeOrder: List<String>
-        get() = sp.getString("homeOrder", null)?.split(',')?.filter { it.isNotBlank() } ?: emptyList()
-        set(v) = sp.edit().putString("homeOrder", v.joinToString(",")).apply()
-
     /** Index du dernier message d'accueil affiché (pour ne pas répéter le même). */
     var lastGreeting: Int
         get() = sp.getInt("lastGreeting", -1)

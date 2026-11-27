@@ -139,7 +139,7 @@ serial number (VIN) and CarDeck works out, **offline**, the manufacturer and the
 which Renault, PSA or Mercedes, for example, don't). It then preselects the brand and lists the models built that year first; when the
 model code is known, the vehicle is recognised directly (Swift Sport) or at least its model and generation (Clio V). The VIN doesn't
 reliably give the exact model, so you confirm it in the list.
-The home screen tiles can be rearranged with a long press, and each launch greets you with a different message.
+Each launch greets you with a different message.
 
 ## Supported vehicles
 

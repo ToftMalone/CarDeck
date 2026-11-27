@@ -119,7 +119,7 @@ private data class Tile(
 
 /**
  * Accueil, à la manière d'All Radio Tools : grand titre et message du jour, puis une grille de cartes colorées (une couleur
- * par rubrique) avec leur badge animé. Toucher une carte l'agrandit jusqu'à sa page ; appui long puis glisser pour les ranger.
+ * par rubrique) avec leur badge animé. Toucher une carte l'agrandit jusqu'à sa page.
  */
 @Composable
 fun HomeScreen(vm: AppViewModel) {
@@ -167,7 +167,7 @@ fun HomeScreen(vm: AppViewModel) {
                     }
                 }
                 TripPermissionCard()
-                ReorderableTiles(tiles, vm.homeOrder) { vm.updateHomeOrder(it) }
+                TileGrid(tiles)
             }
         }
         ConnectionStrip(vm)
@@ -215,78 +215,28 @@ private fun TripPermissionCard() {
     }
 }
 
-/** Grille de cartes sur 2 colonnes, réorganisable : appui long puis glisser pour déplacer une carte. */
+/** Grille de cartes sur 2 colonnes, dans un ordre fixe. */
 @Composable
-private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: (List<String>) -> Unit) {
-    val haptics = Cd.haptics
+private fun TileGrid(tiles: List<Tile>) {
     val density = LocalDensity.current
     val origins = LocalOrigins.current
-    val byId = tiles.associateBy { it.id }
-    fun normalize(o: List<String>) = o.filter { it in byId } + tiles.map { it.id }.filter { it !in o }
-    // Un seul état pour toute la vie de l'écran : le geste d'appui long garde toujours la liste affichée.
-    var current by remember { mutableStateOf(normalize(order)) }
-    var dragId by remember { mutableStateOf<String?>(null) }
-    var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    val save by rememberUpdatedState(onReorder)
-    var dragEndedAt by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(order) { if (dragId == null) current = normalize(order) }
-    val cols = 2
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val gap = 12.dp
-        // Hauteur des cartes : 176 dp, plus grande si le texte est agrandi dans les réglages d'Android (nom et description lisibles).
-        val cellH = 176.dp + 72.dp * (density.fontScale - 1f).coerceIn(0f, 1f)
-        val cellW = (maxWidth - gap * (cols - 1)) / cols
-        val rows = (current.size + cols - 1) / cols
-        val gapPx = with(density) { gap.toPx() }
-        val cellWPx = with(density) { cellW.toPx() }
-        val cellHPx = with(density) { cellH.toPx() }
-        fun pos(i: Int) = Offset((i % cols) * (cellWPx + gapPx), (i / cols) * (cellHPx + gapPx))
-        Box(Modifier.fillMaxWidth().height(cellH * rows + gap * (rows - 1))) {
-            current.forEachIndexed { i, id ->
-                val t = byId[id] ?: return@forEachIndexed
-                key(id) {
-                    val dragging = dragId == id
-                    val anim by animateOffsetAsState(pos(i), Motion.standard(), label = "tile")
-                    val p = if (dragging) pos(i) + dragOffset else anim
-                    // Pas d'ouverture de la carte à la fin d'un appui long / déplacement.
-                    val open = { if (dragId == null && System.currentTimeMillis() - dragEndedAt > 400) t.onClick() }
-                    TileCard(
-                        t, dragging, open,
-                        Modifier
-                            .offset { IntOffset(p.x.roundToInt(), p.y.roundToInt()) }
-                            .zIndex(if (dragging) 1f else 0f)
-                            .width(cellW)
-                            .height(cellH)
-                            .rise(i + 2)
-                            .onGloballyPositioned { origins[t.screen] = it.boundsInRoot() }
-                            .pointerInput(id, cellWPx, cellHPx) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = {
-                                        haptics.longPress()
-                                        dragId = id
-                                        dragOffset = Offset.Zero
-                                    },
-                                    onDrag = { change, amount ->
-                                        change.consume()
-                                        dragOffset += amount
-                                        val from = current.indexOf(id)
-                                        val center = pos(from) + dragOffset + Offset(cellWPx / 2, cellHPx / 2)
-                                        val col = (center.x / (cellWPx + gapPx)).toInt().coerceIn(0, cols - 1)
-                                        val rowCount = (current.size + cols - 1) / cols
-                                        val row = (center.y / (cellHPx + gapPx)).toInt().coerceIn(0, rowCount - 1)
-                                        val to = (row * cols + col).coerceIn(0, current.size - 1)
-                                        if (to != from) {
-                                            haptics.segment()
-                                            current = current.toMutableList().apply { add(to, removeAt(from)) }
-                                            dragOffset -= pos(to) - pos(from)
-                                        }
-                                    },
-                                    onDragEnd = { dragEndedAt = System.currentTimeMillis(); dragId = null; dragOffset = Offset.Zero; save(current) },
-                                    onDragCancel = { dragEndedAt = System.currentTimeMillis(); dragId = null; dragOffset = Offset.Zero; save(current) },
-                                )
-                            },
-                    )
+    val gap = 12.dp
+    // Hauteur des cartes : 176 dp, plus grande si le texte est agrandi dans les réglages d'Android (nom et description lisibles).
+    val cellH = 176.dp + 72.dp * (density.fontScale - 1f).coerceIn(0f, 1f)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(gap)) {
+        tiles.chunked(2).forEachIndexed { r, row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                row.forEachIndexed { c, t ->
+                    key(t.id) {
+                        TileCard(
+                            t, t.onClick,
+                            Modifier.weight(1f).height(cellH).rise(r * 2 + c + 2)
+                                // Position de la carte : la page s'ouvre en grandissant depuis elle, et y rentre au retour.
+                                .onGloballyPositioned { origins[t.screen] = it.boundsInRoot() },
+                        )
+                    }
                 }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
@@ -294,17 +244,16 @@ private fun ReorderableTiles(tiles: List<Tile>, order: List<String>, onReorder: 
 
 /** Carte d'une rubrique : conteneur de son accent, badge animé, nom et description ; légère pression au toucher. */
 @Composable
-private fun TileCard(t: Tile, dragging: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun TileCard(t: Tile, onClick: () -> Unit, modifier: Modifier) {
     val c = Cd.c
     val roles = accentRoles(t.section, c.dark)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (dragging) 1.05f else if (pressed) 0.97f else 1f, Motion.standard(), label = "cardScale")
+    val scale by animateFloatAsState(if (pressed) 0.97f else 1f, Motion.standard(), label = "cardScale")
     val shape = RoundedCornerShape(28.dp)
     Box(
         modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .shadow(if (dragging) 10.dp else 0.dp, shape, ambientColor = c.shadow, spotColor = c.shadow)
             .clip(shape)
             .background(roles.container)
             .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), onClick = onClick),
