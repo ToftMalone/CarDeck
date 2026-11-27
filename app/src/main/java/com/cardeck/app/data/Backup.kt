@@ -23,7 +23,7 @@ object Backup {
     private const val FORMAT = 1
 
     /** Tables dans l'ordre de restauration (parents avant enfants). */
-    private val TABLES = listOf("vehicles", "trips", "trip_points", "trip_samples", "scans", "scan_codes", "coding_backups")
+    private val TABLES = listOf("vehicles", "trips", "trip_points", "trip_samples", "scans", "scan_codes", "coding_backups", "perf_runs")
 
     /** [codingSkipped] : codages d'origine présents dans le fichier mais non restaurés (sauvegarde non liée à cet appareil). */
     class Summary(val vehicles: Int, val trips: Int, val codingSkipped: Int = 0)

@@ -139,6 +139,7 @@ fun sectionOf(s: Screen): Section? = when (s) {
     Screen.Dash -> Section.Dash
     Screen.ObdData -> Section.Obd
     Screen.Explorer -> Section.Explorer
+    Screen.Perf -> Section.Perf
     Screen.Diag, is Screen.Dtc, Screen.Coding -> Section.Diag
     Screen.Trips, is Screen.Trip -> Section.Trips
     Screen.Settings, Screen.Changelog, Screen.About, is Screen.EditVehicle -> Section.Settings
@@ -329,6 +330,7 @@ private fun ScreenContent(vm: AppViewModel, screen: Screen) {
         Screen.Changelog -> ChangelogScreen(vm)
         Screen.About -> AboutScreen(vm)
         Screen.Explorer -> com.cardeck.app.screens.ExplorerScreen(vm)
+        Screen.Perf -> com.cardeck.app.screens.PerfScreen(vm)
     }
 }
 

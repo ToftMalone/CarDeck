@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.Troubleshoot
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.LocalContentColor
 import com.cardeck.app.ui.Text
 import androidx.compose.runtime.Composable
@@ -133,6 +134,7 @@ fun HomeScreen(vm: AppViewModel) {
         Tile("obd", "Données OBD2", "Toutes les valeurs que le moteur sait donner", Icons.Rounded.Memory, Section.Obd, Screen.ObdData, { vm.go(Screen.ObdData) }),
         Tile("diag", "Diagnostic", "Codes défaut, effacement et contrôle technique", Icons.Rounded.Troubleshoot, Section.Diag, Screen.Diag, { vm.go(Screen.Diag) }, if (codes > 0) codes.toString() else ""),
         Tile("trips", "Trajets", "Tracés, consommation et coût de chaque trajet", Icons.Rounded.Route, Section.Trips, Screen.Trips, { vm.go(Screen.Trips) }),
+        Tile("perf", "Performances", "0 à 100 km/h, reprise de 80 à 120 et 400 m chronométrés", Icons.Rounded.Timer, Section.Perf, Screen.Perf, { vm.go(Screen.Perf) }),
         Tile("contribution", "Contribution", "Explorez votre voiture et aidez à l'intégrer dans CarDeck", Icons.Rounded.VolunteerActivism, Section.Explorer, Screen.Explorer, { vm.go(Screen.Explorer) }),
     )
     Column(Modifier.fillMaxSize().background(c.sf)) {
@@ -306,6 +308,17 @@ private fun TileIcon(t: Tile, roles: AccentRoles) {
             Box(Modifier.size(48.dp).spinning(rememberSpin(30_000)).clip(RoundedCornerShape(18.dp)).background(roles.accent))
             PulseRing(roles.accent, 40.dp, periodMs = 2400)
             Ico(t.icon, 28, roles.onAccent)
+        }
+        Section.Perf -> {
+            // Chrono : cadran en pointillés qui tourne vite autour du badge.
+            val spin = rememberSpin(3_000)
+            val dash = remember { PathEffect.dashPathEffect(floatArrayOf(4f, 10f)) }
+            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                ShapeBadge(t.icon, cookieShape(), 46.dp, roles.accent, roles.onAccent, 26.dp, spinMs = 24_000, reverse = true)
+                Canvas(Modifier.size(56.dp).spinning(spin)) {
+                    drawCircle(roles.accent, size.minDimension / 2 - 1.dp.toPx(), style = Stroke(2.dp.toPx(), pathEffect = dash))
+                }
+            }
         }
         Section.Explorer -> Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
             PulseRing(roles.accent, 44.dp, periodMs = 1600)

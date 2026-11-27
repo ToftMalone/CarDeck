@@ -14,7 +14,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** Version du schéma de la base (sauvegardes comprises). */
-const val DB_VERSION = 8
+const val DB_VERSION = 9
 
 /** Efface les mesures de données que CarDeck ne lit plus (celles absentes des catalogues actuels). */
 fun purgeRemovedPids(db: SQLiteDatabase) {
@@ -48,6 +48,7 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         createSampleTables(db)
         addFuelColumns(db)
         addWheelspins(db)
+        createPerfTable(db)
         db.execSQL("CREATE TABLE scan_codes(scan_id INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE, code TEXT NOT NULL, status TEXT NOT NULL, ecu TEXT NOT NULL)")
     }
 
@@ -58,6 +59,16 @@ private class DbHelper(ctx: Context) : SQLiteOpenHelper(ctx, "cardeck.db", null,
         if (oldVersion < 6) purgeRemovedPids(db)
         if (oldVersion < 7) addCodingVin(db)
         if (oldVersion < 8) addWheelspins(db)
+        if (oldVersion < 9) createPerfTable(db)
+    }
+
+    /** Chronos de la page Performances (0 à 100, 80 à 120, 400 m). */
+    private fun createPerfTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE perf_runs(id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+               kind TEXT NOT NULL, t INTEGER NOT NULL, time_ms INTEGER NOT NULL, trap_kmh REAL, hz REAL NOT NULL DEFAULT 0)""",
+        )
+        db.execSQL("CREATE INDEX perf_runs_vehicle ON perf_runs(vehicle_id)")
     }
 
     /** Nombre de patinages des roues pendant le trajet. */
@@ -176,6 +187,33 @@ class Repo(ctx: Context) {
             putNull("adapter_transport"); putNull("adapter_address"); putNull("adapter_name")
         }, "id=?", arrayOf(id.toString()))
         reloadVehicles()
+    }
+
+    // ---- Performances ----
+
+    fun addPerfRun(vehicleId: Long, kind: PerfKind, at: Long, timeMs: Long, trapKmh: Double?, hz: Double): Long {
+        val id = db.insertOrThrow("perf_runs", null, ContentValues().apply {
+            put("vehicle_id", vehicleId); put("kind", kind.name); put("t", at); put("time_ms", timeMs); put("trap_kmh", trapKmh); put("hz", hz)
+        })
+        bump()
+        return id
+    }
+
+    /** Chronos d'un véhicule, les plus récents d'abord (épreuves inconnues ignorées). */
+    fun perfRuns(vehicleId: Long): List<PerfRun> =
+        db.rawQuery("SELECT * FROM perf_runs WHERE vehicle_id=? ORDER BY t DESC", arrayOf(vehicleId.toString())).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    val kind = PerfKind.of(c.str("kind")) ?: continue
+                    val trap = c.getColumnIndexOrThrow("trap_kmh").let { if (c.isNull(it)) null else c.getDouble(it) }
+                    add(PerfRun(c.long("id"), c.long("vehicle_id"), kind, c.long("t"), c.long("time_ms"), trap, c.dbl("hz")))
+                }
+            }
+        }
+
+    fun deletePerfRun(id: Long) {
+        db.delete("perf_runs", "id=?", arrayOf(id.toString()))
+        bump()
     }
 
     fun deleteVehicle(id: Long) {

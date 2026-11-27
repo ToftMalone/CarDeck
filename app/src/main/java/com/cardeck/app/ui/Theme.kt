@@ -132,7 +132,7 @@ val NeutralDark = RoseDark.copy(
 data class AccentRoles(val accent: Color, val onAccent: Color, val container: Color, val onContainer: Color)
 
 /** Rubriques de CarDeck : chacune a sa couleur, comme chaque réseau d'All Radio Tools. */
-enum class Section { Dash, Obd, Diag, Trips, Adapter, Settings, Explorer }
+enum class Section { Dash, Obd, Diag, Trips, Adapter, Settings, Explorer, Perf }
 
 private val AccentsLight = mapOf(
     Section.Dash to AccentRoles(Color(0xFF3A5BA9), Color.White, Color(0xFFDAE2FF), Color(0xFF001946)),
@@ -142,6 +142,7 @@ private val AccentsLight = mapOf(
     Section.Adapter to AccentRoles(Color(0xFF9A4521), Color.White, Color(0xFFFFDBCE), Color(0xFF370E00)),
     Section.Settings to AccentRoles(Color(0xFF7F5700), Color.White, Color(0xFFFFDEA6), Color(0xFF281800)),
     Section.Explorer to AccentRoles(Color(0xFF5E4DB2), Color.White, Color(0xFFE6DEFF), Color(0xFF1A0063)),
+    Section.Perf to AccentRoles(Color(0xFF984061), Color.White, Color(0xFFFFD9E2), Color(0xFF3E001D)),
 )
 
 private val AccentsDark = mapOf(
@@ -152,6 +153,7 @@ private val AccentsDark = mapOf(
     Section.Adapter to AccentRoles(Color(0xFFFFB599), Color(0xFF5A1C00), Color(0xFF7B2E0B), Color(0xFFFFDBCE)),
     Section.Settings to AccentRoles(Color(0xFFF8BD49), Color(0xFF432C00), Color(0xFF604100), Color(0xFFFFDEA6)),
     Section.Explorer to AccentRoles(Color(0xFFCBBEFF), Color(0xFF2F1A83), Color(0xFF46339A), Color(0xFFE6DEFF)),
+    Section.Perf to AccentRoles(Color(0xFFFFB1C8), Color(0xFF5E1133), Color(0xFF7B2949), Color(0xFFFFD9E2)),
 )
 
 fun accentRoles(section: Section, dark: Boolean): AccentRoles = (if (dark) AccentsDark else AccentsLight).getValue(section)

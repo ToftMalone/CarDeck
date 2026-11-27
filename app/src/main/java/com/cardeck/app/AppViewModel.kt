@@ -42,6 +42,7 @@ sealed interface Screen {
     data object Changelog : Screen
     data object About : Screen
     data object Explorer : Screen
+    data object Perf : Screen
     /** Modification d'un véhicule du garage : nom, immatriculation, année, modèle et boîtier OBD2. */
     data class EditVehicle(val id: Long) : Screen
     /** Choix d'un autre modèle pour un véhicule du garage (même sélecteur que pour un nouveau véhicule). */

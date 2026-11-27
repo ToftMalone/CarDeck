@@ -100,6 +100,12 @@ times, places, distance, speeds, fuel used, consumption, price, cost) and a tota
 In the history, a long press on a trip starts **multi-selection**: you can **merge** several trips into one (end to end, track and data
 included) or **delete** them.
 
+### ⏱️ Performance
+Timed runs using the speed read from the car: **0 to 100 km/h**, **80 to 120 km/h** (rolling start) and **400 m standing start**
+(with the speed at the line). While the page is open, CarDeck reads only the speed, as fast as the adapter allows, and the start and
+finish are interpolated between two readings; the number of readings per second is shown, as it sets the accuracy. Each successful
+run is saved per vehicle, with the best time of each test. Only on a track or a road closed to traffic.
+
 ### ⏰ Automatic wake-up
 For each vehicle, you choose whether CarDeck wakes up when the phone connects over Bluetooth to your car's head unit, or never
 (you then open the app yourself). For the wake-up to work, Android must let CarDeck ignore battery optimisation: the app asks you
@@ -183,7 +189,3 @@ CarDeck works with an **ELM327** adapter over **classic Bluetooth**, **Bluetooth
 
 Download the APK of the latest version from the [releases](https://github.com/ToftMalone/CarDeck/releases) and install it on your
 Android phone (8.0 or newer).
-
-## Support CarDeck ☕
-
-CarDeck is free. If you find it useful, you can support its development on [Ko-fi](https://ko-fi.com/toftmalone).

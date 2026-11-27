@@ -253,6 +253,17 @@ class TripService : Service() {
             return true
         }
 
+        // Page Performances : la vitesse seule, au plus vite, pendant 1,5 s (le régime une fois sur 5, pour suivre le moteur).
+        if (obd.perfMode) {
+            val speed = all.filter { it.id == "std0D" && it.can == null && it.header == null }
+            val withRpm = all.filter { (it.id == "std0D" || it.id == "std0C") && it.can == null && it.header == null }
+            if (speed.isNotEmpty()) {
+                val end = System.currentTimeMillis() + 1500
+                var k = 0
+                while (obd.perfMode && System.currentTimeMillis() < end) if (!read(if (k++ % 5 == 0) withRpm else speed)) return
+                return
+            }
+        }
         if (!read(hot)) return
         for (chunk in chunks) {
             if (!read(chunk.flatten())) return

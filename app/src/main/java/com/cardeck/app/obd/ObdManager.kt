@@ -38,8 +38,17 @@ class ObdManager(private val ctx: Context) {
     val live = MutableStateFlow<Map<String, Double>>(emptyMap())
 
     fun publish(values: List<Pair<String, Double>>) {
-        if (values.isNotEmpty()) live.value = live.value + values
+        if (values.isEmpty()) return
+        live.value = live.value + values
+        // Vitesse horodatée à la réception (horloge monotone), pour les chronos de la page Performances.
+        values.firstOrNull { it.first == "std0D" }?.let { speedSamples.tryEmit(android.os.SystemClock.elapsedRealtime() to it.second) }
     }
+
+    /** Chaque vitesse lue (instant en ms sur l'horloge monotone, km/h). */
+    val speedSamples = kotlinx.coroutines.flow.MutableSharedFlow<Pair<Long, Double>>(extraBufferCapacity = 256)
+
+    /** Page Performances ouverte : le service ne lit plus que la vitesse (et le régime de temps en temps), le plus vite possible. */
+    @Volatile var perfMode = false
 
     /** Tant que l'appelant est actif (écran affiché), s'assure que le service lit les données en permanence. */
     suspend fun keepReading() {
