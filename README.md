@@ -103,8 +103,6 @@ If you open the app without driving, it also goes to sleep after 5 minutes witho
 For each trip: GPS track on an OpenStreetMap map, distance, durations, speeds, **average fuel consumption**, **trip cost** (at the
 day's fuel price near the destination, from prix-carburants.gouv.fr, so in France only for now; fuel type chosen per vehicle), plus
 the engine data recorded along the way.
-🛞 **Wheelspins**: each trip also counts how many times the driven wheels spun (the speed climbing faster than the car can actually
-accelerate), shown with the duration and distance, and added up when trips are merged.
 Drag the trip panel with your finger to make more room for the map or the data.
 You can replay a trip, filter the history by period and **export** a full trip (summary, GPX track, CSV data).
 The **history** can also be exported in one go for a spreadsheet (Excel, LibreOffice): one row per trip in the chosen period (date,
